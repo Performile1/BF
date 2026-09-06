@@ -1,0 +1,6 @@
+{
+  "name": "Booster Friends",
+  "description": "Master Kravspecifikation & Designsystem – Digital medlemsportal med My Booster Pipeline (CRM), Gamification & Hub Battle, Executive Academy, certifikat och Bento Grid.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
