@@ -27,8 +27,7 @@ interface HeaderProps {
   selectedHub: Hub;
   allHubs: Hub[];
   onSelectHub: (hub: Hub) => void;
-  deviceMode: 'desktop' | 'ios' | 'android';
-  setDeviceMode: (mode: 'desktop' | 'ios' | 'android') => void;
+  
   unreadNotificationsCount: number;
   onOpenNotifications?: () => void;
   onOpenCheckInModal: () => void;
@@ -117,14 +116,14 @@ export const Header: React.FC<HeaderProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-lg sm:text-xl font-extrabold tracking-tight text-[#800020] uppercase font-display">
-                  Booster Friends <span className="text-gray-400 font-light ml-1">V3</span>
+                  Booster  <span className="text-gray-400 font-light ml-1">Friends</span>
                 </h1>
                 <span className="hidden xl:inline-flex text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-gray-100 text-gray-600 border border-gray-200">
                   Bento Edition
                 </span>
               </div>
               <p className="text-xs text-gray-500 hidden sm:block">
-                Nordens ledande nätverks- & tillväxtportal
+              
               </p>
             </div>
           </div>
@@ -172,50 +171,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Right Actions: Device Preview Switcher, Architecture & Profile */}
           <div className="flex items-center gap-2 sm:gap-3">
             
-            {/* Device Switcher for Stakeholders & UI Prototype Presentation */}
-            <div className="flex items-center bg-[#F4F5F7] p-1 rounded-xl border border-gray-200">
-              <button
-                onClick={() => setDeviceMode('desktop')}
-                title="Desktop Webbportal"
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
-                  deviceMode === 'desktop'
-                    ? 'bg-white text-[#800020] shadow-xs'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-                id="btn-desktop-view"
-              >
-                <Monitor className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Webb</span>
-              </button>
-              <button
-                onClick={() => setDeviceMode('ios')}
-                title="Mobilvy: Apple iOS Simulator"
-                className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold transition ${
-                  deviceMode === 'ios'
-                    ? 'bg-white text-[#800020] shadow-xs'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-                id="btn-ios-view"
-              >
-                <Smartphone className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">iOS</span>
-              </button>
-              <button
-                onClick={() => setDeviceMode('android')}
-                title="Mobilvy: Android Simulator"
-                className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold transition ${
-                  deviceMode === 'android'
-                    ? 'bg-white text-[#800020] shadow-xs'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-                id="btn-android-view"
-              >
-                <Smartphone className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Android</span>
-              </button>
-            </div>
-
-            {/* Smart Check-in quick button */}
+            
             <button
               onClick={onOpenCheckInModal}
               className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition"
@@ -226,16 +182,7 @@ export const Header: React.FC<HeaderProps> = ({
               <span>Hubb Incheckning</span>
             </button>
 
-            {/* Architecture Spec & DB Schema Button */}
-            <button
-              onClick={onOpenArchitectureSpec}
-              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold text-[#800020] bg-[#800020]/10 hover:bg-[#800020]/15 border border-[#800020]/20 transition"
-              title="Visa PostgreSQL Schema V3 & API Specifikation"
-              id="btn-spec-schema"
-            >
-              <Layers className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">SQL & API Spec</span>
-            </button>
+            
 
             {/* Booster Score Badge */}
             <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold">

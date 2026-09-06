@@ -18,17 +18,17 @@ import {
 } from '../types';
 
 export const CURRENT_USER: Member = {
-  id: 'usr_johan_lindberg',
-  full_name: 'Johan Lindberg',
-  email: 'johan.lindberg@cloudnordic.se',
-  phone: '+46 70 812 34 56',
-  company_name: 'CloudNordic AB',
+  id: 'usr_rickard_wigrund',
+  full_name: 'Rickard Wigrund',
+  email: 'rickard@wigrund.se',
+  phone: '+46 70 488 55 62',
+  company_name: 'inCtrl .inc',
   role_title: 'VD & Grundare',
   membership_level: 'GOLD',
   booster_score: 890,
   hub_id: 'hub_stockholm',
   hub_name: 'Hubb Stockholm City',
-  avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+  avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
   bio: 'Bygger nästa generations molnsäkerhet för nordiska tillväxtbolag. Aktiv medlem sedan 2023, passionerad för B2B-tillväxt och strategiska partnerskap.',
   seeking_tags: ['Serie A Investerare', 'Avtalsjuridik & M&A', 'Enterprise Säljchefer'],
   offering_tags: ['Molninfrastruktur', 'Cybersäkerhet', 'SaaS Skalning', 'Styrelsearbete'],
