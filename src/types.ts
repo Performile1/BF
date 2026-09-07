@@ -1,6 +1,14 @@
 export type MembershipLevel = 'BRONZE' | 'SILVER' | 'GOLD';
 
+export type MainTabKey = 
+  | 'home' 
+  | 'hub_events' 
+  | 'community_network' 
+  | 'academy_resources' 
+  | 'business_profile';
+
 export type TabKey = 
+  | MainTabKey
   | 'overview' 
   | 'calendar'
   | 'coworking'
@@ -14,6 +22,11 @@ export type TabKey =
   | 'events' 
   | 'skills' 
   | 'benefits' 
+  | 'community'
+  | 'blog'
+  | 'directory'
+  | 'profile_settings'
+  | 'admin'
   | 'architecture';
 
 export interface Member {
@@ -38,6 +51,63 @@ export interface Member {
   reviews_count: number;
   created_at: string;
   is_online?: boolean;
+  is_admin?: boolean;
+  linkedin_url?: string;
+  website_url?: string;
+  target_audience?: string;
+  interest_tags?: string[];
+  interests?: string[];
+  linkedin_posts?: { title: string; url: string; date: string }[];
+  following_member_ids?: string[];
+  give_take_ratio?: number;
+  linked_posts?: {
+    id: string;
+    title: string;
+    snippet: string;
+    likes_count: number;
+    url: string;
+  }[];
+}
+
+export interface AdminBanner {
+  id: string;
+  title: string;
+  image_url: string;
+  target_url: string;
+  placement: 'FEED_TOP' | 'CALENDAR_SIDEBAR' | 'HUB_HEADER';
+  is_active: boolean;
+}
+
+export interface LunchRequest {
+  id: string;
+  sender_id: string;
+  sender_name?: string;
+  sender_avatar?: string;
+  sender_company?: string;
+  receiver_id: string;
+  receiver_name?: string;
+  receiver_avatar?: string;
+  proposed_date: string;
+  location: string;
+  host_pays: boolean;
+  status: 'PENDING' | 'ACCEPTED' | 'DECLINED';
+  note?: string;
+  created_at?: string;
+}
+
+export interface EventRecap {
+  event_id: string;
+  recap_text: string;
+  gallery_images: string[];
+  average_rating: number;
+  reviews: {
+    member_id: string;
+    rating: number;
+    comment: string;
+    member_name?: string;
+    member_avatar?: string;
+    created_at?: string;
+  }[];
 }
 
 export interface Hub {
@@ -203,7 +273,7 @@ export type ActivityType =
   | 'INTRO_3WAY'          // +40 BP
   | 'INTRO_3_WAY'         // +40 BP alias
   | 'INTRO_MADE'          // +40 BP
-  | 'DEAL_WON'            // +100 BP
+  | 'DEAL_WON'            // Scaled based on deal value (+30, +75, +150, +300 BP)
   | 'WEBINAR_ATTEND'      // +15 BP
   | 'SKILL_ENDORSEMENT'   // +10 BP
   | 'GUEST_PASS_ATTEND'   // +50 BP
@@ -216,12 +286,22 @@ export type ActivityType =
   | 'HUB_CHECK_IN'        // +30 BP
   | 'HUB_GEO_CHECKIN'     // +30 BP
   | 'LUNCH_A_FRIEND'      // +20 BP
+  | 'LUNCH_HOST_INVITE'   // +30 BP ("Jag bjuder på lunchen")
   | 'PROMO_REDEEMED'      // +20 BP
   | 'TRIAL_PASS_CREATED'  // +10 BP
   | 'TRIAL_PASS_REDEEMED' // +50 BP
   | 'TRIAL_GUEST_CHECKIN' // +50 BP
   | 'REFERRAL_SENT'       // +15 BP
-  | 'EVENT_INVITE_SENT';  // +15 BP
+  | 'EVENT_INVITE_SENT'   // +15 BP
+  | 'P2P_TIP_SENT'        // Sent from monthly allowance (0 score deducted)
+  | 'P2P_TIP_RECEIVED'    // +10 / +25 / +50 BP received from peer
+  | 'EVENT_REVIEW_SUBMITTED' // +10 BP (+20 BP if within 24 hours)
+  | 'MEMBER_REVIEW_5STAR' // +25 BP
+  | 'UNIVERSAL_QR_CONNECT' // +20 BP
+  | 'AI_INTRO_REQUEST'    // +40 BP
+  | 'PROFILE_FOLLOW'      // +5 BP
+  | 'PROFILE_UPDATE'      // +15 BP
+  | 'REWARD_REDEEMED';    // Negative points cost (e.g. -250 BP)
 
 export interface BoosterScoreLog {
   id: string;
@@ -232,6 +312,60 @@ export interface BoosterScoreLog {
   description?: string;
   created_at: string;
   reference_id?: string;
+  verification_method?: 'QR' | 'TWO_WAY' | 'GEO' | 'WARM_INTRO' | 'SYSTEM' | 'P2P';
+  multiplier_applied?: number;
+  base_points?: number;
+}
+
+export interface P2PPointTransfer {
+  id: string;
+  sender_id: string;
+  sender_name: string;
+  sender_avatar?: string;
+  receiver_id: string;
+  receiver_name: string;
+  receiver_avatar?: string;
+  points: number; // e.g. 10, 25, 50
+  message: string;
+  created_at: string;
+}
+
+export interface P2PAllowance {
+  member_id: string;
+  monthly_allowance: number; // 100 BP default
+  used_allowance: number;
+  reset_date: string;
+}
+
+export interface GiveTakeMetrics {
+  give_count: number;
+  take_count: number;
+  ratio: number; // give / take
+  status: 'GENEROUS' | 'BALANCED' | 'CONSUMER';
+  multiplier: number; // 1.25, 1.0, or 0.75
+  give_breakdown: {
+    intros_sent: number;
+    skill_endorsements: number;
+    desk_swaps_lent: number;
+    guest_passes_invited: number;
+    lunch_hosted: number;
+  };
+  take_breakdown: {
+    deals_received: number;
+    intros_received: number;
+    coworking_desks_used: number;
+  };
+}
+
+export interface RewardShopItem {
+  id: string;
+  title: string;
+  description: string;
+  points_cost: number;
+  category: 'FLEX_PASS' | 'WEBINAR_HOST' | 'STAGE_PITCH' | 'COURSE_DISCOUNT';
+  icon: string;
+  is_available: boolean;
+  action_label: string;
 }
 
 export interface Course {
@@ -405,6 +539,25 @@ export interface EventInvitation {
   created_at: string;
 }
 
+export interface EventGalleryImage {
+  id: string;
+  url: string;
+  caption: string;
+  author_name: string;
+  author_avatar?: string;
+}
+
+export interface EventReview {
+  id: string;
+  member_id: string;
+  member_name: string;
+  member_avatar: string;
+  rating: number;
+  review_text: string;
+  created_at: string;
+  is_verified?: boolean;
+}
+
 export interface MasterCalendarEvent {
   id: string;
   title: string;
@@ -432,6 +585,44 @@ export interface MasterCalendarEvent {
   free_invites_allowed_level?: MembershipLevel; // Miniminivå för fri inbjudan (default 'GOLD')
   free_invites_quota?: number;            // Antal fria gäster per behörig medlem (t.ex. 2 st)
   invitations?: EventInvitation[];
+  // V9 Past Event & Community Expansion
+  is_past?: boolean;
+  recap_text?: string;
+  gallery_images?: EventGalleryImage[];
+  event_reviews?: EventReview[];
+  rating_avg?: number;
+  reviews_count?: number;
+  impact_stats?: {
+    meetings_count: number;
+    intros_count: number;
+    deals_sek?: number;
+  };
+  checked_in_members?: CalendarAttendee[];
+  is_member_created?: boolean;
+  creator_member_id?: string;
+  creator_member_name?: string;
+  creator_member_avatar?: string;
+  creator_member_level?: MembershipLevel;
+  platform_fee_percent?: number;
+  video_highlight_url?: string;
+}
+
+export interface LunchInvitation {
+  id: string;
+  sender_member_id: string;
+  sender_name: string;
+  sender_avatar: string;
+  sender_company: string;
+  receiver_member_id: string;
+  receiver_name: string;
+  receiver_avatar?: string;
+  location_name: string;
+  proposed_date: string;
+  invitation_type: 'LUNCH' | 'COFFEE' | 'MEETING';
+  host_pays: boolean; // "Jag bjuder på lunchen!"
+  status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'COMPLETED';
+  notes?: string;
+  created_at: string;
 }
 
 export interface CoworkingDeskBooking {
@@ -589,4 +780,167 @@ export interface FlashDeal {
   location: string;
   remaining_deals: number;
   claimed_by_user?: boolean;
+}
+
+// V10 Intro-AI, Network Graph, Micro-Hubs & Cadence Follow-up
+export interface IntroRequest {
+  id: string;
+  author_id: string;
+  author_name: string;
+  author_avatar: string;
+  author_company: string;
+  author_role: string;
+  target_role_or_company: string; // T.ex. "Inköpschef på Bolag Y"
+  description: string;
+  bounty_bp: number; // T.ex. 50
+  status: 'OPEN' | 'IN_PROGRESS' | 'FULFILLED';
+  connector_member_id?: string;
+  connector_member_name?: string;
+  created_at: string;
+  comments_count: number;
+}
+
+export interface NetworkGraphNode {
+  id: string;
+  member_id: string;
+  full_name: string;
+  company_name: string;
+  avatar: string;
+  role: string;
+  introduced_by_id?: string;
+  introduced_by_name?: string;
+  is_trust_circle: boolean; // Ambassadör / Nyckelkontakt
+  deals_generated_sek?: number;
+  connection_tier: 1 | 2 | 3;
+}
+
+export interface MicroHubGroup {
+  id: string;
+  title: string;
+  category: string;
+  description: string;
+  city?: string;
+  icon_name?: string;
+  member_count: number;
+  is_member: boolean;
+  is_exclusive_gold: boolean;
+  lead_member_name: string;
+  upcoming_mini_event?: string;
+}
+
+export interface SpeedNetworkingMatch {
+  round_number: number;
+  partner_id: string;
+  partner_name: string;
+  partner_company: string;
+  partner_role: string;
+  partner_avatar: string;
+  matching_synergy: string;
+  duration_minutes: number;
+  timer_seconds: number;
+  is_active: boolean;
+  meeting_link: string;
+}
+
+// V11 & V12 Community, Blog, Weighted Upvotes & Following
+export type CommunityPostType = 'FORUM_THREAD' | 'ARTICLE' | 'LINKEDIN_EMBED' | 'POLL';
+
+export interface CommunityPollOption {
+  id: string;
+  text: string;
+  votes: number;
+  has_voted?: boolean;
+}
+
+export interface PostComment {
+  id: string;
+  post_id: string;
+  author_id: string;
+  author_name: string;
+  author_avatar: string;
+  author_company: string;
+  author_level: MembershipLevel;
+  content: string;
+  upvotes: number;
+  has_upvoted: boolean;
+  is_best_answer: boolean; // Trådskaparen markerar (+25 BP)
+  created_at: string;
+}
+
+export interface CommunityPost {
+  id: string;
+  author_id: string;
+  author_name: string;
+  author_avatar: string;
+  author_company: string;
+  author_role: string;
+  author_level: MembershipLevel;
+  author_booster_score: number;
+  post_type: CommunityPostType;
+  category: 'ALLMANT' | 'AFFARER_LEADS' | 'FRAGA_EXPERTERNA' | 'VERKTYG_TIPS' | 'LOKALT_HUBBEN';
+  title: string;
+  content: string;
+  image_url?: string;
+  linkedin_post_url?: string;
+  linkedin_preview?: {
+    author: string;
+    headline: string;
+    text: string;
+    likes_count: number;
+    embed_date: string;
+  };
+  poll_options?: CommunityPollOption[];
+  tags: string[];
+  upvotes_count: number;
+  weighted_score: number;
+  has_upvoted: boolean;
+  comments_count: number;
+  comments?: PostComment[];
+  is_best_answer_awarded?: boolean;
+  created_at: string;
+  read_time_min?: number;
+  is_featured?: boolean;
+}
+
+export interface MemberFollow {
+  follower_id: string;
+  following_id: string;
+  created_at: string;
+}
+
+// V11 Admin Panel
+export interface AdminKpiStats {
+  total_members: number;
+  bronze_count: number;
+  silver_count: number;
+  gold_count: number;
+  total_pipeline_deal_value_sek: number;
+  active_monthly_checkins: number;
+  monthly_churn_rate_percent: number;
+}
+
+export interface BannerAd {
+  id: string;
+  title: string;
+  advertiser_name: string;
+  placement: 'FEED_TOP' | 'CALENDAR_SIDEBAR' | 'HUB_PORTAL';
+  image_url: string;
+  target_url: string;
+  is_active: boolean;
+  impressions_count: number;
+  clicks_count: number;
+}
+
+export interface AdminMemberApplication {
+  id: string;
+  applicant_name: string;
+  company_name: string;
+  org_number: string;
+  email: string;
+  phone: string;
+  hub_requested: string;
+  requested_level: MembershipLevel;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  applied_at: string;
+  financial_score: string;
 }

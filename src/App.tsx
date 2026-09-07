@@ -53,6 +53,9 @@ import { AcademyModule } from './components/academy/AcademyModule';
 import { MasterCalendarModule } from './components/calendar/MasterCalendarModule';
 import { CoworkingHubsModule } from './components/coworking/CoworkingHubsModule';
 import { PromoAndTrialsModule } from './components/promos/PromoAndTrialsModule';
+import { CommunityAndBlogModule } from './components/community/CommunityAndBlogModule';
+import { AdminPortalModule } from './components/admin/AdminPortalModule';
+import { ProfileSettingsAndDirectoryModule } from './components/profile/ProfileSettingsAndDirectoryModule';
 import {
   MasterCalendarEvent,
   CoworkingDeskBooking,
@@ -60,7 +63,8 @@ import {
   DeskSwap,
   PromoCode,
   FreeTrialPass,
-  MemberCoworkingCredits
+  MemberCoworkingCredits,
+  LunchRequest
 } from './types';
 import {
   INITIAL_MASTER_EVENTS,
@@ -103,7 +107,10 @@ import {
   QrCode,
   Bell,
   Briefcase,
-  Layers
+  Layers,
+  BookOpen,
+  Shield,
+  User
 } from 'lucide-react';
 import { formatSek } from './utils/calendar';
 
@@ -111,7 +118,7 @@ export default function App() {
   // Application State
   const [currentUser, setCurrentUser] = useState<Member>(INITIAL_MEMBERS[0]);
   const [selectedHub, setSelectedHub] = useState<Hub>(INITIAL_HUBS[0]);
-  const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
+  const [activeTab, setActiveTab] = useState<string>('overview');
   const [deviceMode, setDeviceMode] = useState<'desktop' | 'ios' | 'android'>('desktop');
   const [quickChatInput, setQuickChatInput] = useState('');
 
@@ -120,6 +127,70 @@ export default function App() {
   const [showMobileMoreMenu, setShowMobileMoreMenu] = useState(false);
   const [showMobileNotifications, setShowMobileNotifications] = useState(false);
   const [activeFabAction, setActiveFabAction] = useState<'MEETING' | 'INTRO' | 'FLEX' | 'DEAL' | null>(null);
+  const [qrModalMember, setQrModalMember] = useState<Member | null>(null);
+
+  // V12 Lunch Requests & Follow State
+  const [lunchRequests, setLunchRequests] = useState<LunchRequest[]>([
+    {
+      id: 'lunch_1',
+      sender_id: 'usr_sofia_eklund',
+      sender_name: 'Sofia Eklund',
+      sender_avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+      sender_company: 'Eklund & Partners Advokatbyrå',
+      receiver_id: 'usr_rickard_wigrund',
+      receiver_name: 'Rickard Wigrund',
+      receiver_avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      proposed_date: '2026-09-15',
+      location: 'Convendum Stockholm City Lounge',
+      host_pays: true,
+      status: 'PENDING',
+      note: 'Hej Rickard! Skulle gärna ta en 1-on-1 lunch och prata om era nya cybersäkerhetsavtal. Jag bjuder!'
+    }
+  ]);
+
+  const handleFollowToggle = (targetMemberId: string) => {
+    const currentFollowing = currentUser.following_member_ids || [];
+    const isFollowing = currentFollowing.includes(targetMemberId);
+    const updatedFollowing = isFollowing
+      ? currentFollowing.filter(id => id !== targetMemberId)
+      : [...currentFollowing, targetMemberId];
+
+    setCurrentUser(prev => ({
+      ...prev,
+      following_member_ids: updatedFollowing
+    }));
+    setMembers(prev => prev.map(m => m.id === currentUser.id ? { ...m, following_member_ids: updatedFollowing } : m));
+
+    if (!isFollowing) {
+      handleAwardPoints(5, 'Följt en medlem i nätverket', 'PROFILE_FOLLOW');
+    }
+  };
+
+  const handleUpdateProfile = (updatedData: Partial<Member>) => {
+    setCurrentUser(prev => ({ ...prev, ...updatedData }));
+    setMembers(prev => prev.map(m => m.id === currentUser.id ? { ...m, ...updatedData } : m));
+    handleAwardPoints(15, 'Uppdaterat profil och kompetenser', 'PROFILE_UPDATE');
+  };
+
+  const handleSendLunchRequest = (request: Partial<LunchRequest>) => {
+    const fullRequest: LunchRequest = {
+      id: `lunch_${Date.now()}`,
+      sender_id: currentUser.id,
+      sender_name: currentUser.full_name,
+      sender_avatar: currentUser.avatar,
+      sender_company: currentUser.company_name,
+      receiver_id: request.receiver_id || 'usr_3',
+      receiver_name: request.receiver_name || 'Medlem',
+      receiver_avatar: request.receiver_avatar || '',
+      proposed_date: request.proposed_date || new Date().toISOString().split('T')[0],
+      location: request.location || 'Convendum Lounge',
+      host_pays: request.host_pays ?? true,
+      status: 'PENDING',
+      note: request.note,
+      created_at: new Date().toISOString()
+    };
+    setLunchRequests(prev => [fullRequest, ...prev]);
+  };
 
   // Quick Action Form states
   const [fabMeetingPartner, setFabMeetingPartner] = useState(INITIAL_MEMBERS[1].full_name);
@@ -429,6 +500,13 @@ export default function App() {
       id: 'deal_' + Date.now()
     };
     setPipelineItems(prev => [item, ...prev]);
+  };
+
+  const handleUpdateMemberLevel = (memberId: string, level: 'BRONZE' | 'SILVER' | 'GOLD') => {
+    setMembers(prev => prev.map(m => m.id === memberId ? { ...m, membership_level: level } : m));
+    if (currentUser.id === memberId) {
+      setCurrentUser(prev => ({ ...prev, membership_level: level }));
+    }
   };
 
   // Skills & Review Actions
@@ -1091,13 +1169,18 @@ export default function App() {
               {showMobileMoreMenu && (
                 <div className="bg-white border-b border-gray-200 p-3 shadow-md z-20 grid grid-cols-4 gap-2 text-center text-[10px] animate-in slide-in-from-top-2 duration-150">
                   {[
+                    { id: 'community', label: 'Community', icon: Users },
+                    { id: 'directory', label: 'Register', icon: Users },
+                    { id: 'blog', label: 'Blogg', icon: BookOpen },
+                    { id: 'matchmaking', label: 'Matchmaking', icon: Sparkles },
                     { id: 'chat', label: 'Chatt', icon: Send, badge: unreadChatCount },
                     { id: 'gamification', label: 'Scoreboard', icon: Trophy },
                     { id: 'academy', label: 'Academy', icon: GraduationCap },
-                    { id: 'matchmaking', label: 'Matchmaking', icon: Sparkles },
                     { id: 'webinars', label: 'Webinars', icon: Video },
                     { id: 'promos', label: 'Kampanjer', icon: Tag },
                     { id: 'benefits', label: 'Förmåner', icon: Gift },
+                    { id: 'profile_settings', label: 'Min Profil', icon: User },
+                    { id: 'admin', label: 'Admin', icon: Shield },
                     { id: 'architecture', label: 'Arkitektur', icon: ShieldCheck },
                   ].map(item => {
                     const IconComponent = item.icon;
@@ -1595,6 +1678,82 @@ export default function App() {
           </div>
         )}
 
+        {/* V12 Universal QR Visitkort & Connect Modal */}
+        {qrModalMember && (
+          <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in">
+            <div className="bg-white rounded-3xl border border-gray-200 max-w-sm w-full p-6 shadow-2xl space-y-4 text-center">
+              <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                <span className="text-xs font-bold text-[#800020] uppercase tracking-wider">
+                  Digitalt Visitkort & vCard
+                </span>
+                <button
+                  onClick={() => setQrModalMember(null)}
+                  className="text-gray-400 hover:text-gray-600 p-1 text-xs font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="flex flex-col items-center">
+                <div className="relative mb-2">
+                  <img
+                    src={qrModalMember.avatar}
+                    alt={qrModalMember.full_name}
+                    className="w-20 h-20 rounded-2xl object-cover border-2 border-[#800020] shadow-sm"
+                  />
+                  <span className="absolute -bottom-1 -right-1 px-1.5 py-0.5 rounded text-[8px] font-black uppercase bg-amber-100 text-amber-900 border border-amber-300">
+                    {qrModalMember.membership_level}
+                  </span>
+                </div>
+                <h3 className="text-base font-bold text-gray-900">{qrModalMember.full_name}</h3>
+                <p className="text-xs text-gray-600 font-medium">{qrModalMember.role_title}</p>
+                <p className="text-xs text-[#800020] font-bold">{qrModalMember.company_name}</p>
+              </div>
+
+              {/* High-res styled QR code display */}
+              <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 inline-block mx-auto">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
+                    `BEGIN:VCARD\nVERSION:3.0\nN:${qrModalMember.full_name}\nORG:${qrModalMember.company_name}\nTITLE:${qrModalMember.role_title}\nTEL:${qrModalMember.phone || '+46700000000'}\nEMAIL:${qrModalMember.email}\nURL:${qrModalMember.linkedin_url || 'https://boosterfriends.se'}\nEND:VCARD`
+                  )}`}
+                  alt="QR Visitkort"
+                  className="w-40 h-40 mx-auto rounded-xl mix-blend-multiply"
+                />
+                <p className="text-[10px] text-gray-500 mt-2 font-mono">
+                  Skanna för att spara kontakt direkt i mobilen
+                </p>
+              </div>
+
+              <div className="space-y-2 pt-2">
+                <button
+                  onClick={() => {
+                    const vcardData = `BEGIN:VCARD\nVERSION:3.0\nFN:${qrModalMember.full_name}\nORG:${qrModalMember.company_name}\nTITLE:${qrModalMember.role_title}\nTEL:${qrModalMember.phone || ''}\nEMAIL:${qrModalMember.email}\nURL:${qrModalMember.linkedin_url || ''}\nEND:VCARD`;
+                    const blob = new Blob([vcardData], { type: 'text/vcard' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${qrModalMember.full_name.replace(/\s+/g, '_')}_vcard.vcf`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    handleAwardPoints(20, `Delat QR-visitkort med ${qrModalMember.full_name}`, 'UNIVERSAL_QR_CONNECT');
+                  }}
+                  className="w-full py-2.5 bg-[#800020] hover:bg-[#660018] text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center justify-center gap-1.5"
+                >
+                  <QrCode className="w-4 h-4" />
+                  <span>Ladda ner vCard (.vcf kontakt)</span>
+                </button>
+
+                <button
+                  onClick={() => setQrModalMember(null)}
+                  className="w-full py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-semibold transition"
+                >
+                  Stäng
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
 
     </div>
@@ -1616,6 +1775,8 @@ export default function App() {
               if (target) handleCreateChannel(target);
             }}
             onStartIntroWith={handleStartIntroWith}
+            onAwardPoints={handleAwardPoints}
+            onAddPipelineDeal={handleAddDeal}
           />
         );
 
@@ -1730,6 +1891,7 @@ export default function App() {
             onBookSpeakerOneOnOne={handleBookSpeakerOneOnOne}
             onShareEventWithMember={handleShareEventWithMember}
             onInviteMemberFreeTicket={handleInviteMemberFreeTicket}
+            onAwardPoints={handleAwardPoints}
           />
         );
 
@@ -1770,6 +1932,105 @@ export default function App() {
             members={members}
             webinars={webinars}
             channels={channels}
+          />
+        );
+
+      case 'community':
+      case 'blog':
+      case 'community_network':
+        return (
+          <CommunityAndBlogModule
+            currentUser={currentUser}
+            allMembers={members}
+            onAwardPoints={handleAwardPoints}
+            onOpenDirectChat={(memberId) => {
+              const target = members.find(m => m.id === memberId);
+              if (target) {
+                handleCreateChannel(target);
+                setActiveTab('chat');
+              }
+            }}
+          />
+        );
+
+      case 'directory':
+      case 'profile_settings':
+        return (
+          <ProfileSettingsAndDirectoryModule
+            currentUser={currentUser}
+            allMembers={members}
+            onUpdateProfile={handleUpdateProfile}
+            onFollowToggle={handleFollowToggle}
+            onOpenDirectChat={(memberId) => {
+              const target = members.find(m => m.id === memberId);
+              if (target) {
+                handleCreateChannel(target);
+                setActiveTab('chat');
+              }
+            }}
+            onOpenUniversalConnect={(member) => {
+              setQrModalMember(member || currentUser);
+            }}
+            onSendLunchRequest={handleSendLunchRequest}
+            onAwardPoints={handleAwardPoints}
+            initialTab={activeTab === 'profile_settings' ? 'settings' : 'directory'}
+          />
+        );
+
+      case 'home':
+        return renderOverviewDashboard();
+
+      case 'hub_events':
+        return (
+          <CoworkingHubsModule
+            currentUser={currentUser}
+            hubs={INITIAL_HUBS}
+            partnerLocations={partnerLocations}
+            bookings={coworkingBookings}
+            deskSwaps={deskSwaps}
+            credits={memberCredits}
+            onBookFlexDesk={handleBookFlexDesk}
+            onCheckInGeoOrQr={handleCheckInGeoOrQr}
+            onLendDeskSwap={handleLendDeskSwap}
+            onClaimDeskSwap={handleClaimDeskSwap}
+            onPurchaseCredits={handlePurchaseCredits}
+            onUpdatePartnerAllocation={handleUpdatePartnerAllocation}
+          />
+        );
+
+      case 'academy_resources':
+        return (
+          <AcademyModule
+            currentUser={currentUser}
+            courses={courses}
+            certificates={certificates}
+            mentorSlots={mentorSlots}
+            quizQuestions={quizQuestions}
+            onBookMentorSlot={handleBookMentorSlot}
+            onAwardCertificate={handleAwardCertificate}
+            onUnlockCourse={handleUnlockCourse}
+            onAwardPoints={handleAwardPoints}
+          />
+        );
+
+      case 'business_profile':
+        return (
+          <CrmPipelineModule
+            currentUser={currentUser}
+            pipelineItems={pipelineItems}
+            onUpdateStage={handleUpdateDealStage}
+            onAddDeal={handleAddDeal}
+            onAwardBoosterPoints={handleAwardPoints}
+          />
+        );
+
+      case 'admin':
+        return (
+          <AdminPortalModule
+            currentUser={currentUser}
+            allMembers={members}
+            hubs={INITIAL_HUBS}
+            onUpdateMemberLevel={handleUpdateMemberLevel}
           />
         );
 

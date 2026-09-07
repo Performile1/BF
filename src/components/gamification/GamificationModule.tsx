@@ -19,9 +19,28 @@ import {
   Crown,
   History,
   Info,
-  Check
+  Check,
+  Gift,
+  Send,
+  Coffee,
+  ShoppingBag,
+  ExternalLink,
+  ArrowRight,
+  BadgePercent,
+  TrendingUp,
+  Sliders,
+  AlertCircle
 } from 'lucide-react';
-import { Member, Hub, BoosterScoreLog, ActivityType } from '../../types';
+import { 
+  Member, 
+  Hub, 
+  BoosterScoreLog, 
+  ActivityType, 
+  GiveTakeMetrics, 
+  P2PAllowance, 
+  P2PPointTransfer,
+  RewardShopItem 
+} from '../../types';
 
 interface GamificationModuleProps {
   currentUser: Member;
@@ -29,8 +48,10 @@ interface GamificationModuleProps {
   members?: Member[];
   hubs?: Hub[];
   scoreLogs?: BoosterScoreLog[];
-  onAwardPoints: (points: number, title: string, activityType: ActivityType) => void;
+  onAwardPoints: (points: number, title: string, activityType: ActivityType, verificationMethod?: 'QR' | 'TWO_WAY' | 'GEO' | 'WARM_INTRO' | 'SYSTEM' | 'P2P') => void;
   onSimulateScore: (targetScore: number) => void;
+  onOpenConnectModal?: () => void;
+  onRedeemReward?: (item: RewardShopItem) => void;
 }
 
 export const GamificationModule: React.FC<GamificationModuleProps> = ({
@@ -40,12 +61,87 @@ export const GamificationModule: React.FC<GamificationModuleProps> = ({
   hubs = [],
   scoreLogs = [],
   onAwardPoints,
-  onSimulateScore
+  onSimulateScore,
+  onOpenConnectModal,
+  onRedeemReward
 }) => {
   const memberList = allMembers || members || [];
   const [leaderboardFilter, setLeaderboardFilter] = useState<'MONTH' | 'ALL_TIME'>('MONTH');
-  const [activeSubTab, setActiveSubTab] = useState<'OVERVIEW' | 'HUB_BATTLE' | 'LEADERBOARD' | 'RULES' | 'LOGS'>('OVERVIEW');
+  const [activeSubTab, setActiveSubTab] = useState<'OVERVIEW' | 'GIVE_TAKE' | 'REWARDS' | 'P2P_TIPPING' | 'HUB_BATTLE' | 'LEADERBOARD' | 'RULES' | 'LOGS'>('OVERVIEW');
   const [actionSuccessMessage, setActionSuccessMessage] = useState<string | null>(null);
+
+  // Peer-to-Peer tipping state
+  const [p2pMonthlyAllowance, setP2pMonthlyAllowance] = useState<number>(100);
+  const [p2pUsed, setP2pUsed] = useState<number>(25);
+  const [selectedP2PRecipient, setSelectedP2PRecipient] = useState<string>('');
+  const [selectedP2PAmount, setSelectedP2PAmount] = useState<number>(25);
+  const [p2pMessage, setP2pMessage] = useState<string>('');
+  const [showP2PModal, setShowP2PModal] = useState<boolean>(false);
+
+  // Give & Take Metrics (Rickard: 1.8x ratio -> Generös Givar-status -> 1.25x Multiplikator)
+  const [giveTakeMetrics, setGiveTakeMetrics] = useState<GiveTakeMetrics>({
+    give_count: 18,
+    take_count: 10,
+    ratio: 1.8,
+    status: 'GENEROUS',
+    multiplier: 1.25,
+    give_breakdown: {
+      intros_sent: 7,
+      skill_endorsements: 5,
+      desk_swaps_lent: 2,
+      guest_passes_invited: 3,
+      lunch_hosted: 1
+    },
+    take_breakdown: {
+      deals_received: 4,
+      intros_received: 3,
+      coworking_desks_used: 3
+    }
+  });
+
+  // Reward Shop items (Inlösen & Värde)
+  const [rewardItems, setRewardItems] = useState<RewardShopItem[]>([
+    {
+      id: 'rew_flex_pass',
+      title: '1x Extra Flexpass (Coworking)',
+      description: 'Lös in 250 BP mot 1 extra dagsbiljett till valfritt Convendum, Helio eller Booster Hubb i nätverket.',
+      points_cost: 250,
+      category: 'FLEX_PASS',
+      icon: 'Ticket',
+      is_available: true,
+      action_label: 'Växla In Flexpass'
+    },
+    {
+      id: 'rew_stage_pitch',
+      title: 'Pitch & Scenutrymme på Stor Hubbträff',
+      description: 'Presentera ditt bolag i 3 minuter inför hela regionens medlemmar under storfrukosten.',
+      points_cost: 500,
+      category: 'STAGE_PITCH',
+      icon: 'Megaphone',
+      is_available: true,
+      action_label: 'Boka Scenplats'
+    },
+    {
+      id: 'rew_course_discount',
+      title: '50% Rabattkod på Booster Pack Utbildning',
+      description: 'Gäller certifieringarna Tech M&A, B2B Skalning eller Styrelsearbete i Booster Academy.',
+      points_cost: 400,
+      category: 'COURSE_DISCOUNT',
+      icon: 'BadgePercent',
+      is_available: true,
+      action_label: 'Hämta Rabattkod'
+    },
+    {
+      id: 'rew_webinar_host',
+      title: 'Håll ett Live Webinar (Expert-spotlight)',
+      description: 'Positionera dig som branschexpert och få nätverksbred exponering med livestream i appen.',
+      points_cost: 1000,
+      category: 'WEBINAR_HOST',
+      icon: 'Video',
+      is_available: true,
+      action_label: 'Ansök om Sändning'
+    }
+  ]);
 
   // Level calculations
   const getLevelInfo = (score: number) => {
@@ -60,7 +156,7 @@ export const GamificationModule: React.FC<GamificationModuleProps> = ({
         textCol: 'text-amber-300',
         borderCol: 'border-amber-400',
         isMax: true,
-        perks: 'Exklusiv profilkant i Maroon & Guld samt prioriterad placering överst i medlemsregistret.'
+        perks: 'Exklusiv profilkant i Maroon & Guld samt prioriterad placering överst i leverantörssök.'
       };
     } else if (score >= 751) {
       return {
@@ -73,7 +169,7 @@ export const GamificationModule: React.FC<GamificationModuleProps> = ({
         textCol: 'text-rose-100',
         borderCol: 'border-[#800020]',
         isMax: false,
-        perks: 'VIP-inbjudningar till regionträffar och prioriterad matchningsalgoritm.'
+        perks: 'Förtur till populära VIP-event, frukostar och 1.25x poängmultiplikator vid balanserad Give-ratio.'
       };
     } else if (score >= 251) {
       return {
@@ -113,74 +209,138 @@ export const GamificationModule: React.FC<GamificationModuleProps> = ({
     ? 100 
     : Math.min(100, Math.max(0, Math.round(((currentUser.booster_score - prevLevelMin) / (nextLevelMin - prevLevelMin)) * 100)));
 
-  // Point rules from V4 spec
-  const pointRules: {
-    category: string;
-    event: string;
-    points: number;
-    rule: string;
-    activityType: ActivityType;
-    icon: any;
-  }[] = [
+  // Real business value point matrix
+  const pointMatrix = [
     {
-      category: 'Fysisk Närvaro',
-      event: 'QR-/Geofencing-incheckning på officiell Hubbträff',
-      points: 30,
-      rule: 'Max 1 gång per event.',
-      activityType: 'EVENT_CHECKIN',
-      icon: QrCode
+      group: 'Direkt Affärsnytta (Högsta Värdet)',
+      items: [
+        {
+          title: 'Skapa en verifierad 3-partschatt / Warm Intro',
+          basePoints: 40,
+          desc: 'Koppla ihop två relevanta medlemmar med motivering.',
+          verification: 'WARM_INTRO' as const,
+          type: 'INTRO_3WAY' as ActivityType,
+          icon: MessageSquare
+        },
+        {
+          title: 'Stängd affär i My Booster Pipeline (< 10 000 kr)',
+          basePoints: 30,
+          desc: 'Bekräftad mindre leverans eller konsultinsats.',
+          verification: 'TWO_WAY' as const,
+          type: 'DEAL_WON' as ActivityType,
+          icon: CheckCircle2
+        },
+        {
+          title: 'Stängd affär i My Booster Pipeline (10 000 – 50 000 kr)',
+          basePoints: 75,
+          desc: 'Avtal signerat och verifierat av köpare och säljare.',
+          verification: 'TWO_WAY' as const,
+          type: 'DEAL_WON' as ActivityType,
+          icon: CheckCircle2
+        },
+        {
+          title: 'Stängd affär i My Booster Pipeline (50 000 – 200 000 kr)',
+          basePoints: 150,
+          desc: '+50 BP delas även ut till medlemmen som gjorde introt!',
+          verification: 'TWO_WAY' as const,
+          type: 'DEAL_WON' as ActivityType,
+          icon: CheckCircle2
+        },
+        {
+          title: 'Major Deal: Stängd affär > 200 000 kr',
+          basePoints: 300,
+          desc: 'Låser även upp hedersutmärkelsen "Deal Maker Badge".',
+          verification: 'TWO_WAY' as const,
+          type: 'DEAL_WON' as ActivityType,
+          icon: Trophy
+        },
+        {
+          title: 'Buda in en gäst som går på hubbträff (Guest Pass)',
+          basePoints: 50,
+          desc: 'Gästen checkar in fysiskt med QR eller geofencing.',
+          verification: 'QR' as const,
+          type: 'GUEST_PASS_ATTEND' as ActivityType,
+          icon: UserPlus
+        }
+      ]
     },
     {
-      category: 'Relationsbyggande',
-      event: 'Loggat & bekräftat 1-till-1 möte med annan medlem',
-      points: 20,
-      rule: 'Kräver bekräftelse från båda parter.',
-      activityType: 'MEETING_CONFIRMED',
-      icon: Users
+      group: 'Förtroende & Kvalitet',
+      items: [
+        {
+          title: 'Verifierad Skillbar Endorsement till kollega',
+          basePoints: 10,
+          desc: 'Betygsätt specifik expertis du själv anlitat.',
+          verification: 'SYSTEM' as const,
+          type: 'SKILL_ENDORSEMENT' as ActivityType,
+          icon: Star
+        },
+        {
+          title: 'Positivt medlemsomdöme (5 stjärnor med recension)',
+          basePoints: 25,
+          desc: 'Skriftligt omdöme efter genomfört projekt.',
+          verification: 'SYSTEM' as const,
+          type: 'MEMBER_REVIEW_5STAR' as ActivityType,
+          icon: Star
+        },
+        {
+          title: 'Låna ut fast flexplats på Hubb (Desk Swap)',
+          basePoints: 25,
+          desc: 'När du reser bort och lånar ut till en kollega.',
+          verification: 'SYSTEM' as const,
+          type: 'DESK_SWAP_LEND' as ActivityType,
+          icon: Sliders
+        }
+      ]
     },
     {
-      category: 'Affärsnytta',
-      event: 'Koppla ihop två medlemmar (Genomförd 3-partschatt-intro)',
-      points: 40,
-      rule: 'Triggers vid aktiv konversation.',
-      activityType: 'INTRO_3WAY',
-      icon: MessageSquare
-    },
-    {
-      category: 'Affärsnytta',
-      event: 'Loggad & verifierad stängd affär i My Booster Pipeline',
-      points: 100,
-      rule: 'Båda parter godkänner loggningen.',
-      activityType: 'DEAL_WON',
-      icon: CheckCircle2
-    },
-    {
-      category: 'Community & Kunskap',
-      event: 'Delta i ett live-webinar i appen',
-      points: 15,
-      rule: 'Närvaro i minst 15 minuter.',
-      activityType: 'WEBINAR_ATTEND',
-      icon: Video
-    },
-    {
-      category: 'Förtroende',
-      event: 'Ge en medlem en Skillbar Endorsement eller skriftligt omdöme',
-      points: 10,
-      rule: 'Max 50 BP per vecka.',
-      activityType: 'SKILL_ENDORSEMENT',
-      icon: Star
-    },
-    {
-      category: 'Tillväxt',
-      event: 'Bjud in en gäst som går på sin första träff (Guest Pass)',
-      points: 50,
-      rule: 'Vid genomförd incheckning av gästen.',
-      activityType: 'GUEST_PASS_ATTEND',
-      icon: UserPlus
+      group: 'Engagemang & Närvaro',
+      items: [
+        {
+          title: 'Fysisk incheckning på officiell Hubbträff (QR / Geo)',
+          basePoints: 30,
+          desc: 'Verifierad fysisk närvaro i hubblokalen.',
+          verification: 'QR' as const,
+          type: 'EVENT_CHECKIN' as ActivityType,
+          icon: QrCode
+        },
+        {
+          title: 'Loggat & bekräftat 1-till-1 kaffemöte',
+          basePoints: 20,
+          desc: 'Tvåvägsverifiering krävs: båda bekräftar mötet.',
+          verification: 'TWO_WAY' as const,
+          type: 'ONE_ON_ONE_LOGGED' as ActivityType,
+          icon: Coffee
+        },
+        {
+          title: 'Bjud kollega på lunch ("Jag bjuder på lunchen")',
+          basePoints: 30,
+          desc: 'Generöst initiativ för att stärka relationen.',
+          verification: 'TWO_WAY' as const,
+          type: 'LUNCH_HOST_INVITE' as ActivityType,
+          icon: Coffee
+        },
+        {
+          title: 'Delta i ett live-webinar i appen',
+          basePoints: 15,
+          desc: 'Aktiv närvaro i minst 20 minuter.',
+          verification: 'SYSTEM' as const,
+          type: 'WEBINAR_ATTEND' as ActivityType,
+          icon: Video
+        },
+        {
+          title: 'Recensera genomfört event (+20 BP om inom 24h)',
+          basePoints: 20,
+          desc: 'Hjälp nätverket med värdefull feedback efter träffen.',
+          verification: 'SYSTEM' as const,
+          type: 'EVENT_REVIEW_SUBMITTED' as ActivityType,
+          icon: Star
+        }
+      ]
     }
   ];
 
-  // Hub Battle Ranking (Points per member as per V4 spec)
+  // Hub Battle Standings
   const hubBattleStandings = [
     {
       id: 'hub_stockholm',
@@ -224,9 +384,59 @@ export const GamificationModule: React.FC<GamificationModuleProps> = ({
   // Sorted members for leaderboard
   const sortedMembers = [...memberList].sort((a, b) => b.booster_score - a.booster_score);
 
-  const handleTriggerAction = (rule: typeof pointRules[0]) => {
-    onAwardPoints(rule.points, rule.event, rule.activityType);
-    setActionSuccessMessage(`+${rule.points} BP tilldelade för "${rule.event}"!`);
+  const handleSendP2P = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedP2PRecipient) {
+      alert('Vänligen välj en mottagare.');
+      return;
+    }
+
+    if (selectedP2PAmount > (p2pMonthlyAllowance - p2pUsed)) {
+      alert('Du har inte tillräckligt med P2P-poäng kvar i månadens pott.');
+      return;
+    }
+
+    const recipient = memberList.find(m => m.id === selectedP2PRecipient);
+    const recipientName = recipient ? recipient.full_name : 'kollega';
+
+    // Update local allowance
+    setP2pUsed(prev => prev + selectedP2PAmount);
+
+    // Trigger point award for recipient (simulation)
+    setActionSuccessMessage(`🎉 Du skickade ${selectedP2PAmount} BP till ${recipientName}! Meddelande: "${p2pMessage || 'Tack för gott samarbete'}" (Dras från din fria givarpott)`);
+    setTimeout(() => setActionSuccessMessage(null), 5000);
+
+    // Reset form
+    setP2pMessage('');
+    setShowP2PModal(false);
+  };
+
+  const handleRedeemItem = (item: RewardShopItem) => {
+    if (currentUser.booster_score < item.points_cost) {
+      alert(`Du behöver ${item.points_cost} BP för att lösa in "${item.title}". Du har ${currentUser.booster_score} BP.`);
+      return;
+    }
+
+    if (onRedeemReward) {
+      onRedeemReward(item);
+    } else {
+      onAwardPoints(-item.points_cost, `Inlöst i Belöningsbutiken: ${item.title}`, 'REWARD_REDEEMED', 'SYSTEM');
+    }
+
+    setActionSuccessMessage(`🎁 Du har löst in "${item.title}" för ${item.points_cost} BP! Ett bekräftelsemail och kvitto har skapats.`);
+    setTimeout(() => setActionSuccessMessage(null), 5000);
+  };
+
+  const handleTriggerMatrixRule = (item: typeof pointMatrix[0]['items'][0]) => {
+    // Apply multiplier if Give/Take ratio > 1.5
+    const multiplier = giveTakeMetrics.multiplier;
+    const finalPoints = Math.round(item.basePoints * multiplier);
+    const titleWithNote = multiplier > 1 
+      ? `${item.title} (${item.basePoints} BP × ${multiplier}x Give-Bonus)`
+      : item.title;
+
+    onAwardPoints(finalPoints, titleWithNote, item.type, item.verification);
+    setActionSuccessMessage(`+${finalPoints} BP erhållet för "${item.title}"! (Verifierad metod: ${item.verification})`);
     setTimeout(() => setActionSuccessMessage(null), 4000);
   };
 
@@ -235,12 +445,12 @@ export const GamificationModule: React.FC<GamificationModuleProps> = ({
       
       {/* Action Notification */}
       {actionSuccessMessage && (
-        <div className="bg-[#800020] text-white p-3.5 rounded-2xl shadow-md flex items-center justify-between text-xs font-bold animate-in fade-in duration-200">
+        <div className="bg-[#800020] text-white p-4 rounded-2xl shadow-md flex items-center justify-between text-xs font-bold animate-in fade-in duration-200">
           <div className="flex items-center gap-2">
             <Zap className="w-4 h-4 text-amber-300 fill-current" />
             <span>{actionSuccessMessage}</span>
           </div>
-          <button onClick={() => setActionSuccessMessage(null)} className="text-white/80 hover:text-white">
+          <button onClick={() => setActionSuccessMessage(null)} className="text-white/80 hover:text-white font-bold p-1">
             ✕
           </button>
         </div>
@@ -293,13 +503,24 @@ export const GamificationModule: React.FC<GamificationModuleProps> = ({
                 {currentLevel.perks}
               </p>
 
-              <div className="flex items-baseline gap-2 pt-1">
+              <div className="flex items-baseline gap-3 pt-1">
                 <span className="text-3xl font-black text-[#800020] font-display">
-                  {currentUser.booster_score}
+                  {currentUser.booster_score.toLocaleString('sv-SE')}
                 </span>
                 <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
                   Booster Points (BP)
                 </span>
+                
+                {/* Universal Connect shortcut */}
+                {onOpenConnectModal && (
+                  <button
+                    onClick={onOpenConnectModal}
+                    className="ml-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold transition shadow-2xs"
+                  >
+                    <QrCode className="w-3.5 h-3.5 text-[#800020]" />
+                    <span>Mitt QR-Kort</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -358,13 +579,16 @@ export const GamificationModule: React.FC<GamificationModuleProps> = ({
         </div>
 
         {/* Sub-tab Navigation */}
-        <div className="flex gap-1 pt-6 mt-6 border-t border-gray-100 overflow-x-auto scrollbar-none">
+        <div className="flex gap-1.5 pt-6 mt-6 border-t border-gray-100 overflow-x-auto scrollbar-none">
           {[
             { id: 'OVERVIEW', label: 'Översikt & Nivåer', icon: Sparkles },
-            { id: 'HUB_BATTLE', label: 'Månadens Hubb (Hub Battle)', icon: Trophy },
-            { id: 'LEADERBOARD', label: 'Medlems-Topplista', icon: Award },
-            { id: 'RULES', label: 'Poängmatris (+BP)', icon: Zap },
-            { id: 'LOGS', label: `Audit Trail (${scoreLogs.length})`, icon: History }
+            { id: 'GIVE_TAKE', label: 'Give & Take Balans (1.25x)', icon: TrendingUp },
+            { id: 'REWARDS', label: 'Belöningsbutik (Inlösen)', icon: Gift },
+            { id: 'P2P_TIPPING', label: `Ge BP (${p2pMonthlyAllowance - p2pUsed} kvar)`, icon: Send },
+            { id: 'RULES', label: 'Värdeskapande Poängmatris', icon: Zap },
+            { id: 'LOGS', label: `Audit Trail (${scoreLogs.length})`, icon: History },
+            { id: 'HUB_BATTLE', label: 'Månadens Hubb', icon: Trophy },
+            { id: 'LEADERBOARD', label: 'Topplista', icon: Award }
           ].map(tab => {
             const Icon = tab.icon;
             const isActive = activeSubTab === tab.id;
@@ -389,6 +613,75 @@ export const GamificationModule: React.FC<GamificationModuleProps> = ({
       {/* SUB-VIEW 1: OVERVIEW & 4 LEVEL TIERS */}
       {activeSubTab === 'OVERVIEW' && (
         <div className="space-y-6">
+          
+          {/* Bento Summary row: Give & Take status + P2P Allowance Quick card */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            {/* Give & Take summary card */}
+            <div className="p-5 rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">
+                    GIVE & TAKE BALANS
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-white font-black text-[10px]">
+                    🟢 Generös Givar-status ({giveTakeMetrics.ratio}x)
+                  </span>
+                </div>
+                <h3 className="text-lg font-black text-emerald-950 mt-1">
+                  Din Poängmultiplikator: {giveTakeMetrics.multiplier}x Aktiv!
+                </h3>
+                <p className="text-xs text-emerald-800 mt-1 leading-relaxed">
+                  Eftersom du ger mer än du tar (ratio &gt; 1.5) multipliceras alla dina intjänade poäng med 1.25x. Fortsätt bjuda på intros och rekommendationer!
+                </p>
+              </div>
+
+              <div className="pt-4 mt-3 border-t border-emerald-200/80 flex items-center justify-between text-xs">
+                <span className="text-emerald-900 font-semibold">18 Givande handlingar vs 10 Mottagna</span>
+                <button
+                  onClick={() => setActiveSubTab('GIVE_TAKE')}
+                  className="font-bold text-emerald-900 hover:text-emerald-950 underline flex items-center gap-1"
+                >
+                  <span>Visa detaljerad analys</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            {/* P2P Tipping Quick card */}
+            <div className="p-5 rounded-2xl bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-purple-800">
+                    PEER-TO-PEER GIVARPOTT
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full bg-purple-600 text-white font-black text-[10px]">
+                    Månatlig Gratispott
+                  </span>
+                </div>
+                <h3 className="text-lg font-black text-purple-950 mt-1">
+                  {p2pMonthlyAllowance - p2pUsed} P2P BP kvar att ge bort
+                </h3>
+                <p className="text-xs text-purple-800 mt-1 leading-relaxed">
+                  Varje månad får du 100 fria poäng av Booster Friends att ge bort till kollegor som hjälpt dig med sparring, råd eller feedback.
+                </p>
+              </div>
+
+              <div className="pt-4 mt-3 border-t border-purple-200/80 flex items-center justify-between text-xs">
+                <span className="text-purple-900 font-semibold">Nollställs vid månadsskifte</span>
+                <button
+                  onClick={() => setActiveSubTab('P2P_TIPPING')}
+                  className="px-3 py-1.5 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold transition flex items-center gap-1.5 shadow-2xs"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>Ge poäng till en kollega</span>
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+          {/* 4 Level Tiers */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
               {
@@ -419,199 +712,273 @@ export const GamificationModule: React.FC<GamificationModuleProps> = ({
                 lvl: 4,
                 name: 'Master Networker',
                 range: '2001+ BP',
-                badgeBg: 'bg-gradient-to-r from-[#800020] via-amber-600 to-amber-500',
-                desc: 'Exklusiv profilkant i Maroon/Guld samt prioriterad synlighet överst i medlemslistan.',
-                isCurrent: currentLevel.level === 4,
-                highlight: true
+                badgeBg: 'bg-gradient-to-r from-[#800020] to-amber-500',
+                desc: 'Högsta status i Booster Friends. Exklusiv Maroon & Guld-profilram och förtur till VIP-event.',
+                isCurrent: currentLevel.level === 4
               }
             ].map(tier => (
-              <div
+              <div 
                 key={tier.lvl}
-                className={`bg-white rounded-2xl border p-5 space-y-3 transition shadow-xs relative ${
-                  tier.isCurrent 
-                    ? 'border-[#800020] ring-2 ring-[#800020]/20' 
-                    : tier.highlight
-                    ? 'border-amber-300'
-                    : 'border-gray-200'
+                className={`rounded-2xl p-5 border transition ${
+                  tier.isCurrent
+                    ? 'bg-white border-[#800020] shadow-md ring-2 ring-[#800020]/20'
+                    : 'bg-white border-gray-200 shadow-2xs opacity-80'
                 }`}
               >
-                {tier.isCurrent && (
-                  <span className="absolute -top-2.5 right-4 bg-[#800020] text-white text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full shadow-xs">
-                    Din Nuvarande Nivå
-                  </span>
-                )}
-
-                <div className="flex items-center justify-between">
-                  <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded text-white ${tier.badgeBg}`}>
+                <div className="flex items-center justify-between mb-3">
+                  <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full text-white ${tier.badgeBg}`}>
                     Level {tier.lvl}
                   </span>
-                  <span className="text-xs font-bold text-gray-500 font-mono">
-                    {tier.range}
-                  </span>
-                </div>
-
-                <div>
-                  <h3 className="text-base font-bold text-gray-900 font-display flex items-center gap-1.5">
-                    {tier.lvl === 4 && <Crown className="w-4 h-4 text-amber-500" />}
-                    <span>{tier.name}</span>
-                  </h3>
-                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                    {tier.desc}
-                  </p>
-                </div>
-
-                <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-400">
-                  <span>Tröskel: {tier.range.split(' – ')[0]}</span>
-                  {tier.lvl === 4 ? (
-                    <span className="text-amber-600 font-bold">Guld/Maroon Kant</span>
-                  ) : (
-                    <span>Standard kant</span>
+                  {tier.isCurrent && (
+                    <span className="text-[10px] font-extrabold text-[#800020] bg-rose-50 px-2 py-0.5 rounded-full">
+                      DIN NIVÅ
+                    </span>
                   )}
                 </div>
+
+                <h4 className="font-black text-gray-900 text-base">{tier.name}</h4>
+                <p className="text-xs font-mono font-bold text-gray-400 mt-0.5">{tier.range}</p>
+                <p className="text-xs text-gray-600 mt-3 leading-relaxed">{tier.desc}</p>
               </div>
             ))}
           </div>
 
-          {/* Quick Action Rule Cards */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
+          {/* Point Exchange / Quick Reward preview */}
+          <div className="bg-white rounded-3xl border border-gray-200 p-6 shadow-xs space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-bold text-gray-900 font-display">
-                  Snabba Åtgärder för att Tjäna Booster Points
+                <h3 className="text-base font-black text-gray-900 font-display flex items-center gap-2">
+                  <Gift className="w-5 h-5 text-[#800020]" />
+                  <span>Lås upp Belöningar (Belöningsbutik / Point Exchange)</span>
                 </h3>
                 <p className="text-xs text-gray-500">
-                  Klicka för att registrera verklig nätverksaktivitet och se poängen uppdateras direkt.
+                  Gör dina poäng meningsfulla – växla in mot praktiskt och ekonomiskt affärsvärde
                 </p>
               </div>
-              <span className="text-xs font-bold text-[#800020] bg-[#800020]/10 px-2.5 py-1 rounded-full">
-                7 Verifierade Regler
-              </span>
+              <button
+                onClick={() => setActiveSubTab('REWARDS')}
+                className="text-xs font-bold text-[#800020] hover:underline"
+              >
+                Visa hela butiken ({rewardItems.length}) →
+              </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {pointRules.slice(0, 6).map((rule, idx) => {
-                const Icon = rule.icon;
-                return (
-                  <div
-                    key={idx}
-                    className="p-3 rounded-xl bg-[#F4F5F7] border border-gray-200/80 flex items-center justify-between hover:border-[#800020]/40 transition group"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-[#800020] shrink-0">
-                        <Icon className="w-4 h-4" />
-                      </div>
-                      <div className="truncate">
-                        <div className="text-xs font-bold text-gray-900 truncate">
-                          {rule.category}
-                        </div>
-                        <div className="text-[11px] text-gray-500 truncate" title={rule.event}>
-                          {rule.event}
-                        </div>
-                      </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {rewardItems.map(item => (
+                <div key={item.id} className="p-4 rounded-2xl bg-gray-50 border border-gray-200 flex flex-col justify-between space-y-3">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-[#800020] bg-rose-50 px-2 py-0.5 rounded-lg">
+                        {item.points_cost} BP
+                      </span>
+                      <span className="text-[10px] text-gray-400 font-bold uppercase">{item.category}</span>
                     </div>
-
-                    <button
-                      onClick={() => handleTriggerAction(rule)}
-                      className="ml-2 px-2.5 py-1 rounded-lg bg-[#800020] hover:bg-[#580016] text-white font-bold text-xs shrink-0 transition flex items-center gap-1 shadow-xs"
-                      title="Logga aktivitet och få poäng"
-                    >
-                      <span>+{rule.points} BP</span>
-                    </button>
+                    <h4 className="text-sm font-black text-gray-900 mt-2">{item.title}</h4>
+                    <p className="text-xs text-gray-500 mt-1 leading-relaxed">{item.description}</p>
                   </div>
-                );
-              })}
+
+                  <button
+                    onClick={() => handleRedeemItem(item)}
+                    className="w-full py-2 rounded-xl bg-white hover:bg-gray-100 border border-gray-300 text-xs font-bold text-gray-800 transition shadow-2xs"
+                  >
+                    {item.action_label}
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       )}
 
-      {/* SUB-VIEW 2: MÅNADENS HUBB (HUB BATTLE) */}
-      {activeSubTab === 'HUB_BATTLE' && (
+      {/* SUB-VIEW 2: GIVE & TAKE BALANS */}
+      {activeSubTab === 'GIVE_TAKE' && (
         <div className="space-y-6">
-          <div className="bg-gradient-to-r from-[#800020] to-[#580016] text-white p-6 rounded-3xl shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-amber-300">
-                  <Trophy className="w-7 h-7" />
+          <div className="bg-white rounded-3xl border border-gray-200 p-6 shadow-xs space-y-6">
+            
+            <div className="border-b border-gray-100 pb-5">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-900 text-xs font-bold mb-2">
+                <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Balansmodellen (Give & Take Ratio)</span>
+              </div>
+              <h3 className="text-xl font-black text-gray-900 font-display">
+                Varför Give & Take Ratio är nätverkets viktigaste hävstång
+              </h3>
+              <p className="text-xs text-gray-600 max-w-3xl mt-1 leading-relaxed">
+                För att skydda nätverket från freeloaders och belöna de som driver affärer till andra har Booster Friends en inbyggd ratio-multiplikator. 
+                De som bidrar mer än de konsumerar erhåller en 1.25x multiplikator på samtliga poäng som genereras.
+              </p>
+            </div>
+
+            {/* Ratio rules visual bar */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 rounded-2xl bg-emerald-50 border-2 border-emerald-400">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-emerald-900">🟢 Generös Givar-status</span>
+                  <span className="text-xs font-black px-2 py-0.5 rounded-full bg-emerald-600 text-white">1.25x Multiplier</span>
                 </div>
-                <div>
-                  <span className="text-[10px] font-black uppercase tracking-wider text-amber-300 bg-amber-400/20 px-2 py-0.5 rounded">
-                    Månadens Hubb – Säsong September 2026
-                  </span>
-                  <h3 className="text-xl font-bold font-display mt-0.5">
-                    Hub Battle: Lokala Hubbar Tävlar om Trofén
-                  </h3>
+                <p className="text-xs font-bold text-emerald-950 mt-1">Ratio &gt; 1.5</p>
+                <p className="text-[11px] text-emerald-800 mt-1">
+                  Du ger mer än du tar. Dina framtida poäng multipliceras med 1.25x och din profil lyfts fram i AI-matchningar.
+                </p>
+                <div className="mt-3 text-[10px] font-bold text-emerald-900 bg-white/60 p-1.5 rounded-lg">
+                  DIN AKTUELLA STATUS ({giveTakeMetrics.ratio}x Ratio)
                 </div>
               </div>
 
-              <div className="text-right">
-                <div className="text-xs text-white/70">Återstår av månaden</div>
-                <div className="text-lg font-black font-mono text-amber-300">18 Dagar : 09 Tim</div>
+              <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 opacity-80">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-gray-800">🟡 Neutral / Balanserad</span>
+                  <span className="text-xs font-black px-2 py-0.5 rounded-full bg-gray-400 text-white">1.0x Multiplier</span>
+                </div>
+                <p className="text-xs font-bold text-gray-900 mt-1">Ratio 0.8 – 1.4</p>
+                <p className="text-[11px] text-gray-600 mt-1">
+                  Standardläge. Du ger ungefär lika mycket värde som du tar emot från ekosystemet.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 opacity-80">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-rose-800">🔴 Konsument-status</span>
+                  <span className="text-xs font-black px-2 py-0.5 rounded-full bg-rose-500 text-white">0.75x Multiplier</span>
+                </div>
+                <p className="text-xs font-bold text-rose-950 mt-1">Ratio &lt; 0.7</p>
+                <p className="text-[11px] text-rose-800 mt-1">
+                  Medlemmen tar emot affärer och intros utan att bidra tillbaka. Poängintjäning dämpas tills balansen återställs.
+                </p>
               </div>
             </div>
 
-            <p className="text-xs text-white/80 max-w-3xl leading-relaxed">
-              Den fysiska hubb som sammanlagt samlar mest Booster Points per medlem under en månad koras till 
-              <strong className="text-white"> "Månadens Hubb"</strong> och belönas med vandringstrofé, sponsrad champagnefrukost och VIP-föreläsare.
-            </p>
+            {/* Detailed activity metrics breakdown */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-100">
+              
+              {/* Give breakdown */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-black text-gray-900 flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                    <span>Vad du har gett ekosystemet ({giveTakeMetrics.give_count} st)</span>
+                  </h4>
+                  <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg">+18 Give-poäng</span>
+                </div>
+
+                <div className="space-y-2 text-xs">
+                  <div className="p-3 bg-gray-50 rounded-xl flex items-center justify-between">
+                    <span className="text-gray-700 font-medium">Varma Introduktioner (3-partschattar) skickade</span>
+                    <span className="font-bold text-gray-900">{giveTakeMetrics.give_breakdown.intros_sent} st</span>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded-xl flex items-center justify-between">
+                    <span className="text-gray-700 font-medium">Gästpass-inbjudningar som checkat in</span>
+                    <span className="font-bold text-gray-900">{giveTakeMetrics.give_breakdown.guest_passes_invited} st</span>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded-xl flex items-center justify-between">
+                    <span className="text-gray-700 font-medium">Skillbar Endorsements & Omdömen lämnade</span>
+                    <span className="font-bold text-gray-900">{giveTakeMetrics.give_breakdown.skill_endorsements} st</span>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded-xl flex items-center justify-between">
+                    <span className="text-gray-700 font-medium">Utlånade flexplatser (Desk Swaps)</span>
+                    <span className="font-bold text-gray-900">{giveTakeMetrics.give_breakdown.desk_swaps_lent} st</span>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded-xl flex items-center justify-between">
+                    <span className="text-gray-700 font-medium">Bjudit kollega på lunch/kaffe</span>
+                    <span className="font-bold text-gray-900">{giveTakeMetrics.give_breakdown.lunch_hosted} st</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Take breakdown */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-black text-gray-900 flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                    <span>Vad du har mottagit från ekosystemet ({giveTakeMetrics.take_count} st)</span>
+                  </h4>
+                  <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-lg">10 Take-poäng</span>
+                </div>
+
+                <div className="space-y-2 text-xs">
+                  <div className="p-3 bg-gray-50 rounded-xl flex items-center justify-between">
+                    <span className="text-gray-700 font-medium">Affärer vunna/mottagna som leverantör</span>
+                    <span className="font-bold text-gray-900">{giveTakeMetrics.take_breakdown.deals_received} st</span>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded-xl flex items-center justify-between">
+                    <span className="text-gray-700 font-medium">Varma intros mottagna från andra</span>
+                    <span className="font-bold text-gray-900">{giveTakeMetrics.take_breakdown.intros_received} st</span>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded-xl flex items-center justify-between">
+                    <span className="text-gray-700 font-medium">Utnyttjade Coworking-skrivbord från kvot</span>
+                    <span className="font-bold text-gray-900">{giveTakeMetrics.take_breakdown.coworking_desks_used} st</span>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-1">
+                  <p className="font-bold">💡 Tips för att behålla 1.25x multiplikatorn:</p>
+                  <p>
+                    Fortsätt koppla ihop medlemmar med varma intros när du ser synergier. Ett enda godkänt intro ger +40 BP och ökar din Give-kvot!
+                  </p>
+                </div>
+              </div>
+
+            </div>
+
           </div>
+        </div>
+      )}
 
-          <div className="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-xs">
-            <div className="p-4 bg-[#F4F5F7] border-b border-gray-200 flex items-center justify-between">
-              <h4 className="text-xs font-bold text-gray-800 uppercase tracking-wider">
-                Ställning i Hub Battle (Sorterat på Snittpoäng per Medlem)
-              </h4>
-              <span className="text-[11px] text-gray-500">Uppdateras i realtid</span>
+      {/* SUB-VIEW 3: BELÖNINGSBUTIK (INLÖSEN) */}
+      {activeSubTab === 'REWARDS' && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-3xl border border-gray-200 p-6 shadow-xs space-y-6">
+            <div className="border-b border-gray-100 pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-black text-gray-900 font-display">
+                    Belöningsbutik (Point Exchange)
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Växla dina Booster Points mot faktiskt affärsvärde, exponering och coworking-dagar
+                  </p>
+                </div>
+                <div className="text-right">
+                  <span className="text-xs font-bold text-gray-400 block">DITT SALDO</span>
+                  <span className="text-xl font-black text-[#800020] font-display">
+                    {currentUser.booster_score.toLocaleString('sv-SE')} BP
+                  </span>
+                </div>
+              </div>
             </div>
 
-            <div className="divide-y divide-gray-100">
-              {hubBattleStandings.map((hub, idx) => (
-                <div 
-                  key={hub.id} 
-                  className={`p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition ${
-                    hub.is_leader ? 'bg-amber-50/40' : 'hover:bg-gray-50/60'
-                  }`}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm ${
-                      idx === 0 
-                        ? 'bg-amber-400 text-slate-900 shadow-xs' 
-                        : idx === 1 
-                        ? 'bg-gray-200 text-gray-800' 
-                        : 'bg-gray-100 text-gray-500'
-                    }`}>
-                      #{idx + 1}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {rewardItems.map(item => (
+                <div key={item.id} className="p-5 rounded-2xl border border-gray-200 hover:border-gray-300 transition bg-white flex flex-col justify-between space-y-4 shadow-2xs">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-[#800020] bg-rose-50 px-3 py-1 rounded-full border border-rose-200">
+                        {item.points_cost} Booster Points
+                      </span>
+                      <span className="text-[10px] font-bold text-gray-400 uppercase">
+                        {item.category}
+                      </span>
                     </div>
 
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h5 className="text-sm font-bold text-gray-900 font-display">
-                          {hub.name}
-                        </h5>
-                        {hub.is_leader && (
-                          <span className="text-[10px] font-black bg-amber-100 text-amber-800 border border-amber-300 px-2 py-0.5 rounded-full flex items-center gap-1">
-                            <Trophy className="w-3 h-3 text-amber-600" />
-                            <span>Månadens Hubb (Ledare)</span>
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
-                        <span>{hub.active_members} aktiva medlemmar</span>
-                        <span>•</span>
-                        <span>{hub.total_points.toLocaleString('sv-SE')} totala BP</span>
-                        <span>•</span>
-                        <span className="text-emerald-700 font-semibold">{hub.trend}</span>
-                      </div>
-                    </div>
+                    <h4 className="text-base font-black text-gray-900">{item.title}</h4>
+                    <p className="text-xs text-gray-600 leading-relaxed">{item.description}</p>
                   </div>
 
-                  <div className="text-right sm:self-center flex sm:flex-col items-baseline sm:items-end justify-between">
-                    <div className="text-2xl font-black text-[#800020] font-display">
-                      {hub.avg_points}
-                    </div>
-                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                      BP / Medlem i Snitt
-                    </div>
+                  <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
+                    <span className="text-[11px] text-gray-500">
+                      {currentUser.booster_score >= item.points_cost ? '✅ Du har tillräckligt med poäng' : `⚠️ Saknar ${item.points_cost - currentUser.booster_score} BP`}
+                    </span>
+                    <button
+                      onClick={() => handleRedeemItem(item)}
+                      disabled={currentUser.booster_score < item.points_cost}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold transition shadow-xs ${
+                        currentUser.booster_score >= item.points_cost
+                          ? 'bg-[#800020] hover:bg-[#68001a] text-white'
+                          : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      {item.action_label}
+                    </button>
                   </div>
                 </div>
               ))}
@@ -620,107 +987,266 @@ export const GamificationModule: React.FC<GamificationModuleProps> = ({
         </div>
       )}
 
-      {/* SUB-VIEW 3: INDIVIDUAL LEADERBOARD */}
-      {activeSubTab === 'LEADERBOARD' && (
-        <div className="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-xs space-y-0">
-          <div className="p-4 bg-[#F4F5F7] border-b border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <h4 className="text-xs font-bold text-gray-800 uppercase tracking-wider">
-                Individuell Medlemstopplista (Booster Points)
-              </h4>
-              <p className="text-[11px] text-gray-500">Master Networkers (2001+ BP) erhåller automatisk prio-visning överst.</p>
+      {/* SUB-VIEW 4: PEER-TO-PEER POINT TIPPING */}
+      {activeSubTab === 'P2P_TIPPING' && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-3xl border border-gray-200 p-6 shadow-xs space-y-6">
+            
+            <div className="border-b border-gray-100 pb-5">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-50 text-purple-900 text-xs font-bold mb-2">
+                <Send className="w-3.5 h-3.5 text-purple-600" />
+                <span>Peer-to-Peer Tipping (Månatlig Givarpott)</span>
+              </div>
+              <h3 className="text-xl font-black text-gray-900 font-display">
+                Ge Booster Points direkt till en kollega
+              </h3>
+              <p className="text-xs text-gray-600 max-w-3xl mt-1 leading-relaxed">
+                Varje månad tilldelas varje aktiv medlem <strong>100 P2P Booster Points</strong> från nätverkets centrala pott. 
+                Dessa kan du ge till kollegor som ställt upp med värdefull sparring, feedback, ett varmt råd eller en ovärderlig kontakt. 
+                Poängen dras <em>inte</em> från ditt eget saldo – men nollställs vid månadsskifte!
+              </p>
             </div>
 
-            <div className="flex bg-white p-1 rounded-xl border border-gray-200">
-              <button
-                onClick={() => setLeaderboardFilter('MONTH')}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
-                  leaderboardFilter === 'MONTH' ? 'bg-[#800020] text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                Denna Månad
-              </button>
-              <button
-                onClick={() => setLeaderboardFilter('ALL_TIME')}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
-                  leaderboardFilter === 'ALL_TIME' ? 'bg-[#800020] text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                All-Time
-              </button>
+            {/* Monthly allowance status box */}
+            <div className="p-4 rounded-2xl bg-purple-50 border border-purple-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <span className="text-xs font-bold text-purple-900 uppercase tracking-wider block">
+                  Månadens Givarpott (September 2026)
+                </span>
+                <span className="text-2xl font-black text-purple-950 font-display">
+                  {p2pMonthlyAllowance - p2pUsed} BP kvar
+                </span>
+                <span className="text-xs text-purple-800 ml-2">av {p2pMonthlyAllowance} BP</span>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs font-bold">
+                <span className="text-purple-900">
+                  {p2pUsed} BP utdelat denna månad
+                </span>
+                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+              </div>
             </div>
+
+            {/* Interactive Send Form */}
+            <form onSubmit={handleSendP2P} className="bg-gray-50 p-5 rounded-2xl border border-gray-200 space-y-4 max-w-2xl">
+              <h4 className="text-sm font-black text-gray-900">Skicka direkt-tack till en kollega:</h4>
+
+              {/* Recipient select */}
+              <div>
+                <label className="text-xs font-bold text-gray-700 block mb-1">
+                  Välj mottagare i Booster Friends:
+                </label>
+                <select
+                  value={selectedP2PRecipient}
+                  onChange={(e) => setSelectedP2PRecipient(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-xs font-medium text-gray-800 focus:outline-hidden focus:border-[#800020]"
+                >
+                  <option value="">-- Välj kollega i nätverket --</option>
+                  {memberList
+                    .filter(m => m.id !== currentUser.id)
+                    .map(m => (
+                      <option key={m.id} value={m.id}>
+                        {m.full_name} ({m.company_name} • {m.hub_name})
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              {/* Amount options */}
+              <div>
+                <label className="text-xs font-bold text-gray-700 block mb-1.5">
+                  Antal poäng att ge:
+                </label>
+                <div className="grid grid-cols-3 gap-3">
+                  {[10, 25, 50].map(amt => (
+                    <button
+                      key={amt}
+                      type="button"
+                      onClick={() => setSelectedP2PAmount(amt)}
+                      className={`py-2 rounded-xl text-xs font-black transition border ${
+                        selectedP2PAmount === amt
+                          ? 'bg-[#800020] text-white border-[#800020] shadow-xs'
+                          : 'bg-white text-gray-800 border-gray-200 hover:bg-gray-100'
+                      }`}
+                    >
+                      +{amt} BP
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Message */}
+              <div>
+                <label className="text-xs font-bold text-gray-700 block mb-1">
+                  Personlig hälsning / motivering (visas i kollegans feed):
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="T.ex: Stort tack för fantastisk sparring kring vår varumärkesstrategi inför expansionen!"
+                  value={p2pMessage}
+                  onChange={(e) => setP2pMessage(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-xs focus:outline-hidden focus:border-[#800020]"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={!selectedP2PRecipient || (p2pMonthlyAllowance - p2pUsed) < selectedP2PAmount}
+                className="w-full py-2.5 rounded-xl bg-[#800020] hover:bg-[#68001a] text-white font-bold text-xs transition shadow-xs flex items-center justify-center gap-2 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                <Send className="w-4 h-4" />
+                <span>Skicka +{selectedP2PAmount} Booster Points</span>
+              </button>
+            </form>
+
+          </div>
+        </div>
+      )}
+
+      {/* SUB-VIEW 5: VÄRDESKAPANDE POÄNGMATRIS */}
+      {activeSubTab === 'RULES' && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-3xl border border-gray-200 p-6 shadow-xs space-y-6">
+            
+            <div className="border-b border-gray-100 pb-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-black text-gray-900 font-display">
+                    Värdeskapande Poängmatris (Kravspecifikation V4/V5)
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Endast reellt affärsvärde, förtroende och aktivt bidrag till ekosystemet belönas.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-xl">
+                  <span>Din Multiplikator: {giveTakeMetrics.multiplier}x Aktiv</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              {pointMatrix.map((section, idx) => (
+                <div key={idx} className="space-y-3">
+                  <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest">
+                    {section.group}
+                  </h4>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {section.items.map((item, i) => {
+                      const Icon = item.icon;
+                      const calculatedPoints = Math.round(item.basePoints * giveTakeMetrics.multiplier);
+                      return (
+                        <div 
+                          key={i}
+                          className="p-4 rounded-2xl bg-gray-50 border border-gray-200 hover:border-gray-300 transition flex items-start justify-between gap-3 shadow-2xs"
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-[#800020] shrink-0 shadow-2xs mt-0.5">
+                              <Icon className="w-4 h-4" />
+                            </div>
+                            <div className="space-y-1">
+                              <h5 className="text-xs font-black text-gray-900 leading-snug">
+                                {item.title}
+                              </h5>
+                              <p className="text-[11px] text-gray-500 leading-relaxed">
+                                {item.desc}
+                              </p>
+                              <div className="flex items-center gap-2 pt-1">
+                                <span className="text-[10px] font-bold px-2 py-0.2 rounded-md bg-white border border-gray-200 text-gray-600">
+                                  Verifiering: {item.verification}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="text-right shrink-0">
+                            <span className="text-sm font-black text-[#800020] font-display block">
+                              +{calculatedPoints} BP
+                            </span>
+                            {giveTakeMetrics.multiplier > 1 && (
+                              <span className="text-[10px] text-emerald-600 font-bold block">
+                                (Bas {item.basePoints} BP)
+                              </span>
+                            )}
+                            <button
+                              onClick={() => handleTriggerMatrixRule(item)}
+                              className="mt-2 text-[10px] font-bold text-[#800020] hover:underline"
+                            >
+                              Testa trigga →
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* SUB-VIEW 6: AUDIT TRAIL / LOGS */}
+      {activeSubTab === 'LOGS' && (
+        <div className="bg-white rounded-3xl border border-gray-200 p-6 shadow-xs space-y-4">
+          <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+            <div>
+              <h3 className="text-lg font-black text-gray-900 font-display">
+                Poänghistorik & Revision (Audit Trail)
+              </h3>
+              <p className="text-xs text-gray-500">
+                Full transparens: Varje poäng har en specifik verifieringsmetod, base score och multiplikator
+              </p>
+            </div>
+            <span className="text-xs font-bold text-gray-500">
+              {scoreLogs.length} verifierade transaktioner
+            </span>
           </div>
 
-          <div className="divide-y divide-gray-100">
-            {sortedMembers.map((mbr, idx) => {
-              const isMaster = mbr.booster_score >= 2001;
-              const isUser = mbr.id === currentUser.id;
-
+          <div className="space-y-3">
+            {scoreLogs.map(log => {
+              const isPositive = log.points_awarded > 0;
               return (
-                <div
-                  key={mbr.id}
-                  className={`p-4 flex items-center justify-between transition ${
-                    isUser ? 'bg-rose-50/40 border-l-4 border-[#800020]' : 'hover:bg-gray-50/70'
-                  }`}
+                <div 
+                  key={log.id} 
+                  className="p-4 rounded-2xl bg-gray-50 border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs hover:bg-white transition"
                 >
-                  <div className="flex items-center gap-3.5 min-w-0">
-                    <span className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black shrink-0 ${
-                      idx === 0 
-                        ? 'bg-amber-400 text-slate-900' 
-                        : idx === 1 
-                        ? 'bg-gray-200 text-gray-800' 
-                        : idx === 2 
-                        ? 'bg-amber-700 text-white' 
-                        : 'text-gray-400'
-                    }`}>
-                      #{idx + 1}
-                    </span>
-
-                    <div className="relative shrink-0">
-                      <img
-                        src={mbr.avatar}
-                        alt={mbr.full_name}
-                        className={`w-11 h-11 rounded-xl object-cover ${
-                          isMaster ? 'ring-2 ring-amber-400 ring-offset-1 shadow-xs' : 'border border-gray-200'
-                        }`}
-                      />
-                      {isMaster && (
-                        <div className="absolute -bottom-1 -right-1 bg-amber-500 text-white p-0.5 rounded shadow-xs">
-                          <Crown className="w-2.5 h-2.5" />
-                        </div>
-                      )}
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs font-black font-mono px-2 py-0.5 rounded-lg ${
+                        isPositive ? 'bg-emerald-100 text-emerald-900' : 'bg-rose-100 text-rose-900'
+                      }`}>
+                        {isPositive ? `+${log.points_awarded}` : log.points_awarded} BP
+                      </span>
+                      <h4 className="text-xs font-black text-gray-900">{log.title}</h4>
                     </div>
 
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-bold text-xs text-gray-900 truncate">
-                          {mbr.full_name}
-                        </span>
-                        {isUser && (
-                          <span className="text-[10px] font-bold bg-[#800020] text-white px-1.5 py-0.2 rounded">
-                            Du
+                    {log.description && (
+                      <p className="text-xs text-gray-600">{log.description}</p>
+                    )}
+
+                    <div className="flex items-center gap-2 pt-1 text-[10px] text-gray-400">
+                      <span>{log.created_at ? new Date(log.created_at).toLocaleDateString('sv-SE', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Nyligen'}</span>
+                      <span>•</span>
+                      <span className="font-semibold text-gray-600">
+                        Verifierad metod: {log.verification_method || 'SYSTEM'}
+                      </span>
+                      {log.multiplier_applied && log.multiplier_applied > 1 && (
+                        <>
+                          <span>•</span>
+                          <span className="text-emerald-600 font-bold">
+                            Multiplikator: {log.multiplier_applied}x (Give-bonus)
                           </span>
-                        )}
-                        {isMaster && (
-                          <span className="text-[9px] font-black bg-gradient-to-r from-amber-500 to-[#800020] text-white px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                            <Crown className="w-2.5 h-2.5" />
-                            <span>Master</span>
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-[11px] text-gray-500 truncate">
-                        {mbr.company_name} • {mbr.hub_name}
-                      </div>
+                        </>
+                      )}
                     </div>
                   </div>
 
-                  <div className="text-right shrink-0">
-                    <div className="text-base font-black text-[#800020] font-display">
-                      {mbr.booster_score} BP
-                    </div>
-                    <div className="text-[10px] text-gray-400">
-                      {mbr.membership_level} Medlem
-                    </div>
+                  <div className="shrink-0 flex items-center gap-2">
+                    <span className="text-[10px] font-bold px-2 py-1 rounded bg-white border border-gray-200 text-gray-500">
+                      ID: {log.id}
+                    </span>
                   </div>
                 </div>
               );
@@ -729,122 +1255,133 @@ export const GamificationModule: React.FC<GamificationModuleProps> = ({
         </div>
       )}
 
-      {/* SUB-VIEW 4: POÄNGMATRIS (BOOSTER POINT RULES) */}
-      {activeSubTab === 'RULES' && (
-        <div className="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-xs space-y-4 p-6">
-          <div>
-            <h3 className="text-base font-bold text-gray-900 font-display">
-              Officiell Poängmatris (Booster Point Rules V4)
-            </h3>
-            <p className="text-xs text-gray-500 mt-0.5">
-              Booster Score driver kontinuerlig aktivitet genom att kombinera fysisk närvaro och digital hjälpsamhet.
-            </p>
-          </div>
+      {/* SUB-VIEW 7: HUB BATTLE */}
+      {activeSubTab === 'HUB_BATTLE' && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-3xl border border-gray-200 p-6 shadow-xs space-y-6">
+            <div className="border-b border-gray-100 pb-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 text-amber-900 text-xs font-bold mb-2">
+                <Trophy className="w-3.5 h-3.5 text-amber-600" />
+                <span>Månadens Hubb (Hub Battle)</span>
+              </div>
+              <h3 className="text-xl font-black text-gray-900 font-display">
+                Regional Hubb-Topplista
+              </h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Baserat på snittpoäng per aktiv medlem för rättvis tävling mellan stora och mindre städer.
+              </p>
+            </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-[#F4F5F7] border-b border-gray-200 text-gray-600 font-bold uppercase tracking-wider text-[10px]">
-                <tr>
-                  <th className="py-3 px-4">Aktivitetskategori</th>
-                  <th className="py-3 px-4">Händelse / Handling</th>
-                  <th className="py-3 px-4">Poäng (+BP)</th>
-                  <th className="py-3 px-4">Maxgräns / Regler</th>
-                  <th className="py-3 px-4 text-right">Interaktiv Testning</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {pointRules.map((rule, idx) => {
-                  const Icon = rule.icon;
-                  return (
-                    <tr key={idx} className="hover:bg-gray-50/60 transition">
-                      <td className="py-3 px-4 font-bold text-gray-800">
-                        <div className="flex items-center gap-2">
-                          <Icon className="w-4 h-4 text-[#800020]" />
-                          <span>{rule.category}</span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-gray-700">
-                        {rule.event}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="font-black text-[#800020] bg-[#800020]/10 px-2.5 py-1 rounded-lg text-xs">
-                          +{rule.points} BP
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-gray-500 italic">
-                        {rule.rule}
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <button
-                          onClick={() => handleTriggerAction(rule)}
-                          className="px-3 py-1.5 rounded-xl bg-[#800020] hover:bg-[#580016] text-white text-[11px] font-bold transition shadow-xs inline-flex items-center gap-1"
-                        >
-                          <span>Logga Handling</span>
-                          <ArrowUpRight className="w-3 h-3" />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <div className="space-y-3">
+              {hubBattleStandings.map((h, i) => (
+                <div 
+                  key={h.id}
+                  className={`p-4 rounded-2xl border transition flex items-center justify-between ${
+                    h.is_leader
+                      ? 'bg-gradient-to-r from-amber-50/50 to-white border-amber-300 shadow-sm'
+                      : 'bg-white border-gray-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className={`w-7 h-7 rounded-xl flex items-center justify-center font-black text-xs ${
+                      i === 0 ? 'bg-amber-400 text-amber-950 shadow-xs' : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      #{i + 1}
+                    </span>
+                    <div>
+                      <h4 className="text-sm font-black text-gray-900">{h.name}</h4>
+                      <p className="text-xs text-gray-500">{h.active_members} aktiva medlemmar • {h.trend}</p>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <span className="text-sm font-black text-[#800020] font-display block">
+                      {h.avg_points} BP
+                    </span>
+                    <span className="text-[10px] text-gray-400">snitt per medlem</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
 
-      {/* SUB-VIEW 5: BOOSTER SCORE AUDIT TRAIL */}
-      {activeSubTab === 'LOGS' && (
-        <div className="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-xs p-6 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+      {/* SUB-VIEW 8: LEADERBOARD */}
+      {activeSubTab === 'LEADERBOARD' && (
+        <div className="bg-white rounded-3xl border border-gray-200 p-6 shadow-xs space-y-4">
+          <div className="flex items-center justify-between border-b border-gray-100 pb-4">
             <div>
-              <h3 className="text-base font-bold text-gray-900 font-display flex items-center gap-2">
-                <History className="w-5 h-5 text-[#800020]" />
-                <span>Booster Score Audit Trail (`booster_score_logs`)</span>
+              <h3 className="text-lg font-black text-gray-900 font-display">
+                Medlems-Topplista (Master Networkers)
               </h3>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Fullständig verifieringslogg för alla intjänade och krediterade poäng.
+              <p className="text-xs text-gray-500">
+                Medlemmarna som skapar mest värde, introduktioner och affärer i nätverket
               </p>
             </div>
-            <span className="text-xs font-mono font-bold bg-[#F4F5F7] px-3 py-1 rounded-xl text-gray-700">
-              {scoreLogs.length} poster loggade
-            </span>
+
+            <div className="flex bg-gray-100 p-1 rounded-xl text-xs font-bold">
+              <button
+                onClick={() => setLeaderboardFilter('MONTH')}
+                className={`px-3 py-1 rounded-lg transition ${
+                  leaderboardFilter === 'MONTH' ? 'bg-white text-gray-900 shadow-2xs' : 'text-gray-500'
+                }`}
+              >
+                Denna Månad
+              </button>
+              <button
+                onClick={() => setLeaderboardFilter('ALL_TIME')}
+                className={`px-3 py-1 rounded-lg transition ${
+                  leaderboardFilter === 'ALL_TIME' ? 'bg-white text-gray-900 shadow-2xs' : 'text-gray-500'
+                }`}
+              >
+                Totalt (All-Time)
+              </button>
+            </div>
           </div>
 
-          <div className="space-y-2.5 max-h-[500px] overflow-y-auto">
-            {scoreLogs.map(log => (
-              <div
-                key={log.id}
-                className="p-3.5 rounded-2xl bg-[#F4F5F7] border border-gray-200 flex items-center justify-between gap-4 hover:bg-gray-100/70 transition"
+          <div className="space-y-2">
+            {sortedMembers.slice(0, 10).map((m, idx) => (
+              <div 
+                key={m.id}
+                className={`p-3.5 rounded-2xl border transition flex items-center justify-between ${
+                  m.id === currentUser.id 
+                    ? 'bg-rose-50/50 border-[#800020] shadow-2xs ring-1 ring-[#800020]' 
+                    : 'bg-white border-gray-200 hover:border-gray-300'
+                }`}
               >
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-[#800020]/10 flex items-center justify-center text-[#800020] shrink-0 mt-0.5">
-                    <Check className="w-4 h-4" />
+                <div className="flex items-center gap-3">
+                  <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black ${
+                    idx === 0 ? 'bg-amber-400 text-amber-950' : idx === 1 ? 'bg-slate-300 text-slate-800' : idx === 2 ? 'bg-amber-600 text-white' : 'text-gray-400'
+                  }`}>
+                    {idx + 1}
+                  </span>
+
+                  <div className="w-10 h-10 rounded-xl overflow-hidden ring-1 ring-gray-200 shrink-0">
+                    <img src={m.avatar} alt={m.full_name} className="w-full h-full object-cover" />
                   </div>
+
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-gray-900">{log.title}</span>
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-gray-200 text-gray-700">
-                        {log.activity_type}
+                      <h4 className="text-xs font-black text-gray-900">{m.full_name}</h4>
+                      {m.booster_score >= 2001 && <Crown className="w-3.5 h-3.5 text-amber-500" />}
+                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-gray-100 text-gray-600">
+                        {m.membership_level}
                       </span>
                     </div>
-                    <p className="text-[11px] text-gray-600 mt-0.5">{log.description}</p>
-                    <div className="text-[10px] text-gray-400 mt-1 font-mono">
-                      Loggad: {new Date(log.created_at).toLocaleDateString('sv-SE', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </div>
+                    <p className="text-[11px] text-gray-500 font-medium">
+                      {m.role_title} • {m.company_name} ({m.hub_name})
+                    </p>
                   </div>
                 </div>
 
-                <div className="text-right shrink-0">
-                  <span className="text-base font-black text-[#800020] font-display">
-                    +{log.points_awarded} BP
+                <div className="text-right">
+                  <span className="text-sm font-black text-[#800020] font-display block">
+                    {m.booster_score.toLocaleString('sv-SE')} BP
                   </span>
-                  <div className="text-[10px] font-semibold text-emerald-700">Verifierad</div>
+                  <span className="text-[10px] text-gray-400">
+                    Level {m.booster_score >= 2001 ? 4 : m.booster_score >= 751 ? 3 : m.booster_score >= 251 ? 2 : 1}
+                  </span>
                 </div>
               </div>
             ))}

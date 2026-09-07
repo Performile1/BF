@@ -44,6 +44,208 @@ export const INITIAL_COWORKING_CREDITS: Record<string, MemberCoworkingCredits> =
 
 export const INITIAL_MASTER_EVENTS: MasterCalendarEvent[] = [
   {
+    id: 'evt_past_summer_summit_2026',
+    title: 'Booster Friends Sommar-Summit & M&A Mingle',
+    description: 'Årets flaggskeppsträff på takterrassen i Stockholm med fokus på tech-affärer, M&A och internationell expansion.',
+    category: 'HUB_MEETING',
+    hub_id: 'hub_stockholm',
+    hub_name: 'Hubb Stockholm City',
+    is_digital: false,
+    date_str: '2026-08-27',
+    display_date: 'Torsdag 27 Aug',
+    start_time: '16:00',
+    end_time: '19:30',
+    location: 'Takterrassen, Stureplan 4, Stockholm',
+    required_level: 'BRONZE',
+    spots_max: 60,
+    attendees_count: 54,
+    is_booked: true,
+    speaker_or_host: 'Sofia Eklund & Johan Lindberg',
+    is_past: true,
+    rating_avg: 4.9,
+    reviews_count: 18,
+    recap_text: 'Årets sommarträff samlade 54 företagsledare på takterrassen i Stockholm. Keynote av Sofia Eklund rörande due diligence och hur man skyddar köpeskillingen ledde till djupgående diskussioner. Under minglet koordinerades 28 strukturerade 1-till-1 möten och flera deltagare inledde pilotsamarbeten.',
+    impact_stats: {
+      meetings_count: 14,
+      intros_count: 6,
+      deals_sek: 850000
+    },
+    gallery_images: [
+      {
+        id: 'gal_1',
+        url: 'https://images.unsplash.com/photo-1511578314322-379afb476865?w=600&auto=format&fit=crop&q=80',
+        caption: 'Mingel och paneldebatt på takterrassen',
+        author_name: 'Emma Lind',
+        author_avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80'
+      },
+      {
+        id: 'gal_2',
+        url: 'https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=600&auto=format&fit=crop&q=80',
+        caption: 'Bordsrunda med 1-till-1 presentationer',
+        author_name: 'Marcus Wallin',
+        author_avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'
+      },
+      {
+        id: 'gal_3',
+        url: 'https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=600&auto=format&fit=crop&q=80',
+        caption: 'Fokuserad speed-dating i hubblokalen',
+        author_name: 'Sofia Eklund',
+        author_avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'
+      }
+    ],
+    event_reviews: [
+      {
+        id: 'rev_ev_1',
+        member_id: 'usr_johan_lindberg',
+        member_name: 'Johan Lindberg',
+        member_avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+        rating: 5,
+        review_text: 'En av de absolut bästa träffarna hittills. 1-till-1 borden var fantastiskt koordinerade och ledde direkt till två nya pilotkunder.',
+        created_at: '2026-08-28T09:12:00Z',
+        is_verified: true
+      },
+      {
+        id: 'rev_ev_2',
+        member_id: 'usr_amanda_berg',
+        member_name: 'Amanda Berg',
+        member_avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+        rating: 5,
+        review_text: 'Klockrena diskussioner och god energi. Har redan bokat uppföljande lunch med 3 deltagare!',
+        created_at: '2026-08-27T19:40:00Z',
+        is_verified: true
+      }
+    ],
+    checked_in_members: [
+      {
+        id: 'usr_sofia_eklund',
+        full_name: 'Sofia Eklund',
+        role_title: 'Senior Affärsjurist',
+        company_name: 'Eklund & Partners Advokatbyrå',
+        avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+        booster_score: 1120,
+        membership_level: 'GOLD',
+        industry: 'Juridik & M&A',
+        competence_tag: 'M&A & Avtal'
+      },
+      {
+        id: 'usr_johan_lindberg',
+        full_name: 'Johan Lindberg',
+        role_title: 'VD & Grundare',
+        company_name: 'Nordic Growth Tech',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+        booster_score: 940,
+        membership_level: 'GOLD',
+        industry: 'B2B SaaS',
+        competence_tag: 'SaaS Skalning'
+      },
+      {
+        id: 'usr_marcus_wallin',
+        full_name: 'Marcus Wallin',
+        role_title: 'Venture Partner',
+        company_name: 'Apex Growth Ventures',
+        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+        booster_score: 870,
+        membership_level: 'SILVER',
+        industry: 'Investering & Finans',
+        competence_tag: 'Venture Capital'
+      }
+    ],
+    attendees: [
+      {
+        id: 'usr_sofia_eklund',
+        full_name: 'Sofia Eklund',
+        role_title: 'Senior Affärsjurist',
+        company_name: 'Eklund & Partners Advokatbyrå',
+        avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+        booster_score: 1120,
+        membership_level: 'GOLD',
+        industry: 'Juridik & M&A',
+        competence_tag: 'M&A & Avtal'
+      },
+      {
+        id: 'usr_johan_lindberg',
+        full_name: 'Johan Lindberg',
+        role_title: 'VD & Grundare',
+        company_name: 'Nordic Growth Tech',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+        booster_score: 940,
+        membership_level: 'GOLD',
+        industry: 'B2B SaaS',
+        competence_tag: 'SaaS Skalning'
+      }
+    ]
+  },
+  {
+    id: 'evt_past_goteborg_kickoff',
+    title: 'Göteborgs B2B Höst-Kickoff & Frukost',
+    description: 'Höststarten på Avenyn med fokus på gemensamma anbud, partnerskap och nätverkande inför Q4.',
+    category: 'HUB_MEETING',
+    hub_id: 'hub_goteborg',
+    hub_name: 'Hubb Göteborg Avenyn',
+    is_digital: false,
+    date_str: '2026-09-02',
+    display_date: 'Onsdag 2 Sep',
+    start_time: '07:30',
+    end_time: '09:30',
+    location: 'Kungsportsavenyen 21, Göteborg',
+    required_level: 'BRONZE',
+    spots_max: 40,
+    attendees_count: 36,
+    is_booked: true,
+    speaker_or_host: 'Lars Bergqvist (Göteborg Hubb)',
+    is_past: true,
+    rating_avg: 4.8,
+    reviews_count: 12,
+    recap_text: 'Kickoffen samlade 36 bolag på Avenyn. Träffen kretsade kring hur vi lokalt kan stötta varandra i större offentliga och privata upphandlingar. 8 nya 1-till-1 kaffemöten och 3 varma introduktioner loggades direkt efter träffen.',
+    impact_stats: {
+      meetings_count: 8,
+      intros_count: 3,
+      deals_sek: 320000
+    },
+    gallery_images: [
+      {
+        id: 'gal_4',
+        url: 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=600&auto=format&fit=crop&q=80',
+        caption: 'Fullsatt i Göteborgs lounge under frukosten',
+        author_name: 'Lars Bergqvist',
+        author_avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80'
+      },
+      {
+        id: 'gal_5',
+        url: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&auto=format&fit=crop&q=80',
+        caption: 'Gemensam strategi-sprint i grupp',
+        author_name: 'Peter Dahlgren',
+        author_avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80'
+      }
+    ],
+    event_reviews: [
+      {
+        id: 'rev_ev_3',
+        member_id: 'usr_peter_dahlgren',
+        member_name: 'Peter Dahlgren',
+        member_avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+        rating: 5,
+        review_text: 'Mycket bra format! Konkreta affärsdiskussioner och inget fluff. Nätverket levererar verkligt värde.',
+        created_at: '2026-09-02T13:10:00Z',
+        is_verified: true
+      }
+    ],
+    checked_in_members: [
+      {
+        id: 'usr_peter_dahlgren',
+        full_name: 'Peter Dahlgren',
+        role_title: 'Fastighetsstrateg',
+        company_name: 'Urban Property Advisory',
+        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+        booster_score: 510,
+        membership_level: 'SILVER',
+        industry: 'Fastighet & Etablering',
+        competence_tag: 'Kommersiella Lokaler'
+      }
+    ],
+    attendees: []
+  },
+  {
     id: 'evt_sthlm_breakfast',
     title: 'Stora Booster-Frukosten & B2B Matchmaking',
     description: 'Nätverkets flaggskeppsträff i Stockholm. Strukturerat 1-till-1 bordssamtal, 60-sekunders presentationsrunda och föreläsning om internationell expansion.',

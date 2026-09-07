@@ -31,6 +31,7 @@ interface HeaderProps {
   unreadNotificationsCount: number;
   onOpenNotifications?: () => void;
   onOpenCheckInModal: () => void;
+  onOpenQrModal?: () => void;
   onOpenArchitectureSpec: () => void;
   channels?: ChatChannel[];
   onSelectChannel?: (channelId: string) => void;
@@ -49,6 +50,7 @@ export const Header: React.FC<HeaderProps> = ({
   unreadNotificationsCount,
   onOpenNotifications,
   onOpenCheckInModal,
+  onOpenQrModal,
   onOpenArchitectureSpec,
   channels = [],
   onSelectChannel,

@@ -34,9 +34,14 @@ import {
   Send,
   Gift,
   Tag,
-  AlertCircle
+  AlertCircle,
+  Coffee
 } from 'lucide-react';
 import { MasterCalendarEvent, Member, CalendarEventCategory, MembershipLevel } from '../../types';
+import { PastEventsRecapView } from './PastEventsRecapView';
+import { EventReviewModal } from './EventReviewModal';
+import { CreateMemberEventModal } from './CreateMemberEventModal';
+import { LunchInvitationModal } from './LunchInvitationModal';
 
 interface MasterCalendarModuleProps {
   currentUser: Member;
@@ -47,6 +52,7 @@ interface MasterCalendarModuleProps {
   onBookSpeakerOneOnOne?: (eventId: string, slotTime: string) => void;
   onShareEventWithMember?: (eventId: string, targetMemberId: string, customNote?: string) => void;
   onInviteMemberFreeTicket?: (eventId: string, targetMemberId: string, guestName?: string, guestEmail?: string) => void;
+  onAwardPoints?: (points: number, title: string, activityType: any, verificationMethod?: any) => void;
 }
 
 export const MasterCalendarModule: React.FC<MasterCalendarModuleProps> = ({
@@ -57,7 +63,8 @@ export const MasterCalendarModule: React.FC<MasterCalendarModuleProps> = ({
   onCancelBooking,
   onBookSpeakerOneOnOne,
   onShareEventWithMember,
-  onInviteMemberFreeTicket
+  onInviteMemberFreeTicket,
+  onAwardPoints
 }) => {
   const [selectedHubFilter, setSelectedHubFilter] = useState<'ALL' | 'MY_HUB' | 'STOCKHOLM' | 'GOTEBORG' | 'MALMO' | 'UPPSALA'>('ALL');
   const [categoryFilter, setCategoryFilter] = useState<'ALL' | CalendarEventCategory>('ALL');
@@ -91,18 +98,85 @@ export const MasterCalendarModule: React.FC<MasterCalendarModuleProps> = ({
   const [guestCompany, setGuestCompany] = useState('');
   const [inviteSuccessNotice, setInviteSuccessNotice] = useState<string | null>(null);
 
+  // V9 Past Event, Community Expansion & Lunch states
+  const [eventTimeTab, setEventTimeTab] = useState<'UPCOMING' | 'PAST'>('UPCOMING');
+  const [showCreateEventModal, setShowCreateEventModal] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState<MasterCalendarEvent | null>(null);
+  const [showLunchModal, setShowLunchModal] = useState<{ attendee: any; event?: MasterCalendarEvent } | null>(null);
+  const [localEvents, setLocalEvents] = useState<MasterCalendarEvent[]>(events);
+
+  useEffect(() => {
+    setLocalEvents(events);
+  }, [events]);
+
+  const handleLogOneOnOne = (attendee: any, event: MasterCalendarEvent) => {
+    if (onAwardPoints) {
+      onAwardPoints(20, `Loggat 1-till-1 möte med ${attendee.full_name}`, 'ONE_ON_ONE_LOGGED', 'TWO_WAY');
+    }
+    setBookingSuccessNotice(`☕ Loggat 1-till-1 möte med ${attendee.full_name} registrerat! +20 Booster Points har tilldelats.`);
+    setTimeout(() => setBookingSuccessNotice(null), 5000);
+  };
+
+  const handleSubmitReview = (eventId: string, rating: number, reviewText: string) => {
+    if (onAwardPoints) {
+      onAwardPoints(20, `Eventrecension (${rating} stjärnor)`, 'EVENT_REVIEW_SUBMITTED', 'SYSTEM');
+    }
+    setLocalEvents(prev => prev.map(e => {
+      if (e.id === eventId) {
+        const newReview = {
+          id: `rev_${Date.now()}`,
+          member_id: currentUser.id,
+          member_name: currentUser.full_name,
+          member_avatar: currentUser.avatar,
+          rating,
+          review_text: reviewText,
+          created_at: new Date().toISOString(),
+          is_verified: true
+        };
+        const updatedReviews = [newReview, ...(e.event_reviews || [])];
+        return {
+          ...e,
+          event_reviews: updatedReviews,
+          reviews_count: updatedReviews.length
+        };
+      }
+      return e;
+    }));
+    setBookingSuccessNotice(`⭐ Tack för ditt omdöme! +20 Booster Points har lagts till ditt saldo.`);
+    setTimeout(() => setBookingSuccessNotice(null), 5000);
+  };
+
+  const handleCreateNewMemberEvent = (newEventData: Partial<MasterCalendarEvent>) => {
+    const fullEvent = newEventData as MasterCalendarEvent;
+    setLocalEvents(prev => [fullEvent, ...prev]);
+    if (onAwardPoints) {
+      onAwardPoints(30, `Arrangerat nätverksevent: ${fullEvent.title}`, 'EVENT_HOST_INITIATIVE', 'SYSTEM');
+    }
+    setBookingSuccessNotice(`🎉 Ditt event "${fullEvent.title}" har skapats och publicerats i Masterkalendern! +30 BP erhållet.`);
+    setTimeout(() => setBookingSuccessNotice(null), 5000);
+  };
+
+  const handleSendLunchInvitation = (invitation: any) => {
+    const points = invitation.host_pays ? 30 : 20;
+    if (onAwardPoints) {
+      onAwardPoints(points, `Lunchinbjudan till ${invitation.invitee_name}${invitation.host_pays ? ' (Du bjuder)' : ''}`, 'LUNCH_HOST_INVITE', 'TWO_WAY');
+    }
+    setBookingSuccessNotice(`🍽️ Lunchinbjudan skickad till ${invitation.invitee_name}! ${invitation.host_pays ? 'Eftersom du bjuder erhåller du +30 BP vid genomförande.' : '+20 BP vid genomförande.'}`);
+    setTimeout(() => setBookingSuccessNotice(null), 5000);
+  };
+
   // Auto open event from URL ?event=...
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const eventParam = params.get('event');
-    if (eventParam && events.length > 0) {
-      const matched = events.find(e => e.id === eventParam);
+    if (eventParam && localEvents.length > 0) {
+      const matched = localEvents.find(e => e.id === eventParam);
       if (matched) {
         setSelectedEvent(matched);
         setSelectedDateStr(matched.date_str);
       }
     }
-  }, [events]);
+  }, [localEvents]);
 
   const getUserFreeInvitesCount = (event: MasterCalendarEvent) => {
     return (event.invitations || []).filter(inv => inv.invited_by_id === currentUser.id).length;
@@ -267,7 +341,11 @@ export const MasterCalendarModule: React.FC<MasterCalendarModuleProps> = ({
   };
 
   const filteredEvents = useMemo(() => {
-    return events.filter(evt => {
+    return localEvents.filter(evt => {
+      // Time tab filter (UPCOMING vs PAST)
+      if (eventTimeTab === 'UPCOMING' && evt.is_past) return false;
+      if (eventTimeTab === 'PAST' && !evt.is_past) return false;
+
       // Hub filter
       if (selectedHubFilter === 'MY_HUB' && evt.hub_id !== currentUser.hub_id && !evt.is_digital) return false;
       if (selectedHubFilter === 'STOCKHOLM' && evt.hub_id !== 'hub_stockholm' && !evt.is_digital) return false;
@@ -300,7 +378,7 @@ export const MasterCalendarModule: React.FC<MasterCalendarModuleProps> = ({
 
       return true;
     });
-  }, [events, selectedHubFilter, categoryFilter, formatFilter, tierFilter, onlyMyBookings, searchQuery, currentUser.hub_id]);
+  }, [localEvents, eventTimeTab, selectedHubFilter, categoryFilter, formatFilter, tierFilter, onlyMyBookings, searchQuery, currentUser.hub_id]);
 
   // Group filtered events by date_str (YYYY-MM-DD)
   const eventsByDate = useMemo(() => {
@@ -459,8 +537,63 @@ export const MasterCalendarModule: React.FC<MasterCalendarModuleProps> = ({
         </div>
       )}
 
-      {/* Filter and Control Bar */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-xs space-y-4">
+      {/* Primary Tab Switcher: Kommande Event vs Genomförda Event (Recap & Mingelbilder) */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-gray-200 shadow-xs">
+        <div className="flex rounded-xl bg-gray-100 p-1">
+          <button
+            onClick={() => setEventTimeTab('UPCOMING')}
+            className={`px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 ${
+              eventTimeTab === 'UPCOMING'
+                ? 'bg-white text-[#800020] shadow-xs'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <CalendarDays className="w-4 h-4" />
+            <span>Kommande Evenemang ({localEvents.filter(e => !e.is_past).length})</span>
+          </button>
+          <button
+            onClick={() => setEventTimeTab('PAST')}
+            className={`px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 ${
+              eventTimeTab === 'PAST'
+                ? 'bg-white text-[#800020] shadow-xs'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <Clock className="w-4 h-4" />
+            <span>Genomförda Träffar & Recaps ({localEvents.filter(e => e.is_past).length})</span>
+          </button>
+        </div>
+
+        <button
+          onClick={() => setShowCreateEventModal(true)}
+          className="px-4 py-2.5 rounded-xl bg-[#800020] hover:bg-[#68001a] text-white text-xs font-black transition flex items-center justify-center gap-2 shadow-xs"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Skapa Medlemsevent</span>
+        </button>
+      </div>
+
+      {/* When Past Events Tab is active */}
+      {eventTimeTab === 'PAST' && (
+        <PastEventsRecapView
+          currentUser={currentUser}
+          pastEvents={localEvents.filter(e => e.is_past)}
+          allMembers={allMembers}
+          onOpenReviewModal={(evt) => setShowReviewModal(evt)}
+          onOpenLunchModal={(att, evt) => setShowLunchModal({ attendee: att, event: evt })}
+          onLogOneOnOne={handleLogOneOnOne}
+          onUploadPhoto={(evt) => {
+            setBookingSuccessNotice(`📸 Fotouppladdning för "${evt.title}" aktiverad! Ladda upp din bild så krediteras +10 BP.`);
+            setTimeout(() => setBookingSuccessNotice(null), 5000);
+          }}
+        />
+      )}
+
+      {/* When Upcoming Events Tab is active */}
+      {eventTimeTab === 'UPCOMING' && (
+        <>
+          {/* Filter and Control Bar */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-xs space-y-4">
         <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
           {/* Search input */}
           <div className="relative flex-1">
@@ -1437,6 +1570,8 @@ export const MasterCalendarModule: React.FC<MasterCalendarModuleProps> = ({
           </div>
         </div>
       )}
+      </>
+      )}
 
       {/* Event Details & Attendees Modal */}
       {selectedEvent && (
@@ -1790,6 +1925,32 @@ export const MasterCalendarModule: React.FC<MasterCalendarModuleProps> = ({
                             <span className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-900 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-300">
                               <Crown className="w-2.5 h-2.5 text-amber-600" /> VIP Gäst via {att.invited_by_name || 'Guldmedlem'}
                             </span>
+                          </div>
+                        )}
+
+                        {att.id !== currentUser.id && (
+                          <div className="mt-2 pt-1.5 border-t border-gray-100 flex items-center gap-1.5 flex-wrap">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setShowLunchModal({ attendee: att, event: selectedEvent });
+                              }}
+                              className="px-2 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 text-[10px] font-bold border border-amber-200 transition flex items-center gap-1"
+                            >
+                              <Coffee className="w-3 h-3 text-amber-600" />
+                              <span>Bjud på lunch</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleLogOneOnOne(att, selectedEvent);
+                              }}
+                              className="px-2 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-[10px] font-bold transition flex items-center gap-1"
+                            >
+                              <span>Logga 1-1 (+20 BP)</span>
+                            </button>
                           </div>
                         )}
                       </div>
@@ -2369,6 +2530,36 @@ export const MasterCalendarModule: React.FC<MasterCalendarModuleProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Review Modal */}
+      {showReviewModal && (
+        <EventReviewModal
+          event={showReviewModal}
+          currentUser={currentUser}
+          onClose={() => setShowReviewModal(null)}
+          onSubmitReview={handleSubmitReview}
+        />
+      )}
+
+      {/* Create Member Event Modal */}
+      {showCreateEventModal && (
+        <CreateMemberEventModal
+          currentUser={currentUser}
+          onClose={() => setShowCreateEventModal(false)}
+          onCreateEvent={handleCreateNewMemberEvent}
+        />
+      )}
+
+      {/* Lunch Invitation Modal */}
+      {showLunchModal && (
+        <LunchInvitationModal
+          attendee={showLunchModal.attendee}
+          event={showLunchModal.event}
+          currentUser={currentUser}
+          onClose={() => setShowLunchModal(null)}
+          onSendInvitation={handleSendLunchInvitation}
+        />
       )}
     </div>
   );
