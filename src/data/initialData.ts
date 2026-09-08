@@ -38,6 +38,64 @@ export const CURRENT_USER: Member = {
   rating_avg: 4.9,
   reviews_count: 19,
   created_at: '2023-04-12T10:00:00Z',
+  merits: [
+    {
+      id: 'm_1',
+      category: 'BOARD_ROLE',
+      title: 'Styrelseledamot & Tech-Rådgivare',
+      organization: 'Nordic Cloud Alliance',
+      year: '2023 - Nuvarande',
+      description: 'Strategisk ledning för molninfrastruktur och europeisk datasuveränitet.',
+      verified: true
+    },
+    {
+      id: 'm_2',
+      category: 'CERTIFICATION',
+      title: 'Certified Information Systems Security Professional (CISSP)',
+      organization: '(ISC)²',
+      year: '2022',
+      description: 'Internationellt guldstandard-certifikat inom enterprise säkerhetsarkitektur.',
+      verified: true
+    },
+    {
+      id: 'm_3',
+      category: 'EDUCATION',
+      title: 'Civilingenjör Industriell Ekonomi & Datateknik',
+      organization: 'KTH Kungliga Tekniska Högskolan',
+      year: '2016',
+      description: 'Examensarbete inom distribuerade cybersäkerhetssystem.',
+      verified: true
+    },
+    {
+      id: 'm_4',
+      category: 'AWARD',
+      title: 'Årets SaaS Scaleup Founder 2024 (Nominerad)',
+      organization: 'Nordic Startup Awards',
+      year: '2024',
+      description: 'Uppmärksammad för snabb organisk tillväxt inom B2B molnsäkerhet.',
+      verified: true
+    }
+  ],
+  case_studies: [
+    {
+      id: 'cs_1',
+      title: 'Skalning av Zero-Trust Säkerhet för FinTech Scaleup',
+      client_name: 'NordicPay AB',
+      result_metric: '+350% säkerhetsaudit & 0 incidenter',
+      description: 'Implementerade ISO27001-kompatibel arkitektur och automatiserad incidentrespons före Serie B-finansiering.',
+      tags: ['Fintech', 'Zero-Trust', 'Cloud Security', 'ISO27001'],
+      image_url: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&auto=format&fit=crop&q=80'
+    },
+    {
+      id: 'cs_2',
+      title: 'Multi-region Cloud Migrering med bibehållen GDPR Compliance',
+      client_name: 'CareNordic Health',
+      result_metric: '-42% driftkostnad & 99.99% upptid',
+      description: 'Migrerade 40TB patientdata till decentraliserad molnklusterinfrastruktur med svensk datasuveränitet.',
+      tags: ['HealthTech', 'GDPR', 'Multi-Cloud', 'DevOps'],
+      image_url: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&auto=format&fit=crop&q=80'
+    }
+  ]
 };
 
 export const INITIAL_MEMBERS: Member[] = [

@@ -60,6 +60,10 @@ export interface Member {
   linkedin_posts?: { title: string; url: string; date: string }[];
   following_member_ids?: string[];
   give_take_ratio?: number;
+  merits?: MemberMerit[];
+  case_studies?: MemberCaseStudy[];
+  cv_summary?: string;
+  cv_filename?: string;
   linked_posts?: {
     id: string;
     title: string;
@@ -67,6 +71,27 @@ export interface Member {
     likes_count: number;
     url: string;
   }[];
+}
+
+export interface MemberMerit {
+  id: string;
+  category: 'BOARD_ROLE' | 'CERTIFICATION' | 'EDUCATION' | 'AWARD' | 'EXPERIENCE';
+  title: string;
+  organization: string;
+  year: string;
+  description?: string;
+  verified?: boolean;
+}
+
+export interface MemberCaseStudy {
+  id: string;
+  title: string;
+  client_name: string;
+  result_metric: string;
+  description: string;
+  tags: string[];
+  image_url?: string;
+  link_url?: string;
 }
 
 export interface AdminBanner {
@@ -900,6 +925,13 @@ export interface CommunityPost {
   created_at: string;
   read_time_min?: number;
   is_featured?: boolean;
+  fact_check_status?: 'VERIFIED' | 'PENDING' | 'DISPUTED';
+  fact_check_details?: {
+    verified_by?: string;
+    verified_date?: string;
+    summary?: string;
+    source_citation?: string;
+  };
 }
 
 export interface MemberFollow {

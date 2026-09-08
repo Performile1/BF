@@ -27,6 +27,8 @@ import {
 import { Member, CommunityPost, PostComment, CommunityPollOption } from '../../types';
 import { INITIAL_COMMUNITY_POSTS } from '../../data/communityAndMatchmakingData';
 import { CreatePostModal } from './CreatePostModal';
+import { AdBannerEngine } from '../ads/AdBannerEngine';
+import { LinkedInShareButton } from '../common/LinkedInShareButton';
 
 interface CommunityAndBlogModuleProps {
   currentUser: Member;
@@ -45,6 +47,8 @@ export const CommunityAndBlogModule: React.FC<CommunityAndBlogModuleProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterFollowingOnly, setFilterFollowingOnly] = useState(false);
+  const [filterVerifiedOnly, setFilterVerifiedOnly] = useState(false);
+  const [selectedFactCheckPost, setSelectedFactCheckPost] = useState<CommunityPost | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createModalType, setCreateModalType] = useState<'FORUM_THREAD' | 'ARTICLE'>('FORUM_THREAD');
   const [expandedCommentsPostId, setExpandedCommentsPostId] = useState<string | null>('post_1');
@@ -212,6 +216,10 @@ export const CommunityAndBlogModule: React.FC<CommunityAndBlogModuleProps> = ({
       return false;
     }
 
+    if (filterVerifiedOnly && p.fact_check_status !== 'VERIFIED') {
+      return false;
+    }
+
     if (selectedCategory !== 'ALL' && p.category !== selectedCategory) {
       return false;
     }
@@ -330,16 +338,29 @@ export const CommunityAndBlogModule: React.FC<CommunityAndBlogModuleProps> = ({
           </button>
         </div>
 
-        {/* Filter Following Toggle */}
-        <label className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gray-50 border border-gray-200 cursor-pointer text-xs font-semibold text-gray-700 shrink-0">
-          <input
-            type="checkbox"
-            checked={filterFollowingOnly}
-            onChange={(e) => setFilterFollowingOnly(e.target.checked)}
-            className="rounded text-[#800020] focus:ring-[#800020]"
-          />
-          <span>Endast följda medlemmar</span>
-        </label>
+        {/* Filter Following & Fact Check Toggles */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <label className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gray-50 border border-gray-200 cursor-pointer text-xs font-semibold text-gray-700 shrink-0">
+            <input
+              type="checkbox"
+              checked={filterFollowingOnly}
+              onChange={(e) => setFilterFollowingOnly(e.target.checked)}
+              className="rounded text-[#800020] focus:ring-[#800020]"
+            />
+            <span>Endast följda</span>
+          </label>
+
+          <label className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50/70 border border-emerald-200 cursor-pointer text-xs font-bold text-emerald-900 shrink-0">
+            <input
+              type="checkbox"
+              checked={filterVerifiedOnly}
+              onChange={(e) => setFilterVerifiedOnly(e.target.checked)}
+              className="rounded text-emerald-700 focus:ring-emerald-600"
+            />
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Endast granskad kunskap (Fact-Check)</span>
+          </label>
+        </div>
       </div>
 
       {/* Categories & Search Bar */}
@@ -377,6 +398,12 @@ export const CommunityAndBlogModule: React.FC<CommunityAndBlogModuleProps> = ({
           />
         </div>
       </div>
+
+      {/* 📢 Sponsrad Annonsmotor (COMMUNITY_FEED) */}
+      <AdBannerEngine
+        zone="COMMUNITY_FEED"
+        isAdmin={currentUser.membership_level === 'GOLD' || !!currentUser.is_admin}
+      />
 
       {/* Posts Feed */}
       <div className="space-y-5">
@@ -437,6 +464,26 @@ export const CommunityAndBlogModule: React.FC<CommunityAndBlogModuleProps> = ({
 
                 {/* Post Header & Content */}
                 <div className="space-y-2">
+                  {post.fact_check_status === 'VERIFIED' && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedFactCheckPost(post)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 text-[11px] font-bold transition shadow-2xs group"
+                        title="Klicka för att se fullständig granskningsrapport"
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 group-hover:scale-110 transition" />
+                        <span>Verifierad Expertkunskap</span>
+                        <span className="text-[10px] bg-emerald-200 text-emerald-950 px-1.5 py-0.2 rounded font-mono font-bold">
+                          Fact-Check ✓
+                        </span>
+                      </button>
+                      <span className="text-[11px] text-gray-400">
+                        Granskad av {post.fact_check_details?.verified_by || 'Booster Expertpanel'}
+                      </span>
+                    </div>
+                  )}
+
                   <h3 className="text-base sm:text-lg font-black text-gray-900 leading-snug">
                     {post.title}
                   </h3>
@@ -561,6 +608,21 @@ export const CommunityAndBlogModule: React.FC<CommunityAndBlogModuleProps> = ({
                       <MessageCircle className="w-4 h-4" />
                       <span>{post.comments_count} Svar</span>
                     </button>
+
+                    {/* LinkedIn Share Button */}
+                    <LinkedInShareButton
+                      title={post.title}
+                      summary={post.content.slice(0, 160) + '...'}
+                      tags={post.tags}
+                      variant="compact"
+                      onShared={() => {
+                        if (onAwardPoints) {
+                          onAwardPoints(15, `Delade "${post.title}" på LinkedIn`, 'REFERRAL_SENT');
+                        }
+                        setFeedbackNotice('🎉 Tack för att du delade inlägget på LinkedIn! +15 Booster Points intjänat.');
+                        setTimeout(() => setFeedbackNotice(null), 4000);
+                      }}
+                    />
                   </div>
 
                   <div className="text-[11px] text-gray-400">
@@ -646,6 +708,74 @@ export const CommunityAndBlogModule: React.FC<CommunityAndBlogModuleProps> = ({
           })
         )}
       </div>
+
+      {/* Fact Check Inspection Modal */}
+      {selectedFactCheckPost && selectedFactCheckPost.fact_check_details && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-gray-200 max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-2xl bg-emerald-100 flex items-center justify-center text-emerald-800">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900">Granskningsrapport & Verifiering</h3>
+                  <p className="text-[11px] text-gray-500">Booster Friends Fact-Checking Protokoll</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedFactCheckPost(null)}
+                className="text-gray-400 hover:text-gray-600 p-1 font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="p-3.5 bg-emerald-50/70 border border-emerald-200 rounded-2xl space-y-1.5">
+                <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">
+                  Status: Kvalitetssäkrad Expertkunskap
+                </span>
+                <h4 className="text-xs font-bold text-gray-900">
+                  {selectedFactCheckPost.title}
+                </h4>
+                <p className="text-xs text-emerald-950 leading-relaxed">
+                  {selectedFactCheckPost.fact_check_details.summary}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="p-3 rounded-xl bg-gray-50 border border-gray-200">
+                  <span className="text-[10px] text-gray-400 block font-semibold">Granskare</span>
+                  <span className="font-bold text-gray-800">{selectedFactCheckPost.fact_check_details.verified_by || 'Booster AI & Ämnesexpert'}</span>
+                </div>
+                <div className="p-3 rounded-xl bg-gray-50 border border-gray-200">
+                  <span className="text-[10px] text-gray-400 block font-semibold">Granskningsdatum</span>
+                  <span className="font-bold text-gray-800">{selectedFactCheckPost.fact_check_details.verified_date || 'Nyligen'}</span>
+                </div>
+              </div>
+
+              {selectedFactCheckPost.fact_check_details.source_citation && (
+                <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 space-y-1">
+                  <span className="text-[10px] font-bold text-gray-500 block uppercase tracking-wider">Källhänvisning & Metod</span>
+                  <p className="text-xs text-gray-700 italic">
+                    "{selectedFactCheckPost.fact_check_details.source_citation}"
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <button
+                onClick={() => setSelectedFactCheckPost(null)}
+                className="px-4 py-2 rounded-xl bg-[#800020] text-white text-xs font-bold hover:bg-[#660018]"
+              >
+                Stäng Granskning
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Create Post Modal */}
       {showCreateModal && (

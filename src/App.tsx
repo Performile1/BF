@@ -56,6 +56,8 @@ import { PromoAndTrialsModule } from './components/promos/PromoAndTrialsModule';
 import { CommunityAndBlogModule } from './components/community/CommunityAndBlogModule';
 import { AdminPortalModule } from './components/admin/AdminPortalModule';
 import { ProfileSettingsAndDirectoryModule } from './components/profile/ProfileSettingsAndDirectoryModule';
+import { AdBannerEngine } from './components/ads/AdBannerEngine';
+import { QrScannerModal } from './components/common/QrScannerModal';
 import {
   MasterCalendarEvent,
   CoworkingDeskBooking,
@@ -110,7 +112,8 @@ import {
   Layers,
   BookOpen,
   Shield,
-  User
+  User,
+  Camera
 } from 'lucide-react';
 import { formatSek } from './utils/calendar';
 
@@ -128,6 +131,7 @@ export default function App() {
   const [showMobileNotifications, setShowMobileNotifications] = useState(false);
   const [activeFabAction, setActiveFabAction] = useState<'MEETING' | 'INTRO' | 'FLEX' | 'DEAL' | null>(null);
   const [qrModalMember, setQrModalMember] = useState<Member | null>(null);
+  const [showScannerModal, setShowScannerModal] = useState(false);
 
   // V12 Lunch Requests & Follow State
   const [lunchRequests, setLunchRequests] = useState<LunchRequest[]>([
@@ -1016,14 +1020,15 @@ export default function App() {
         onSelectChannel={setSelectedChannelId}
         onOpenFullChat={() => setActiveTab('chat')}
         onOpenNotifications={() => setActiveTab('chat')}
-        onOpenCheckInModal={() => setActiveTab('events')}
+        onOpenCheckInModal={() => setShowScannerModal(true)}
+        onOpenQrModal={() => setQrModalMember(currentUser)}
         onOpenArchitectureSpec={() => setActiveTab('architecture')}
       />
 
       {/* Main Container / Mobile Device Frame */}
       <div className={`transition-all duration-300 ${
         deviceMode === 'desktop' 
-          ? 'w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6' 
+          ? 'w-full max-w-7xl xl:max-w-[1440px] 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6' 
           : 'flex items-center justify-center p-4 sm:p-8 min-h-[calc(100vh-80px)]'
       }`}>
         
@@ -1445,6 +1450,58 @@ export default function App() {
                       </div>
                     </button>
 
+                    {/* Action 5: Visa Mitt QR ID (Visitkort) */}
+                    <button
+                      onClick={() => {
+                        setShowFabModal(false);
+                        setQrModalMember(currentUser);
+                      }}
+                      className="p-4 rounded-2xl border border-gray-200 hover:border-[#800020] hover:bg-[#800020]/5 text-left transition flex flex-col justify-between group space-y-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="w-9 h-9 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-center text-[#800020]">
+                          <QrCode className="w-4 h-4" />
+                        </div>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-[#800020]">
+                          Mitt ID
+                        </span>
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-gray-900 group-hover:text-[#800020]">
+                          Visa Mitt QR ID (Visitkort)
+                        </h4>
+                        <p className="text-[11px] text-gray-500 mt-0.5">
+                          Öppna personlig QR-kod för vCard och kontaktutbyte
+                        </p>
+                      </div>
+                    </button>
+
+                    {/* Action 6: Skanna QR / Checka In */}
+                    <button
+                      onClick={() => {
+                        setShowFabModal(false);
+                        setShowScannerModal(true);
+                      }}
+                      className="p-4 rounded-2xl border border-gray-200 hover:border-emerald-600 hover:bg-emerald-50/40 text-left transition flex flex-col justify-between group space-y-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700">
+                          <Camera className="w-4 h-4" />
+                        </div>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900">
+                          +30 BP
+                        </span>
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-gray-900 group-hover:text-emerald-700">
+                          Skanna QR / Checka In
+                        </h4>
+                        <p className="text-[11px] text-gray-500 mt-0.5">
+                          Skanna hubbens skylt eller en medlems QR-visitkort
+                        </p>
+                      </div>
+                    </button>
+
                   </div>
                 ) : (
                   <div>
@@ -1754,6 +1811,26 @@ export default function App() {
           </div>
         )}
 
+        {/* Universal QR Scanner & Check-In Modal */}
+        <QrScannerModal
+          isOpen={showScannerModal}
+          onClose={() => setShowScannerModal(false)}
+          currentUser={currentUser}
+          selectedHub={selectedHub}
+          allMembers={members}
+          onCheckInHub={(hubId) => {
+            handleCheckInGeoOrQr('bk_today_quick');
+          }}
+          onAwardPoints={handleAwardPoints}
+          onOpenDirectChat={(memberId) => {
+            const target = members.find(m => m.id === memberId);
+            if (target) {
+              handleCreateChannel(target);
+              setActiveTab('chat');
+            }
+          }}
+        />
+
       </div>
 
     </div>
@@ -2043,6 +2120,12 @@ export default function App() {
   function renderOverviewDashboard() {
     return (
       <div className="space-y-4">
+        {/* 📢 SPONSRAD BANNER ENGINE (FEED_TOP) */}
+        <AdBannerEngine 
+          zone="FEED_TOP" 
+          isAdmin={currentUser.membership_level === 'GOLD' || currentUser.is_admin} 
+        />
+
         {/* Top 12-column Bento Grid */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
           

@@ -16,7 +16,9 @@ import {
   Trophy,
   Building2,
   Calendar,
-  X
+  X,
+  QrCode,
+  Camera
 } from 'lucide-react';
 import { Member, Hub, ChatChannel } from '../types';
 
@@ -27,7 +29,8 @@ interface HeaderProps {
   selectedHub: Hub;
   allHubs: Hub[];
   onSelectHub: (hub: Hub) => void;
-  
+  deviceMode?: 'desktop' | 'ios' | 'android';
+  setDeviceMode?: (mode: 'desktop' | 'ios' | 'android') => void;
   unreadNotificationsCount: number;
   onOpenNotifications?: () => void;
   onOpenCheckInModal: () => void;
@@ -170,21 +173,53 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
 
-          {/* Right Actions: Device Preview Switcher, Architecture & Profile */}
+          {/* Right Actions: Device Preview Switcher & Profile */}
           <div className="flex items-center gap-2 sm:gap-3">
             
-            
-            <button
-              onClick={onOpenCheckInModal}
-              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition"
-              title="Simulera Smart Incheckning på fysisk hubbträff"
-              id="btn-checkin-geofence"
-            >
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>Hubb Incheckning</span>
-            </button>
-
-            
+            {/* Quick Device Mode Switcher (Desktop / iOS / Android) */}
+            {setDeviceMode && (
+              <div className="hidden md:flex items-center bg-gray-100 p-0.5 rounded-xl border border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => setDeviceMode('desktop')}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                    deviceMode === 'desktop'
+                      ? 'bg-white text-[#800020] shadow-xs'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                  title="Desktop Portal"
+                >
+                  <Monitor className="w-3.5 h-3.5" />
+                  <span>Desktop</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDeviceMode('ios')}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                    deviceMode === 'ios'
+                      ? 'bg-white text-[#800020] shadow-xs'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                  title="Apple iOS Simulator"
+                >
+                  <Smartphone className="w-3.5 h-3.5" />
+                  <span>iOS</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDeviceMode('android')}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                    deviceMode === 'android'
+                      ? 'bg-white text-[#800020] shadow-xs'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                  title="Google Android Simulator"
+                >
+                  <Smartphone className="w-3.5 h-3.5" />
+                  <span>Android</span>
+                </button>
+              </div>
+            )}
 
             {/* Booster Score Badge */}
             <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold">
@@ -411,6 +446,68 @@ export const Header: React.FC<HeaderProps> = ({
                       <span className="text-gray-600">Booster Score:</span>
                       <span className="font-bold text-[#800020]">{currentUser.booster_score} poäng (Topp 5%)</span>
                     </div>
+
+                    {/* Enhetsvy Switcher: Desktop / iOS / Android i Inloggad Profil */}
+                    {setDeviceMode && (
+                      <div className="mt-3 p-2.5 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+                            <Monitor className="w-3.5 h-3.5 text-[#800020]" />
+                            Enhetsvy / Simulator
+                          </span>
+                          <span className="text-[9px] font-bold text-[#800020] uppercase bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">
+                            Aktiv: {deviceMode || 'desktop'}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-1 bg-white p-1 rounded-lg border border-gray-200">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDeviceMode('desktop');
+                              setShowUserMenu(false);
+                            }}
+                            className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-md text-[11px] font-bold transition ${
+                              deviceMode === 'desktop'
+                                ? 'bg-[#800020] text-white shadow-xs'
+                                : 'text-gray-600 hover:bg-gray-100'
+                            }`}
+                          >
+                            <Monitor className="w-4 h-4 mb-0.5" />
+                            <span>Desktop</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDeviceMode('ios');
+                              setShowUserMenu(false);
+                            }}
+                            className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-md text-[11px] font-bold transition ${
+                              deviceMode === 'ios'
+                                ? 'bg-[#800020] text-white shadow-xs'
+                                : 'text-gray-600 hover:bg-gray-100'
+                            }`}
+                          >
+                            <Smartphone className="w-4 h-4 mb-0.5" />
+                            <span>iOS</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDeviceMode('android');
+                              setShowUserMenu(false);
+                            }}
+                            className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-md text-[11px] font-bold transition ${
+                              deviceMode === 'android'
+                                ? 'bg-[#800020] text-white shadow-xs'
+                                : 'text-gray-600 hover:bg-gray-100'
+                            }`}
+                          >
+                            <Smartphone className="w-4 h-4 mb-0.5" />
+                            <span>Android</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="px-4 pt-2">

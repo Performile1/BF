@@ -270,7 +270,14 @@ export const INITIAL_COMMUNITY_POSTS: CommunityPost[] = [
     is_best_answer_awarded: true,
     created_at: '2026-09-06T08:30:00Z',
     read_time_min: 4,
-    is_featured: true
+    is_featured: true,
+    fact_check_status: 'VERIFIED',
+    fact_check_details: {
+      verified_by: 'Booster Knowledge Board & Tillväxtutskottet',
+      verified_date: '2026-09-06',
+      summary: 'Kvalitetssäkrad fallstudie: Leveransflöden och SLA-mätning verifierade mot bekräftade kundcase.',
+      source_citation: 'Metodik baserad på Lean B2B Operations Framework & inCtrl leveransaudit'
+    }
   },
   {
     id: 'post_2',
@@ -326,7 +333,14 @@ export const INITIAL_COMMUNITY_POSTS: CommunityPost[] = [
     has_upvoted: true,
     comments_count: 9,
     created_at: '2026-09-04T16:20:00Z',
-    is_featured: true
+    is_featured: true,
+    fact_check_status: 'VERIFIED',
+    fact_check_details: {
+      verified_by: 'Booster AI & Retention Specialistgrupp',
+      verified_date: '2026-09-05',
+      summary: 'Granskad B2B-metodik: Kundkadenser och churnberäkning stämmer överens med etablerad SaaS-best practice.',
+      source_citation: 'B2B Cohort Retention Analytics Q2 2026'
+    }
   }
 ];
 

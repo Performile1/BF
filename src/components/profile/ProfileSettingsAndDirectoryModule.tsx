@@ -29,9 +29,14 @@ import {
   ArrowRight,
   TrendingUp,
   Shield,
-  HeartHandshake
+  HeartHandshake,
+  FileText,
+  UploadCloud,
+  ShieldCheck,
+  FileCheck,
+  X
 } from 'lucide-react';
-import { Member, MembershipLevel, LunchRequest } from '../../types';
+import { Member, MembershipLevel, LunchRequest, MemberMerit, MemberCaseStudy } from '../../types';
 
 interface ProfileSettingsAndDirectoryModuleProps {
   currentUser: Member;
@@ -79,6 +84,10 @@ export const ProfileSettingsAndDirectoryModule: React.FC<ProfileSettingsAndDirec
     seeking_tags: currentUser.seeking_tags || [],
     offering_tags: currentUser.offering_tags || [],
     interests: currentUser.interests || ['Tech & SaaS', 'B2B Sälj', 'Investering', 'AI & Automation'],
+    merits: currentUser.merits || [],
+    case_studies: currentUser.case_studies || [],
+    cv_summary: currentUser.cv_summary || '',
+    cv_filename: currentUser.cv_filename || '',
     linkedin_posts: currentUser.linkedin_posts || [
       {
         title: 'Hur vi skalade från 0 till 15 MSEK ARR med bootstrapping',
@@ -98,6 +107,30 @@ export const ProfileSettingsAndDirectoryModule: React.FC<ProfileSettingsAndDirec
   const [newPostTitle, setNewPostTitle] = useState('');
   const [newPostUrl, setNewPostUrl] = useState('');
   const [savedSuccessNotice, setSavedSuccessNotice] = useState<string | null>(null);
+
+  // CV Upload & Parsing State
+  const [isParsingCv, setIsParsingCv] = useState(false);
+  const [cvParseSuccessNotice, setCvParseSuccessNotice] = useState<string | null>(null);
+
+  // New Merit Modal/Form State
+  const [showAddMerit, setShowAddMerit] = useState(false);
+  const [newMeritCategory, setNewMeritCategory] = useState<'BOARD_ROLE' | 'CERTIFICATION' | 'EDUCATION' | 'AWARD' | 'EXPERIENCE'>('BOARD_ROLE');
+  const [newMeritTitle, setNewMeritTitle] = useState('');
+  const [newMeritOrg, setNewMeritOrg] = useState('');
+  const [newMeritYear, setNewMeritYear] = useState('');
+  const [newMeritDesc, setNewMeritDesc] = useState('');
+
+  // New Case Study Modal/Form State
+  const [showAddCaseStudy, setShowAddCaseStudy] = useState(false);
+  const [newCaseTitle, setNewCaseTitle] = useState('');
+  const [newCaseClient, setNewCaseClient] = useState('');
+  const [newCaseMetric, setNewCaseMetric] = useState('');
+  const [newCaseDesc, setNewCaseDesc] = useState('');
+  const [newCaseTags, setNewCaseTags] = useState('');
+  const [newCaseImage, setNewCaseImage] = useState('');
+
+  // Modal for inspecting any member's case studies
+  const [viewingCaseStudiesMember, setViewingCaseStudiesMember] = useState<Member | null>(null);
 
   // Lunch Request Modal state
   const [lunchTargetMember, setLunchTargetMember] = useState<Member | null>(null);
@@ -174,6 +207,125 @@ export const ProfileSettingsAndDirectoryModule: React.FC<ProfileSettingsAndDirec
     setFormData(prev => ({
       ...prev,
       linkedin_posts: prev.linkedin_posts.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleSimulateUploadCv = (fileName?: string) => {
+    setIsParsingCv(true);
+    setCvParseSuccessNotice(null);
+
+    setTimeout(() => {
+      const detectedFileName = fileName || 'Rickard_Wigrund_Executive_CV.pdf';
+      const extractedSummary = 'Grundare och VD med 14+ års erfarenhet av B2B molnsäkerhet, enterprisearkitektur och skalning av nordiska tech-bolag. Dokumenterad meritlista inom styrelsearbete, M&A och strategiska samarbeten.';
+      
+      const newMeritAuto: MemberMerit = {
+        id: `m_${Date.now()}`,
+        category: 'EDUCATION',
+        title: 'Civilingenjör Industriell Ekonomi & Datateknik',
+        organization: 'KTH Kungliga Tekniska Högskolan',
+        year: '2014',
+        description: 'Inriktning mot distribuerade system, cybersäkerhet och företagsfinansiering.',
+        verified: true
+      };
+
+      const newMeritBoard: MemberMerit = {
+        id: `m_${Date.now() + 1}`,
+        category: 'BOARD_ROLE',
+        title: 'Styrelseledamot & Strategisk Rådgivare',
+        organization: 'Nordic Cloud Alliance',
+        year: '2023 - Nuvarande',
+        description: 'Leder kommittén för molnsuveränitet och europeisk dataintegritet.',
+        verified: true
+      };
+
+      const newTags = ['ISO27001', 'Styrelsearbete', 'Cyber Risk'].filter(t => !(formData.offering_tags || []).includes(t));
+
+      setFormData(prev => ({
+        ...prev,
+        cv_filename: detectedFileName,
+        cv_summary: extractedSummary,
+        offering_tags: [...prev.offering_tags, ...newTags],
+        merits: [newMeritAuto, newMeritBoard, ...(prev.merits || []).filter(m => m.id !== newMeritAuto.id)]
+      }));
+
+      setIsParsingCv(false);
+      setCvParseSuccessNotice(`CV "${detectedFileName}" analyserades med Booster AI! 2 nya verifierade meriter och kompetenstaggar har lagts till. +50 BP tillagda.`);
+      onAwardPoints?.(50, 'Laddat upp och analyserat CV med Booster AI', 'PROFILE_UPDATE');
+    }, 750);
+  };
+
+  const handleAddMerit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMeritTitle.trim() || !newMeritOrg.trim()) return;
+
+    const merit: MemberMerit = {
+      id: `m_${Date.now()}`,
+      category: newMeritCategory,
+      title: newMeritTitle.trim(),
+      organization: newMeritOrg.trim(),
+      year: newMeritYear.trim() || '2025',
+      description: newMeritDesc.trim() || undefined,
+      verified: true
+    };
+
+    setFormData(prev => ({
+      ...prev,
+      merits: [merit, ...(prev.merits || [])]
+    }));
+
+    setNewMeritTitle('');
+    setNewMeritOrg('');
+    setNewMeritYear('');
+    setNewMeritDesc('');
+    setShowAddMerit(false);
+    onAwardPoints?.(20, `Lagt till verifierad merit: ${merit.title}`, 'PROFILE_UPDATE');
+  };
+
+  const handleRemoveMerit = (id: string) => {
+    setFormData(prev => ({
+      ...prev,
+      merits: (prev.merits || []).filter(m => m.id !== id)
+    }));
+  };
+
+  const handleAddCaseStudy = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCaseTitle.trim() || !newCaseClient.trim()) return;
+
+    const parsedTags = newCaseTags
+      .split(',')
+      .map(t => t.trim())
+      .filter(Boolean);
+
+    const caseStudy: MemberCaseStudy = {
+      id: `cs_${Date.now()}`,
+      title: newCaseTitle.trim(),
+      client_name: newCaseClient.trim(),
+      result_metric: newCaseMetric.trim() || 'Verifierad kundtillväxt',
+      description: newCaseDesc.trim() || 'Framgångsrikt B2B-samarbete med mätbara affärsresultat.',
+      tags: parsedTags.length > 0 ? parsedTags : ['B2B', 'Tillväxt'],
+      image_url: newCaseImage.trim() || 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=600&auto=format&fit=crop&q=80'
+    };
+
+    setFormData(prev => ({
+      ...prev,
+      case_studies: [caseStudy, ...(prev.case_studies || [])]
+    }));
+
+    setNewCaseTitle('');
+    setNewCaseClient('');
+    setNewCaseMetric('');
+    setNewCaseDesc('');
+    setNewCaseTags('');
+    setNewCaseImage('');
+    setShowAddCaseStudy(false);
+    onAwardPoints?.(30, `Publicerat kundcase: ${caseStudy.title}`, 'PROFILE_UPDATE');
+  };
+
+  const handleRemoveCaseStudy = (id: string) => {
+    setFormData(prev => ({
+      ...prev,
+      case_studies: (prev.case_studies || []).filter(cs => cs.id !== id)
     }));
   };
 
@@ -506,6 +658,42 @@ export const ProfileSettingsAndDirectoryModule: React.FC<ProfileSettingsAndDirec
                         >
                           "{member.linkedin_posts[0].title}"
                         </a>
+                      </div>
+                    )}
+
+                    {/* Merits & Certifications Preview */}
+                    {member.merits && member.merits.length > 0 && (
+                      <div className="mt-3 pt-2 border-t border-gray-100 flex items-center justify-between text-[11px]">
+                        <div className="flex items-center gap-1.5 truncate">
+                          <ShieldCheck className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
+                          <span className="font-semibold text-gray-800 truncate">
+                            {member.merits[0].title}
+                          </span>
+                        </div>
+                        {member.merits.length > 1 && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-800 font-bold border border-blue-200">
+                            +{member.merits.length - 1} meriter
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Case Studies quick pill */}
+                    {member.case_studies && member.case_studies.length > 0 && (
+                      <div className="mt-2 flex items-center justify-between bg-emerald-50/70 border border-emerald-200/70 px-2.5 py-1.5 rounded-xl">
+                        <div className="flex items-center gap-1.5 truncate">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 flex-shrink-0" />
+                          <span className="text-[11px] font-bold text-emerald-950 truncate">
+                            {member.case_studies[0].client_name}: {member.case_studies[0].result_metric}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setViewingCaseStudiesMember(member)}
+                          className="text-[10px] font-bold text-emerald-800 hover:text-emerald-950 underline flex-shrink-0 ml-1"
+                        >
+                          Visa {member.case_studies.length} case →
+                        </button>
                       </div>
                     )}
                   </div>
@@ -871,6 +1059,468 @@ export const ProfileSettingsAndDirectoryModule: React.FC<ProfileSettingsAndDirec
             </div>
           </div>
 
+          {/* 📄 CV / PDF-UPPLADDNING & AI-EXTRAKTION */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-xs space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <div className="flex items-center gap-2">
+                  <UploadCloud className="w-5 h-5 text-[#800020]" />
+                  <h3 className="text-sm font-bold text-gray-900">CV & PDF-analys med Booster AI</h3>
+                  <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-900 border border-amber-200 text-[10px] font-bold">
+                    +50 BP
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Ladda upp ditt CV (PDF eller DOCX). Booster AI analyserar din bakgrund, extraherar dina främsta meriter och uppdaterar dina matchmaking-taggar automatiskt.
+                </p>
+              </div>
+            </div>
+
+            {/* Success Alert */}
+            {cvParseSuccessNotice && (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-start justify-between gap-2 text-xs text-emerald-900 animate-in fade-in">
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                  <span>{cvParseSuccessNotice}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCvParseSuccessNotice(null)}
+                  className="text-emerald-700 hover:text-emerald-900 text-xs font-bold"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
+            {/* Dropzone & Action Bar */}
+            <div className="border-2 border-dashed border-gray-200 hover:border-[#800020]/40 rounded-2xl p-5 text-center transition bg-gray-50/50">
+              <div className="flex flex-col items-center justify-center space-y-3">
+                <div className="w-10 h-10 rounded-full bg-[#800020]/10 flex items-center justify-center text-[#800020]">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-gray-800">
+                    Dra & släpp ditt CV här, eller välj fil
+                  </p>
+                  <p className="text-[11px] text-gray-500 mt-0.5">
+                    Stöder PDF, DOCX eller TXT (Max 15 MB)
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                  <label className="cursor-pointer px-4 py-2 bg-white hover:bg-gray-50 text-gray-800 border border-gray-200 rounded-xl text-xs font-bold shadow-2xs transition inline-flex items-center gap-1.5">
+                    <UploadCloud className="w-3.5 h-3.5 text-gray-600" />
+                    <span>Välj fil manuellt</span>
+                    <input
+                      type="file"
+                      accept=".pdf,.doc,.docx,.txt"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleSimulateUploadCv(file.name);
+                      }}
+                    />
+                  </label>
+
+                  <button
+                    type="button"
+                    disabled={isParsingCv}
+                    onClick={() => handleSimulateUploadCv('Rickard_Wigrund_Executive_CV.pdf')}
+                    className="px-4 py-2 bg-[#800020] hover:bg-[#660018] text-white rounded-xl text-xs font-bold shadow-2xs transition inline-flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    {isParsingCv ? (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5 animate-spin" />
+                        <span>Analyserar med AI...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Testa Exempel-CV (Rickard_Wigrund_CV.pdf)</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Current File & Summary view */}
+            {formData.cv_filename && (
+              <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2 truncate">
+                  <FileCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  <span className="font-bold text-gray-800 truncate">{formData.cv_filename}</span>
+                  <span className="text-[10px] text-gray-400">• Verifierad & extraherad</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleSimulateUploadCv(formData.cv_filename)}
+                  className="text-[11px] font-semibold text-[#800020] hover:underline"
+                >
+                  Kör AI-analys igen
+                </button>
+              </div>
+            )}
+
+            {/* Extracted Elevator Summary */}
+            <div>
+              <label className="text-xs font-bold text-gray-700 block mb-1">
+                AI-extraherad yrkessammanfattning (Executive Bio)
+              </label>
+              <textarea
+                rows={2}
+                value={formData.cv_summary}
+                onChange={(e) => setFormData({ ...formData, cv_summary: e.target.value })}
+                placeholder="När du laddar upp ett CV extraheras en sammanfattning här automatiskt. Du kan även justera texten manuellt..."
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#800020]/20"
+              />
+            </div>
+          </div>
+
+          {/* 🏅 VERIFIERAD MERITFÖRTECKNING & CERTIFIERINGAR */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-blue-600" />
+                  <h3 className="text-sm font-bold text-gray-900">Verifierad Meritförteckning</h3>
+                  <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-200 text-[10px] font-bold">
+                    {(formData.merits || []).length} registrerade
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Visa upp dina styrelseuppdrag, internationella certifieringar, akademiska examina och utmärkelser.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowAddMerit(!showAddMerit)}
+                className="px-3.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 self-start sm:self-auto"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>{showAddMerit ? 'Stäng formulär' : 'Lägg till merit (+20 BP)'}</span>
+              </button>
+            </div>
+
+            {/* Add Merit Form */}
+            {showAddMerit && (
+              <div className="p-4 bg-blue-50/40 border border-blue-200 rounded-2xl space-y-3 animate-in fade-in">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-bold text-gray-700 block mb-1">Kategori</label>
+                    <select
+                      value={newMeritCategory}
+                      onChange={(e) => setNewMeritCategory(e.target.value as any)}
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    >
+                      <option value="BOARD_ROLE">Styrelseuppdrag & Rådgivning</option>
+                      <option value="CERTIFICATION">Professionell Certifiering</option>
+                      <option value="EDUCATION">Akademisk Utbildning & Examen</option>
+                      <option value="AWARD">Utmärkelse & Pris</option>
+                      <option value="EXPERIENCE">Ledande Befattning & Entreprenörskap</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-gray-700 block mb-1">Titel / Roll / Certifikat</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="T.ex. Certifierad Styrelseledamot eller CISSP"
+                      value={newMeritTitle}
+                      onChange={(e) => setNewMeritTitle(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-gray-700 block mb-1">Organisation / Utfärdare</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="T.ex. StyrelseAkademien, KTH eller (ISC)²"
+                      value={newMeritOrg}
+                      onChange={(e) => setNewMeritOrg(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-gray-700 block mb-1">År / Tidsperiod</label>
+                    <input
+                      type="text"
+                      placeholder="T.ex. 2024 eller 2022 - Nuvarande"
+                      value={newMeritYear}
+                      onChange={(e) => setNewMeritYear(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-gray-700 block mb-1">Kort beskrivning (valfritt)</label>
+                  <input
+                    type="text"
+                    placeholder="T.ex. Inriktning mot revisionsutskott, dataskydd och bolagsstyrning..."
+                    value={newMeritDesc}
+                    onChange={(e) => setNewMeritDesc(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddMerit(false)}
+                    className="px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 rounded-xl font-medium"
+                  >
+                    Avbryt
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAddMerit}
+                    className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span>Spara merit (+20 BP)</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* List of Merits */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {(formData.merits || []).map((merit) => {
+                const categoryLabels: Record<string, { label: string; color: string }> = {
+                  BOARD_ROLE: { label: 'Styrelse & Rådgivning', color: 'bg-purple-50 text-purple-800 border-purple-200' },
+                  CERTIFICATION: { label: 'Certifiering', color: 'bg-blue-50 text-blue-800 border-blue-200' },
+                  EDUCATION: { label: 'Utbildning', color: 'bg-emerald-50 text-emerald-800 border-emerald-200' },
+                  AWARD: { label: 'Utmärkelse', color: 'bg-amber-50 text-amber-800 border-amber-200' },
+                  EXPERIENCE: { label: 'Erfarenhet', color: 'bg-gray-100 text-gray-800 border-gray-200' }
+                };
+                const catInfo = categoryLabels[merit.category] || categoryLabels.EXPERIENCE;
+
+                return (
+                  <div
+                    key={merit.id}
+                    className="p-3.5 bg-gray-50/70 border border-gray-200 rounded-xl flex flex-col justify-between gap-2"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${catInfo.color}`}>
+                          {catInfo.label}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          {merit.verified && (
+                            <span className="flex items-center gap-1 text-[10px] text-blue-700 font-bold">
+                              <ShieldCheck className="w-3.5 h-3.5" />
+                              <span>Verifierad</span>
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveMerit(merit.id)}
+                            className="text-gray-400 hover:text-red-600 p-1 transition"
+                            title="Ta bort merit"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <h4 className="text-xs font-bold text-gray-900 mt-2">
+                        {merit.title}
+                      </h4>
+                      <p className="text-[11px] font-medium text-gray-600 mt-0.5">
+                        {merit.organization} • {merit.year}
+                      </p>
+
+                      {merit.description && (
+                        <p className="text-[11px] text-gray-500 mt-1.5 leading-relaxed">
+                          {merit.description}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {(formData.merits || []).length === 0 && (
+                <div className="col-span-2 p-6 border border-dashed border-gray-200 rounded-2xl text-center text-xs text-gray-500">
+                  Inga meriter registrerade än. Ladda upp ditt CV ovan för att extrahera automatiskt eller lägg till manuellt!
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 💼 KUNDCASE & REFERENSGALLERI */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Briefcase className="w-5 h-5 text-emerald-700" />
+                  <h3 className="text-sm font-bold text-gray-900">Kundcase & Referensgalleri</h3>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold">
+                    {(formData.case_studies || []).length} publicerade
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Visa upp konkreta affärsresultat och leveranser för andra medlemmar och potentiella samarbetspartners.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowAddCaseStudy(!showAddCaseStudy)}
+                className="px-3.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 self-start sm:self-auto"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>{showAddCaseStudy ? 'Stäng formulär' : 'Nytt kundcase (+30 BP)'}</span>
+              </button>
+            </div>
+
+            {/* Add Case Study Form */}
+            {showAddCaseStudy && (
+              <div className="p-4 bg-emerald-50/40 border border-emerald-200 rounded-2xl space-y-3 animate-in fade-in">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-bold text-gray-700 block mb-1">Projektrubrik</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="T.ex. Skalning av B2B SaaS för fintech-scaleup"
+                      value={newCaseTitle}
+                      onChange={(e) => setNewCaseTitle(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-gray-700 block mb-1">Klientnamn / Bransch</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="T.ex. NordicPay AB (eller anonymiserat 'Ledande Fintech-bank')"
+                      value={newCaseClient}
+                      onChange={(e) => setNewCaseClient(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-gray-700 block mb-1">Mätbart Resultat / KPI</label>
+                    <input
+                      type="text"
+                      placeholder="T.ex. +140% ARR tillväxt, 99.99% upptid"
+                      value={newCaseMetric}
+                      onChange={(e) => setNewCaseMetric(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-gray-700 block mb-1">Kompetenstaggar (kommaseparerade)</label>
+                    <input
+                      type="text"
+                      placeholder="T.ex. Cloud Security, SOC2, Tillväxt"
+                      value={newCaseTags}
+                      onChange={(e) => setNewCaseTags(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-gray-700 block mb-1">Beskrivning av utmaning & lösning</label>
+                  <textarea
+                    rows={2}
+                    placeholder="Beskriv vad klienten behövde hjälp med, vad ni genomförde och vilken effekt samarbetet gav..."
+                    value={newCaseDesc}
+                    onChange={(e) => setNewCaseDesc(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddCaseStudy(false)}
+                    className="px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 rounded-xl font-medium"
+                  >
+                    Avbryt
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAddCaseStudy}
+                    className="px-4 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Publicera kundcase (+30 BP)</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* List of Case Studies */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {(formData.case_studies || []).map((cs) => (
+                <div
+                  key={cs.id}
+                  className="bg-gray-50/70 border border-gray-200 rounded-2xl p-4 flex flex-col justify-between gap-3 relative"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-200">
+                        {cs.client_name}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveCaseStudy(cs.id)}
+                        className="text-gray-400 hover:text-red-600 p-1 transition"
+                        title="Ta bort kundcase"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <h4 className="text-xs font-bold text-gray-900 leading-snug">
+                      {cs.title}
+                    </h4>
+
+                    {cs.result_metric && (
+                      <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg text-[11px] font-bold">
+                        <TrendingUp className="w-3 h-3 text-emerald-600" />
+                        <span>{cs.result_metric}</span>
+                      </div>
+                    )}
+
+                    <p className="text-[11px] text-gray-600 leading-relaxed line-clamp-3">
+                      {cs.description}
+                    </p>
+                  </div>
+
+                  {cs.tags && cs.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 pt-1 border-t border-gray-200/60">
+                      {cs.tags.map((t, idx) => (
+                        <span key={idx} className="text-[9px] bg-white border border-gray-200 px-1.5 py-0.5 rounded text-gray-600 font-medium">
+                          #{t}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {(formData.case_studies || []).length === 0 && (
+                <div className="col-span-2 p-6 border border-dashed border-gray-200 rounded-2xl text-center text-xs text-gray-500">
+                  Inga kundcase registrerade än. Klicka på "Nytt kundcase" ovan för att visa upp dina framgångshistorier!
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Submit bar */}
           <div className="flex items-center justify-end gap-3 pt-2">
             <button
@@ -978,6 +1628,120 @@ export const ProfileSettingsAndDirectoryModule: React.FC<ProfileSettingsAndDirec
                 <Coffee className="w-3.5 h-3.5" />
                 <span>Skicka inbjudan</span>
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 💼 CASE STUDIES MODAL */}
+      {viewingCaseStudiesMember && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-2xl border border-gray-200 max-w-2xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <img
+                  src={viewingCaseStudiesMember.avatar}
+                  alt={viewingCaseStudiesMember.full_name}
+                  className="w-10 h-10 rounded-full object-cover border border-gray-200"
+                />
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                    <span>Kundcase & Referenser: {viewingCaseStudiesMember.full_name}</span>
+                  </h3>
+                  <p className="text-[11px] text-gray-500">
+                    {viewingCaseStudiesMember.role_title} • {viewingCaseStudiesMember.company_name}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewingCaseStudiesMember(null)}
+                className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4 pt-1">
+              {(viewingCaseStudiesMember.case_studies || []).map((cs) => (
+                <div
+                  key={cs.id}
+                  className="p-5 bg-gray-50/80 border border-gray-200 rounded-2xl space-y-3"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-950 border border-emerald-200 self-start">
+                      Klient: {cs.client_name}
+                    </span>
+                    {cs.result_metric && (
+                      <div className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-bold self-start sm:self-auto">
+                        <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>{cs.result_metric}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <h4 className="text-sm font-bold text-gray-900 leading-snug">
+                      {cs.title}
+                    </h4>
+                    <p className="text-xs text-gray-600 mt-2 leading-relaxed whitespace-pre-line">
+                      {cs.description}
+                    </p>
+                  </div>
+
+                  {cs.tags && cs.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-2 border-t border-gray-200/60">
+                      {cs.tags.map((tag, idx) => (
+                        <span
+                          key={idx}
+                          className="text-[10px] font-medium bg-white border border-gray-200 px-2 py-0.5 rounded-md text-gray-600"
+                        >
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {(!viewingCaseStudiesMember.case_studies || viewingCaseStudiesMember.case_studies.length === 0) && (
+                <p className="text-xs text-gray-500 text-center py-6">
+                  Denna medlem har inte lagt upp några publika kundcase ännu.
+                </p>
+              )}
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+              <span className="text-[11px] text-gray-400">
+                Verifierat av Booster Friends B2B Nätverk
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const m = viewingCaseStudiesMember;
+                    setViewingCaseStudiesMember(null);
+                    onOpenDirectChat(m.id);
+                  }}
+                  className="px-3 py-1.5 text-xs font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition flex items-center gap-1.5"
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>Ställ fråga i chatten</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const m = viewingCaseStudiesMember;
+                    setViewingCaseStudiesMember(null);
+                    setLunchTargetMember(m);
+                  }}
+                  className="px-3.5 py-1.5 text-xs font-bold text-white bg-[#800020] hover:bg-[#660018] rounded-xl transition flex items-center gap-1.5 shadow-2xs"
+                >
+                  <Coffee className="w-3.5 h-3.5" />
+                  <span>Bjud på lunch</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

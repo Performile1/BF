@@ -35,13 +35,16 @@ import {
   Gift,
   Tag,
   AlertCircle,
-  Coffee
+  Coffee,
+  QrCode
 } from 'lucide-react';
 import { MasterCalendarEvent, Member, CalendarEventCategory, MembershipLevel } from '../../types';
 import { PastEventsRecapView } from './PastEventsRecapView';
 import { EventReviewModal } from './EventReviewModal';
 import { CreateMemberEventModal } from './CreateMemberEventModal';
 import { LunchInvitationModal } from './LunchInvitationModal';
+import { AdBannerEngine } from '../ads/AdBannerEngine';
+import { LinkedInShareButton } from '../common/LinkedInShareButton';
 
 interface MasterCalendarModuleProps {
   currentUser: Member;
@@ -391,6 +394,16 @@ export const MasterCalendarModule: React.FC<MasterCalendarModuleProps> = ({
     return map;
   }, [filteredEvents]);
 
+  // Booked upcoming events for the sidebar widget
+  const myBookedUpcomingEvents = useMemo(() => {
+    return localEvents.filter(e => e.is_booked && !e.is_past);
+  }, [localEvents]);
+
+  // Next upcoming speed dating event for highlight widget
+  const nextSpeedDatingEvent = useMemo(() => {
+    return localEvents.find(e => e.category === 'SPEED_DATING' && !e.is_past);
+  }, [localEvents]);
+
   // Generate complete calendar grid (Monday - Sunday) for current month view
   const calendarDays = useMemo(() => {
     const year = currentDate.getFullYear();
@@ -731,25 +744,29 @@ export const MasterCalendarModule: React.FC<MasterCalendarModuleProps> = ({
         </div>
       </div>
 
-      {/* Events Results Count */}
-      <div className="flex items-center justify-between text-xs text-gray-500 px-1">
-        <span>Visar {filteredEvents.length} av {events.length} nätverksevenemang</span>
-        {(selectedHubFilter !== 'ALL' || categoryFilter !== 'ALL' || formatFilter !== 'ALL' || tierFilter !== 'ALL' || onlyMyBookings || searchQuery) && (
-          <button
-            onClick={() => {
-              setSelectedHubFilter('ALL');
-              setCategoryFilter('ALL');
-              setFormatFilter('ALL');
-              setTierFilter('ALL');
-              setOnlyMyBookings(false);
-              setSearchQuery('');
-            }}
-            className="text-[#800020] hover:underline font-bold"
-          >
-            Återställ alla filter
-          </button>
-        )}
-      </div>
+      {/* Main Content & Dedicated 3-Column Layout: Kalender | Mina Inbokade | Reklam Banners */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Column 1: Calendar Views & Events (lg:col-span-12 xl:col-span-6) */}
+        <div className="lg:col-span-12 xl:col-span-6 space-y-6 min-w-0">
+          {/* Events Results Count & Quick Filter Reset */}
+          <div className="flex items-center justify-between text-xs text-gray-500 px-1 py-1">
+            <span>Visar {filteredEvents.length} av {events.length} nätverksevenemang</span>
+            {(selectedHubFilter !== 'ALL' || categoryFilter !== 'ALL' || formatFilter !== 'ALL' || tierFilter !== 'ALL' || onlyMyBookings || searchQuery) && (
+              <button
+                onClick={() => {
+                  setSelectedHubFilter('ALL');
+                  setCategoryFilter('ALL');
+                  setFormatFilter('ALL');
+                  setTierFilter('ALL');
+                  setOnlyMyBookings(false);
+                  setSearchQuery('');
+                }}
+                className="text-[#800020] hover:underline font-bold"
+              >
+                Återställ alla filter
+              </button>
+            )}
+          </div>
 
       {/* View 1: Månadskalender (Interactive Month Calendar View) */}
       {viewMode === 'CALENDAR' && (
@@ -1021,7 +1038,7 @@ export const MasterCalendarModule: React.FC<MasterCalendarModuleProps> = ({
 
               {/* Day Event Cards Grid */}
               {(eventsByDate.get(selectedDateStr) || []).length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                   {(eventsByDate.get(selectedDateStr) || []).map(evt => {
                     const catBadge = getCategoryBadge(evt.category);
                     const isFull = evt.attendees_count >= evt.spots_max;
@@ -1267,7 +1284,7 @@ export const MasterCalendarModule: React.FC<MasterCalendarModuleProps> = ({
 
       {/* View 2: Cards View */}
       {viewMode === 'CARDS' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {filteredEvents.map(evt => {
             const catBadge = getCategoryBadge(evt.category);
             const isFull = evt.attendees_count >= evt.spots_max;
@@ -1570,6 +1587,262 @@ export const MasterCalendarModule: React.FC<MasterCalendarModuleProps> = ({
           </div>
         </div>
       )}
+        </div>
+
+        {/* Column 2: Mina Inbokade Träffar & Aktiviteter */}
+        <aside className="lg:col-span-6 xl:col-span-3 space-y-5 lg:sticky lg:top-24">
+          {/* 📅 Mina Inbokade Träffar Widget */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-xs space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-[#800020]/10 text-[#800020] flex items-center justify-center">
+                  <CalendarIcon className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-gray-900">Mina Inbokade Träffar</h4>
+                  <p className="text-[10px] text-gray-400">Säkrar +30 BP vid närvaro</p>
+                </div>
+              </div>
+              <span className="px-2 py-0.5 rounded-full bg-rose-50 text-[#800020] border border-rose-200 text-[10px] font-black">
+                {myBookedUpcomingEvents.length} bokade
+              </span>
+            </div>
+
+            {myBookedUpcomingEvents.length > 0 ? (
+              <div className="space-y-2.5">
+                {myBookedUpcomingEvents.slice(0, 4).map((evt) => {
+                  const catBadge = getCategoryBadge(evt.category);
+                  return (
+                    <div
+                      key={evt.id}
+                      onClick={() => {
+                        setSelectedDateStr(evt.date_str);
+                        setSelectedEvent(evt);
+                      }}
+                      className="p-3 rounded-xl border border-gray-100 hover:border-gray-300 bg-gray-50/70 hover:bg-white transition cursor-pointer group space-y-1.5 shadow-2xs"
+                    >
+                      <div className="flex items-center justify-between gap-1">
+                        <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${catBadge.color}`}>
+                          {catBadge.label}
+                        </span>
+                        <div className="flex items-center gap-1 text-[10px] font-bold text-[#800020]">
+                          <Clock className="w-3 h-3" />
+                          <span>{evt.display_date || evt.date_str} • {evt.start_time}</span>
+                        </div>
+                      </div>
+
+                      <h5 className="text-xs font-bold text-gray-900 leading-snug group-hover:text-[#800020] transition line-clamp-1">
+                        {evt.title}
+                      </h5>
+
+                      <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-gray-200/50 text-[10px] text-gray-500">
+                        <span className="truncate flex items-center gap-1">
+                          {evt.is_digital ? (
+                            <Video className="w-3 h-3 text-purple-600 shrink-0" />
+                          ) : (
+                            <MapPin className="w-3 h-3 text-rose-600 shrink-0" />
+                          )}
+                          <span className="truncate">{evt.location}</span>
+                        </span>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDownloadIcs(evt);
+                            }}
+                            className="text-gray-400 hover:text-gray-800 p-1 hover:bg-gray-100 rounded transition"
+                            title="Ladda ner ICS kalenderfil"
+                          >
+                            <Download className="w-3 h-3" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onCancelBooking(evt.id);
+                            }}
+                            className="text-gray-400 hover:text-red-600 p-1 hover:bg-red-50 rounded transition text-[10px] font-bold"
+                            title="Avboka plats"
+                          >
+                            Avboka
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {myBookedUpcomingEvents.length > 4 && (
+                  <button
+                    type="button"
+                    onClick={() => setOnlyMyBookings(true)}
+                    className="w-full text-center text-[11px] font-bold text-[#800020] hover:underline py-1"
+                  >
+                    Visa alla {myBookedUpcomingEvents.length} bokade →
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="py-4 px-2 text-center space-y-2 bg-gray-50/50 rounded-xl border border-dashed border-gray-200">
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  Du har inga inbokade träffar just nu.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const firstEvt = filteredEvents[0];
+                    if (firstEvt) {
+                      setSelectedDateStr(firstEvt.date_str);
+                      setSelectedEvent(firstEvt);
+                    }
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-[#800020] text-white text-[11px] font-bold hover:bg-[#660018] transition inline-flex items-center gap-1 shadow-2xs"
+                >
+                  <span>Hitta ett event att boka</span>
+                  <ChevronRight className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* ⚡ Nästa Speed Dating Widget */}
+          {nextSpeedDatingEvent && (
+            <div className="bg-gradient-to-br from-amber-50/90 via-orange-50/50 to-amber-100/40 rounded-2xl border border-amber-200 p-4 shadow-xs space-y-2.5">
+              <div className="flex items-center justify-between gap-1">
+                <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-200/80 text-amber-900 border border-amber-300">
+                  <Zap className="w-3 h-3 text-amber-600" />
+                  <span>Nästa B2B Speed Dating</span>
+                </span>
+                <span className="text-[10px] font-bold text-amber-800">
+                  {nextSpeedDatingEvent.display_date || nextSpeedDatingEvent.date_str}
+                </span>
+              </div>
+
+              <div>
+                <h4 className="text-xs font-bold text-amber-950 leading-snug">
+                  {nextSpeedDatingEvent.title}
+                </h4>
+                <p className="text-[11px] text-amber-800 mt-1 leading-relaxed">
+                  {nextSpeedDatingEvent.speed_dating_details?.rounds_count || 10} strukturerade 1-1 snabbmöten med AI-matchade affärskontakter.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t border-amber-200/70">
+                <span className="text-[10px] text-amber-900 font-bold">
+                  {nextSpeedDatingEvent.attendees_count}/{nextSpeedDatingEvent.spots_max} anmälda
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedDateStr(nextSpeedDatingEvent.date_str);
+                    setSelectedEvent(nextSpeedDatingEvent);
+                  }}
+                  className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold rounded-lg transition shadow-2xs flex items-center gap-1"
+                >
+                  <span>{nextSpeedDatingEvent.is_booked ? 'Visa detaljer' : 'Säkra plats'}</span>
+                  <ArrowRight className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 🔄 Kalendersynk & QR Incheckning Card */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-xs space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-gray-100 text-gray-700 flex items-center justify-center">
+                <Download className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-gray-900">Synka med din kalender</h4>
+                <p className="text-[10px] text-gray-400">Google, Apple, Outlook (.ics)</p>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-gray-600 leading-relaxed">
+              Få alla dina inbokade nätverksträffar direkt i din jobbkalender med automatisk uppdatering.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => setShowIcsModal(true)}
+              className="w-full py-2 px-3 rounded-xl border border-gray-200 hover:bg-gray-50 text-xs font-bold text-gray-700 transition flex items-center justify-center gap-1.5"
+            >
+              <CalendarDays className="w-3.5 h-3.5 text-[#800020]" />
+              <span>Konfigurera Kalender-feed (.ics)</span>
+            </button>
+
+            <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-100 text-[10px] text-gray-600 flex items-start gap-2">
+              <QrCode className="w-4 h-4 text-[#800020] shrink-0 mt-0.5" />
+              <span>
+                <strong>Incheckning på plats:</strong> Visa ditt QR ID i dörren eller skanna hubbens QR-kod för att automatiskt logga närvaro och erhålla +30 BP.
+              </span>
+            </div>
+          </div>
+        </aside>
+
+        {/* Column 3: Dedicated Reklam Banners & Sponsrade Partners (Placerad bredvid mina inbokade träffar) */}
+        <aside className="lg:col-span-6 xl:col-span-3 space-y-5 lg:sticky lg:top-24">
+          {/* Kolumntitel & Sponsringsindikator */}
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-gray-800">
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <span>Sponsrade Partners</span>
+            </div>
+            <span className="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+              Annonser
+            </span>
+          </div>
+
+          {/* 📢 Sponsrad Partner Banner Engine (CALENDAR_SIDEBAR) */}
+          <AdBannerEngine
+            zone="CALENDAR_SIDEBAR"
+            isAdmin={currentUser.membership_level === 'GOLD' || !!currentUser.is_admin}
+          />
+
+          {/* 💼 Boka Annonsplats & Nå Beslutsfattare */}
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 text-white rounded-2xl p-4 shadow-xs space-y-3 border border-gray-700">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-300">Annonsera i Kalendern</span>
+              <span className="text-[9px] bg-white/10 px-2 py-0.5 rounded-full text-gray-200">B2B Nätverk</span>
+            </div>
+            <h4 className="text-xs font-bold leading-snug">
+              Nå 1 500+ beslutsfattare och grundare i Booster Friends
+            </h4>
+            <p className="text-[11px] text-gray-300 leading-relaxed">
+              Visa ert erbjudande direkt vid eventbokningar. Garanterad räckvidd till aktiva entreprenörer och chefer.
+            </p>
+            <a
+              href="mailto:partner@boosterfriends.se?subject=Förfrågan%20Annonsplats%20Booster%20Kalender"
+              className="inline-flex items-center justify-center gap-1.5 w-full py-2 px-3 bg-[#800020] hover:bg-[#660018] text-white text-xs font-bold rounded-xl transition shadow-2xs"
+            >
+              <span>Bli Sponsrad Partner</span>
+              <ArrowRight className="w-3 h-3" />
+            </a>
+          </div>
+
+          {/* 🎁 Exklusiv Medlemsrabatt Partner-box */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-xs space-y-2.5">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center">
+                <Tag className="w-3.5 h-3.5" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-gray-900">Partnerförmån</h4>
+                <p className="text-[10px] text-gray-400">Exklusivt för medlemmar</p>
+              </div>
+            </div>
+            <p className="text-[11px] text-gray-600 leading-relaxed">
+              20% medlemsrabatt på externa mötesrum och eventlokaler hos Convendum och Helio Workspace.
+            </p>
+            <div className="pt-1">
+              <span className="text-[10px] font-mono font-bold text-[#800020] bg-rose-50 border border-rose-200 px-2 py-1 rounded-md inline-block">
+                RABATTKOD: BOOSTER2026
+              </span>
+            </div>
+          </div>
+        </aside>
+      </div>
       </>
       )}
 
@@ -2209,6 +2482,33 @@ export const MasterCalendarModule: React.FC<MasterCalendarModuleProps> = ({
                       )}
                     </button>
                   </div>
+                </div>
+
+                {/* LinkedIn Share Box */}
+                <div className="p-4 rounded-2xl bg-blue-50/70 border border-blue-200 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-gray-900 text-xs">Dela evenemanget till LinkedIn</span>
+                    </div>
+                    <span className="text-[10px] font-bold text-[#0A66C2] bg-white px-2 py-0.5 rounded-md border border-blue-200">
+                      +15 BP Belöning
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-600">
+                    Bjud in ditt nätverk till {shareModalEvent.title} och berätta att du deltar.
+                  </p>
+                  <LinkedInShareButton
+                    title={`Jag deltar i "${shareModalEvent.title}" på Booster Friends!`}
+                    summary={`Datum: ${shareModalEvent.display_date} kl ${shareModalEvent.start_time} på ${shareModalEvent.location}. ${shareModalEvent.description.slice(0, 150)}...`}
+                    url={`${window.location.origin}/calendar?event=${shareModalEvent.id}`}
+                    tags={['BoosterFriends', 'B2BNetworking', 'StockholmBusiness', 'Affärsnätverk']}
+                    onShared={() => {
+                      if (onAwardPoints) {
+                        onAwardPoints(15, `Delade eventet "${shareModalEvent.title}" på LinkedIn`, 'REFERRAL_SENT');
+                      }
+                      setShareSuccessNotice('🎉 Eventet delat på LinkedIn! Du har tilldelats +15 Booster Points.');
+                    }}
+                  />
                 </div>
 
                 {/* Send in Direct Chat */}
