@@ -16,7 +16,7 @@ import {
 import { BannerAd } from '../../types';
 import { INITIAL_BANNER_ADS } from '../../data/communityAndMatchmakingData';
 
-export type AdZone = 'FEED_TOP' | 'COMMUNITY_FEED' | 'CALENDAR_SIDEBAR' | 'HUB_HEADER';
+export type AdZone = 'FEED_TOP' | 'COMMUNITY_FEED' | 'CALENDAR_SIDEBAR' | 'HUB_HEADER' | 'MEMBERS_DIRECTORY' | 'EVENT_LIST';
 
 interface AdBannerEngineProps {
   zone: AdZone;
@@ -49,6 +49,39 @@ const DEFAULT_EXPANDED_BANNERS: BannerAd[] = [
     is_active: true,
     impressions_count: 730,
     clicks_count: 39
+  },
+  {
+    id: 'ban_5',
+    title: 'Convendum Executive Members Club: Prova gratis en dag',
+    advertiser_name: 'Convendum Coworking & Lounge',
+    placement: 'HUB_HEADER',
+    image_url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&auto=format&fit=crop&q=80',
+    target_url: 'https://convendum.se',
+    is_active: true,
+    impressions_count: 512,
+    clicks_count: 41
+  },
+  {
+    id: 'ban_6',
+    title: 'Exklusiv Headhunting & Executive Search för Booster Medlemmar',
+    advertiser_name: 'Nordic Executive Talent',
+    placement: 'MEMBERS_DIRECTORY',
+    image_url: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&auto=format&fit=crop&q=80',
+    target_url: 'https://nordictalent.se',
+    is_active: true,
+    impressions_count: 880,
+    clicks_count: 72
+  },
+  {
+    id: 'ban_7',
+    title: 'Säkra biljetter till Årets B2B Tillväxtgala med 15% rabatt',
+    advertiser_name: 'Nordic Business Forum & Events',
+    placement: 'EVENT_LIST',
+    image_url: 'https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&auto=format&fit=crop&q=80',
+    target_url: 'https://b2bgala.se',
+    is_active: true,
+    impressions_count: 420,
+    clicks_count: 35
   }
 ];
 
@@ -75,6 +108,7 @@ export const AdBannerEngine: React.FC<AdBannerEngineProps> = ({
   // New Banner Form State
   const [newTitle, setNewTitle] = useState('');
   const [newAdvertiser, setNewAdvertiser] = useState('');
+  const [newPlacement, setNewPlacement] = useState<AdZone>(zone);
   const [newTargetUrl, setNewTargetUrl] = useState('');
   const [newImageUrl, setNewImageUrl] = useState('https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&auto=format&fit=crop&q=80');
 
@@ -138,7 +172,7 @@ export const AdBannerEngine: React.FC<AdBannerEngineProps> = ({
       id: `ad_${Date.now()}`,
       title: newTitle || 'Exklusiv Partnerkampanj',
       advertiser_name: newAdvertiser || 'Booster Partner',
-      placement: zone === 'COMMUNITY_FEED' ? 'FEED_TOP' : zone,
+      placement: newPlacement || zone,
       image_url: newImageUrl,
       target_url: newTargetUrl || 'https://boosterfriends.se/partners',
       is_active: true,
@@ -392,6 +426,22 @@ export const AdBannerEngine: React.FC<AdBannerEngineProps> = ({
                   onChange={e => setNewAdvertiser(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Placering / Zon i appen</label>
+                <select
+                  value={newPlacement}
+                  onChange={e => setNewPlacement(e.target.value as AdZone)}
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs bg-white text-gray-800"
+                >
+                  <option value="FEED_TOP">Hem / Feed Top (Huvudvy)</option>
+                  <option value="COMMUNITY_FEED">Community Flöde</option>
+                  <option value="CALENDAR_SIDEBAR">Masterkalender Sidopanel</option>
+                  <option value="HUB_HEADER">Hubbar & Coworking Sida</option>
+                  <option value="MEMBERS_DIRECTORY">Medlemsregister Katalogen</option>
+                  <option value="EVENT_LIST">Events & Biljetter</option>
+                </select>
               </div>
 
               <div>

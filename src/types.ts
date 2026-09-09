@@ -955,7 +955,7 @@ export interface BannerAd {
   id: string;
   title: string;
   advertiser_name: string;
-  placement: 'FEED_TOP' | 'CALENDAR_SIDEBAR' | 'HUB_PORTAL';
+  placement: 'FEED_TOP' | 'COMMUNITY_FEED' | 'CALENDAR_SIDEBAR' | 'HUB_HEADER' | 'HUB_PORTAL' | 'HUB_DETAILS' | 'MEMBERS_DIRECTORY' | 'EVENT_LIST' | string;
   image_url: string;
   target_url: string;
   is_active: boolean;

@@ -56,6 +56,7 @@ import { PromoAndTrialsModule } from './components/promos/PromoAndTrialsModule';
 import { CommunityAndBlogModule } from './components/community/CommunityAndBlogModule';
 import { AdminPortalModule } from './components/admin/AdminPortalModule';
 import { ProfileSettingsAndDirectoryModule } from './components/profile/ProfileSettingsAndDirectoryModule';
+import { CustomizableBentoDashboard } from './components/dashboard/CustomizableBentoDashboard';
 import { AdBannerEngine } from './components/ads/AdBannerEngine';
 import { QrScannerModal } from './components/common/QrScannerModal';
 import {
@@ -120,6 +121,7 @@ import { formatSek } from './utils/calendar';
 export default function App() {
   // Application State
   const [currentUser, setCurrentUser] = useState<Member>(INITIAL_MEMBERS[0]);
+  const [hubs, setHubs] = useState<Hub[]>(INITIAL_HUBS);
   const [selectedHub, setSelectedHub] = useState<Hub>(INITIAL_HUBS[0]);
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [deviceMode, setDeviceMode] = useState<'desktop' | 'ios' | 'android'>('desktop');
@@ -511,6 +513,46 @@ export default function App() {
     if (currentUser.id === memberId) {
       setCurrentUser(prev => ({ ...prev, membership_level: level }));
     }
+  };
+
+  const handleSaveHub = (updatedHub: Hub) => {
+    setHubs(prev => prev.map(h => h.id === updatedHub.id ? updatedHub : h));
+    if (selectedHub.id === updatedHub.id) {
+      setSelectedHub(updatedHub);
+    }
+  };
+
+  const handleCreateHub = (newHubData: Omit<Hub, 'id'>) => {
+    const newHub: Hub = {
+      ...newHubData,
+      id: `hub-${Date.now()}`
+    };
+    setHubs(prev => [...prev, newHub]);
+  };
+
+  const handleCreateMember = (memberData: Partial<Member>) => {
+    const newMember: Member = {
+      id: `mem-${Date.now()}`,
+      full_name: memberData.full_name || 'Ny Medlem',
+      role_title: memberData.role_title || 'Entreprenör',
+      company_name: memberData.company_name || 'Bolag AB',
+      email: memberData.email || 'medlem@boosterfriends.se',
+      phone: memberData.phone || '070-0000000',
+      city: memberData.city || 'Stockholm',
+      avatar: memberData.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      membership_level: memberData.membership_level || 'BRONZE',
+      booster_score: memberData.booster_score || 150,
+      deals_closed_sek: 0,
+      referrals_sent: 0,
+      bio: memberData.bio || 'Ny medlem i Booster Friends.',
+      hub_id: memberData.hub_id || hubs[0]?.id || 'hub-sthlm-central',
+      hub_city: hubs.find(h => h.id === memberData.hub_id)?.city || 'Stockholm',
+      seeking_tags: memberData.seeking_tags || ['Tillväxt', 'Samarbeten'],
+      offering_tags: memberData.offering_tags || ['Affärsnätverk'],
+      give_take_ratio: '1.0',
+      ...(memberData as any)
+    };
+    setMembers(prev => [newMember, ...prev]);
   };
 
   // Skills & Review Actions
@@ -1976,7 +2018,7 @@ export default function App() {
         return (
           <CoworkingHubsModule
             currentUser={currentUser}
-            hubs={INITIAL_HUBS}
+            hubs={hubs}
             partnerLocations={partnerLocations}
             bookings={coworkingBookings}
             deskSwaps={deskSwaps}
@@ -1994,7 +2036,7 @@ export default function App() {
         return (
           <PromoAndTrialsModule
             currentUser={currentUser}
-            hubs={INITIAL_HUBS}
+            hubs={hubs}
             promoCodes={promoCodes}
             trialPasses={trialPasses}
             onCreateTrialPass={handleCreateTrialPass}
@@ -2036,6 +2078,8 @@ export default function App() {
           <ProfileSettingsAndDirectoryModule
             currentUser={currentUser}
             allMembers={members}
+            skills={skills}
+            onEndorseSkill={handleEndorseSkill}
             onUpdateProfile={handleUpdateProfile}
             onFollowToggle={handleFollowToggle}
             onOpenDirectChat={(memberId) => {
@@ -2055,13 +2099,36 @@ export default function App() {
         );
 
       case 'home':
-        return renderOverviewDashboard();
+        return (
+          <CustomizableBentoDashboard
+            currentUser={currentUser}
+            hubs={hubs}
+            selectedHub={selectedHub}
+            pipelineItems={pipelineItems}
+            members={members}
+            scoreLogs={scoreLogs}
+            coworkingBookings={coworkingBookings}
+            deskSwaps={deskSwaps}
+            trialPasses={trialPasses}
+            onNavigateTab={(tab) => setActiveTab(tab as ActiveTab)}
+            onOpenDirectChat={(memberId) => {
+              const target = members.find(m => m.id === memberId);
+              if (target) {
+                handleCreateChannel(target);
+                setActiveTab('chat');
+              }
+            }}
+            onStartIntroWith={handleStartIntroWith}
+            onAwardPoints={handleAwardPoints}
+            onCheckInGeoOrQr={() => setActiveTab('coworking')}
+          />
+        );
 
       case 'hub_events':
         return (
           <CoworkingHubsModule
             currentUser={currentUser}
-            hubs={INITIAL_HUBS}
+            hubs={hubs}
             partnerLocations={partnerLocations}
             bookings={coworkingBookings}
             deskSwaps={deskSwaps}
@@ -2106,8 +2173,13 @@ export default function App() {
           <AdminPortalModule
             currentUser={currentUser}
             allMembers={members}
-            hubs={INITIAL_HUBS}
+            hubs={hubs}
             onUpdateMemberLevel={handleUpdateMemberLevel}
+            onSaveHub={handleSaveHub}
+            onCreateHub={handleCreateHub}
+            onCreateMember={handleCreateMember}
+            quizQuestions={quizQuestions}
+            onCreateQuizQuestion={(q) => setQuizQuestions(prev => [q, ...prev])}
           />
         );
 

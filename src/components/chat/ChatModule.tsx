@@ -17,7 +17,11 @@ import {
   Clock, 
   Info,
   X,
-  UserCheck
+  UserCheck,
+  Download,
+  ExternalLink,
+  CheckCircle,
+  MapPin
 } from 'lucide-react';
 import { ChatChannel, ChatMessage, Member, Hub } from '../../types';
 
@@ -61,7 +65,62 @@ export const ChatModule: React.FC<ChatModuleProps> = ({
 
   // Meeting invite modal state
   const [meetingTitle, setMeetingTitle] = useState('1-on-1 Strategiavstämning');
-  const [meetingTime, setMeetingTime] = useState('Imorgon kl 10:00 - 10:30');
+  const [meetingDate, setMeetingDate] = useState(() => {
+    const tmrw = new Date();
+    tmrw.setDate(tmrw.getDate() + 1);
+    return tmrw.toISOString().split('T')[0];
+  });
+  const [meetingStartTime, setMeetingStartTime] = useState('10:00');
+  const [meetingEndTime, setMeetingEndTime] = useState('10:45');
+  const [meetingLocation, setMeetingLocation] = useState('Booster Video Room');
+  const [meetingDescription, setMeetingDescription] = useState('1-on-1 Strategisamtal & Nätverksavstämning i Booster Friends');
+  const [acceptedMeetings, setAcceptedMeetings] = useState<Record<string, boolean>>({});
+
+  // Helper: Download .ics file
+  const handleDownloadIcs = (title: string, dateStr: string, startTime: string, endTime: string, location: string, description: string) => {
+    const cleanDate = (dateStr || new Date().toISOString().split('T')[0]).replace(/-/g, '');
+    const cleanStart = (startTime || '10:00').replace(':', '');
+    const cleanEnd = (endTime || '10:45').replace(':', '');
+    const dtStart = `${cleanDate}T${cleanStart}00`;
+    const dtEnd = `${cleanDate}T${cleanEnd}00`;
+
+    const icsContent = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Booster Friends//Meeting Invite//SV',
+      'CALSCALE:GREGORIAN',
+      'METHOD:REQUEST',
+      'BEGIN:VEVENT',
+      `SUMMARY:${title}`,
+      `DESCRIPTION:${description}`,
+      `LOCATION:${location}`,
+      `DTSTART:${dtStart}`,
+      `DTEND:${dtEnd}`,
+      'STATUS:CONFIRMED',
+      'END:VEVENT',
+      'END:VCALENDAR'
+    ].join('\r\n');
+
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `${title.replace(/[^a-zA-Z0-9]/g, '_')}.ics`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  // Helper: Open Google Calendar Web link
+  const handleOpenGoogleCalendar = (title: string, dateStr: string, startTime: string, endTime: string, location: string, description: string) => {
+    const cleanDate = (dateStr || new Date().toISOString().split('T')[0]).replace(/-/g, '');
+    const cleanStart = (startTime || '10:00').replace(':', '');
+    const cleanEnd = (endTime || '10:45').replace(':', '');
+    const dates = `${cleanDate}T${cleanStart}00/${cleanDate}T${cleanEnd}00`;
+    const gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${dates}&details=${encodeURIComponent(description)}&location=${encodeURIComponent(location)}`;
+    window.open(gCalUrl, '_blank', 'noopener,noreferrer');
+  };
 
   const channelStore = messages || messagesByChannel || {};
   const currentChannelId = activeChannelId || selectedChannelId;
@@ -116,14 +175,20 @@ export const ChatModule: React.FC<ChatModuleProps> = ({
 
   const handleSendMeetingInvite = () => {
     if (!activeChannel) return;
+    const formattedTime = `${meetingDate} kl ${meetingStartTime} - ${meetingEndTime}`;
     onSendMessage(
       activeChannel.id,
-      `Jag har skickat en mötesförfrågan för ${meetingTitle}.`,
+      `📅 Mötesinbjudan skickad: "${meetingTitle}" den ${formattedTime}`,
       'meeting_invite',
       {
         title: meetingTitle,
-        subtitle: 'Digitalt via Booster Video Room',
-        meeting_time: meetingTime,
+        subtitle: `${meetingLocation} • ${meetingDescription}`,
+        meeting_time: formattedTime,
+        meeting_date: meetingDate,
+        meeting_start_time: meetingStartTime,
+        meeting_end_time: meetingEndTime,
+        meeting_location: meetingLocation,
+        meeting_description: meetingDescription,
       }
     );
     setShowMeetingModal(false);
@@ -408,26 +473,84 @@ export const ChatModule: React.FC<ChatModuleProps> = ({
 
                     {/* Meeting Invite Attachment Render */}
                     {msg.attachment_type === 'meeting_invite' && msg.attachment_metadata && (
-                      <div className={`mt-3 p-3 rounded-xl border ${
-                        isMe ? 'bg-white/10 border-white/20 text-white' : 'bg-emerald-50 border-emerald-200 text-emerald-950'
+                      <div className={`mt-3 p-3.5 rounded-xl border ${
+                        isMe ? 'bg-white/10 border-white/20 text-white' : 'bg-emerald-50 border-emerald-200 text-emerald-950 shadow-xs'
                       }`}>
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-600 text-white px-1.5 py-0.5 rounded">
-                            Mötesinbjudan
+                        <div className="flex items-center justify-between flex-wrap gap-1">
+                          <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-600 text-white px-2 py-0.5 rounded-md flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            <span>Mötesinbjudan</span>
                           </span>
-                          <span className="text-[11px] flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
+                          <span className="text-[11px] font-semibold flex items-center gap-1 opacity-90">
+                            <Clock className="w-3 h-3 text-emerald-600" />
                             {msg.attachment_metadata.meeting_time}
                           </span>
                         </div>
-                        <h4 className="font-bold text-xs mt-1.5">{msg.attachment_metadata.title}</h4>
-                        <p className="text-[11px] opacity-80">{msg.attachment_metadata.subtitle}</p>
-                        <div className="mt-2.5 flex items-center gap-2">
+
+                        <h4 className="font-bold text-xs sm:text-sm mt-2">{msg.attachment_metadata.title}</h4>
+                        
+                        <div className="text-[11px] opacity-85 mt-1 space-y-0.5">
+                          {msg.attachment_metadata.meeting_location && (
+                            <p className="flex items-center gap-1">
+                              <MapPin className="w-3 h-3 text-emerald-600" />
+                              <span>{msg.attachment_metadata.meeting_location}</span>
+                            </p>
+                          )}
+                          <p>{msg.attachment_metadata.subtitle}</p>
+                        </div>
+
+                        {/* Calendar export buttons */}
+                        <div className="mt-3 pt-2.5 border-t border-current/15 flex flex-wrap gap-2">
                           <button
-                            onClick={() => alert(`Möte "${msg.attachment_metadata?.title}" har lagts till i din kalender!`)}
-                            className="px-3 py-1 rounded-lg text-xs font-bold bg-white text-emerald-900 hover:bg-emerald-100 transition shadow-xs"
+                            type="button"
+                            onClick={() => handleOpenGoogleCalendar(
+                              msg.attachment_metadata.title,
+                              msg.attachment_metadata.meeting_date,
+                              msg.attachment_metadata.meeting_start_time,
+                              msg.attachment_metadata.meeting_end_time,
+                              msg.attachment_metadata.meeting_location || 'Booster Video Room',
+                              msg.attachment_metadata.meeting_description || msg.attachment_metadata.subtitle
+                            )}
+                            className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-white text-emerald-900 hover:bg-emerald-100 transition shadow-xs flex items-center gap-1 border border-emerald-200"
+                            title="Öppna i Google Calendar"
                           >
-                            ✓ Synka till Kalender
+                            <Calendar className="w-3 h-3 text-emerald-700" />
+                            <span>Google Kalender</span>
+                            <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadIcs(
+                              msg.attachment_metadata.title,
+                              msg.attachment_metadata.meeting_date,
+                              msg.attachment_metadata.meeting_start_time,
+                              msg.attachment_metadata.meeting_end_time,
+                              msg.attachment_metadata.meeting_location || 'Booster Video Room',
+                              msg.attachment_metadata.meeting_description || msg.attachment_metadata.subtitle
+                            )}
+                            className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-white text-emerald-900 hover:bg-emerald-100 transition shadow-xs flex items-center gap-1 border border-emerald-200"
+                            title="Ladda ner .ics kalenderfil för Apple Calendar, Outlook m.fl."
+                          >
+                            <Download className="w-3 h-3 text-emerald-700" />
+                            <span>Ladda ner (.ics)</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAcceptedMeetings(prev => ({ ...prev, [msg.id]: true }));
+                            }}
+                            className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition flex items-center gap-1 ${
+                              acceptedMeetings[msg.id]
+                                ? 'bg-emerald-600 text-white'
+                                : isMe
+                                ? 'bg-white/20 text-white hover:bg-white/30'
+                                : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                            }`}
+                          >
+                            <CheckCircle className="w-3 h-3" />
+                            <span>{acceptedMeetings[msg.id] ? 'Accepterad ✓' : 'Acceptera'}</span>
                           </button>
                         </div>
                       </div>
@@ -674,22 +797,70 @@ export const ChatModule: React.FC<ChatModuleProps> = ({
                   type="text"
                   value={meetingTitle}
                   onChange={e => setMeetingTitle(e.target.value)}
+                  placeholder="t.ex. 1-on-1 Strategiavstämning"
                   className="w-full bg-[#F4F5F7] border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800"
                 />
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <div className="col-span-1">
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Datum</label>
+                  <input
+                    type="date"
+                    value={meetingDate}
+                    onChange={e => setMeetingDate(e.target.value)}
+                    className="w-full bg-[#F4F5F7] border border-gray-200 rounded-xl px-2.5 py-2 text-xs text-gray-800"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Starttid</label>
+                  <input
+                    type="time"
+                    value={meetingStartTime}
+                    onChange={e => setMeetingStartTime(e.target.value)}
+                    className="w-full bg-[#F4F5F7] border border-gray-200 rounded-xl px-2 py-2 text-xs text-gray-800"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Sluttid</label>
+                  <input
+                    type="time"
+                    value={meetingEndTime}
+                    onChange={e => setMeetingEndTime(e.target.value)}
+                    className="w-full bg-[#F4F5F7] border border-gray-200 rounded-xl px-2 py-2 text-xs text-gray-800"
+                  />
+                </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Tidpunkt</label>
-                <input
-                  type="text"
-                  value={meetingTime}
-                  onChange={e => setMeetingTime(e.target.value)}
+                <label className="block text-xs font-bold text-gray-700 mb-1">Plats / Mötesform</label>
+                <select
+                  value={meetingLocation}
+                  onChange={e => setMeetingLocation(e.target.value)}
                   className="w-full bg-[#F4F5F7] border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800"
+                >
+                  <option value="Booster Video Room">Booster Video Room (Virtuellt)</option>
+                  <option value="Stockholm City Hubb Lounge">Stockholm City Hubb Lounge</option>
+                  <option value="Göteborg Avenyn Hubb">Göteborg Avenyn Hubb</option>
+                  <option value="Malmö Västra Hamnen Hubb">Malmö Västra Hamnen Hubb</option>
+                  <option value="Telefonmöte">Telefonmöte</option>
+                  <option value="Google Meet">Google Meet</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Mötesbeskrivning / Agenda</label>
+                <textarea
+                  rows={2}
+                  value={meetingDescription}
+                  onChange={e => setMeetingDescription(e.target.value)}
+                  className="w-full bg-[#F4F5F7] border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800"
+                  placeholder="Kort agenda för mötet..."
                 />
               </div>
 
-              <div className="p-3 rounded-xl bg-[#F4F5F7] text-xs text-gray-600">
-                Mötet genererar automatiskt en synk-länk för Google Calendar och Apple Calendar (.ics) direkt i chatten.
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-900">
+                ✓ Inbjudan skickas direkt med integrerade knappar för <strong>Google Kalender</strong> och export av standard <strong>.ics-fil</strong> (Apple & Outlook).
               </div>
             </div>
 

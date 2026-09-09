@@ -34,13 +34,20 @@ import {
   UploadCloud,
   ShieldCheck,
   FileCheck,
+  Grid,
+  List,
+  Camera,
+  Upload,
   X
 } from 'lucide-react';
-import { Member, MembershipLevel, LunchRequest, MemberMerit, MemberCaseStudy } from '../../types';
+import { Member, MembershipLevel, LunchRequest, MemberMerit, MemberCaseStudy, MemberSkill } from '../../types';
+import { AdBannerEngine } from '../ads/AdBannerEngine';
 
 interface ProfileSettingsAndDirectoryModuleProps {
   currentUser: Member;
   allMembers: Member[];
+  skills?: MemberSkill[];
+  onEndorseSkill?: (skillId: string) => void;
   onUpdateProfile: (updatedData: Partial<Member>) => void;
   onFollowToggle: (targetMemberId: string) => void;
   onOpenDirectChat: (targetMemberId: string) => void;
@@ -53,6 +60,8 @@ interface ProfileSettingsAndDirectoryModuleProps {
 export const ProfileSettingsAndDirectoryModule: React.FC<ProfileSettingsAndDirectoryModuleProps> = ({
   currentUser,
   allMembers,
+  skills = [],
+  onEndorseSkill,
   onUpdateProfile,
   onFollowToggle,
   onOpenDirectChat,
@@ -63,12 +72,14 @@ export const ProfileSettingsAndDirectoryModule: React.FC<ProfileSettingsAndDirec
 }) => {
   const [activeTab, setActiveTab] = useState<'directory' | 'settings'>(initialTab);
 
-  // Directory Filters
+  // Directory Filters & View Mode
+  const [directoryViewMode, setDirectoryViewMode] = useState<'card' | 'list'>('card');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedHubFilter, setSelectedHubFilter] = useState<string>('ALL');
   const [selectedLevelFilter, setSelectedLevelFilter] = useState<'ALL' | MembershipLevel>('ALL');
   const [tagFilter, setTagFilter] = useState('');
   const [onlyFollowing, setOnlyFollowing] = useState(false);
+  const [uploadNotice, setUploadNotice] = useState<string | null>(null);
 
   // Profile Settings Form State
   const [formData, setFormData] = useState({
@@ -487,6 +498,36 @@ export const ProfileSettingsAndDirectoryModule: React.FC<ProfileSettingsAndDirec
                 <UserCheck className="w-3.5 h-3.5" />
                 <span>Bara personer jag följer ({followingIds.length})</span>
               </button>
+
+              {/* Card / List View Switcher */}
+              <div className="flex items-center bg-gray-100 p-1 rounded-xl border border-gray-200 ml-auto">
+                <button
+                  type="button"
+                  onClick={() => setDirectoryViewMode('card')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                    directoryViewMode === 'card' 
+                      ? 'bg-white text-[#800020] shadow-xs' 
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                  title="Kortvy"
+                >
+                  <Grid className="w-3.5 h-3.5" />
+                  <span>Kortvy</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDirectoryViewMode('list')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                    directoryViewMode === 'list' 
+                      ? 'bg-white text-[#800020] shadow-xs' 
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                  title="Listvy"
+                >
+                  <List className="w-3.5 h-3.5" />
+                  <span>Listvy</span>
+                </button>
+              </div>
             </div>
 
             {/* Quick Keyword Pills */}
@@ -516,7 +557,11 @@ export const ProfileSettingsAndDirectoryModule: React.FC<ProfileSettingsAndDirec
             </div>
           </div>
 
-          {/* Members Grid */}
+          {/* Sponsrad Annonsbanner för Medlemskatalogen */}
+          <AdBannerEngine zone="MEMBERS_DIRECTORY" />
+
+          {/* Members Grid or List View */}
+          {directoryViewMode === 'card' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredMembers.map(member => {
               const isMe = member.id === currentUser.id;
@@ -696,6 +741,60 @@ export const ProfileSettingsAndDirectoryModule: React.FC<ProfileSettingsAndDirec
                         </button>
                       </div>
                     )}
+
+                    {/* Skillbars & Kompetensröstning (Endorsements) */}
+                    {(() => {
+                      const mSkills = skills.filter(s => s.member_id === member.id);
+                      if (mSkills.length === 0) return null;
+                      return (
+                        <div className="mt-3 pt-2.5 border-t border-gray-100">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-[10px] font-bold uppercase text-gray-500 tracking-wider flex items-center gap-1">
+                              <Award className="w-3 h-3 text-[#800020]" />
+                              <span>Skillbars & Röster:</span>
+                            </span>
+                            <span className="text-[10px] text-gray-400 font-semibold">{mSkills.length} st</span>
+                          </div>
+                          <div className="space-y-1.5">
+                            {mSkills.slice(0, 2).map(skill => {
+                              const pct = Math.min(100, Math.round((skill.endorsements_count / 15) * 100));
+                              return (
+                                <div key={skill.id} className="bg-gray-50 p-2 rounded-xl border border-gray-100">
+                                  <div className="flex items-center justify-between text-[11px] font-bold text-gray-800 mb-1">
+                                    <span className="truncate pr-2">{skill.skill_name}</span>
+                                    <div className="flex items-center gap-1 flex-shrink-0">
+                                      <span className="text-gray-500 font-normal text-[10px]">{skill.endorsements_count} röster</span>
+                                      {!isMe && (
+                                        <button
+                                          type="button"
+                                          onClick={() => onEndorseSkill?.(skill.id)}
+                                          disabled={skill.has_endorsed}
+                                          className={`px-1.5 py-0.5 rounded text-[10px] font-bold flex items-center gap-0.5 transition ${
+                                            skill.has_endorsed
+                                              ? 'bg-emerald-100 text-emerald-800'
+                                              : 'bg-amber-100 text-amber-900 hover:bg-amber-200 cursor-pointer'
+                                          }`}
+                                          title={skill.has_endorsed ? 'Du har redan röstat' : 'Rösta på denna kompetens (+5 BP)'}
+                                        >
+                                          <ThumbsUp className="w-2.5 h-2.5" />
+                                          <span>{skill.has_endorsed ? 'Röstat' : '+ Rösta'}</span>
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden">
+                                    <div 
+                                      className="bg-[#800020] h-full rounded-full transition-all duration-300"
+                                      style={{ width: `${pct}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Bottom Actions */}
@@ -739,6 +838,156 @@ export const ProfileSettingsAndDirectoryModule: React.FC<ProfileSettingsAndDirec
               );
             })}
           </div>
+          ) : (
+          /* RESPONSIVE LIST VIEW */
+          <div className="space-y-3">
+            {filteredMembers.map(member => {
+              const isMe = member.id === currentUser.id;
+              const isFollowing = followingIds.includes(member.id);
+              const giveTakeRatio = member.give_take_ratio || ((member.referrals_sent || 1) / Math.max(1, (member.deals_closed_sek > 0 ? 2 : 1))).toFixed(1);
+              const mSkills = skills.filter(s => s.member_id === member.id);
+
+              return (
+                <div
+                  key={member.id}
+                  className={`bg-white rounded-2xl border p-4 transition-all duration-200 hover:shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4 ${
+                    isMe ? 'border-[#800020]/30 bg-[#800020]/[0.02]' : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  {/* Left: Avatar & Member Info */}
+                  <div className="flex items-center gap-3.5 min-w-[240px] max-w-sm">
+                    <div className="relative flex-shrink-0">
+                      <img
+                        src={member.avatar}
+                        alt={member.full_name}
+                        className="w-12 h-12 rounded-xl object-cover border border-gray-200"
+                      />
+                      <span className={`absolute -bottom-1 -right-1 text-[8px] font-black uppercase px-1 py-0.5 rounded border ${getLevelBadge(member.membership_level)}`}>
+                        {member.membership_level[0]}
+                      </span>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h4 className="text-sm font-bold text-gray-900 truncate">
+                          {member.full_name}
+                        </h4>
+                        {isMe && (
+                          <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.2 rounded font-semibold">
+                            Du
+                          </span>
+                        )}
+                        <span className="text-[10px] font-bold text-amber-900 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/60">
+                          {member.booster_score} BP
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-600 truncate">{member.role_title} • {member.company_name}</p>
+                      <p className="text-[11px] text-gray-400 flex items-center gap-1 mt-0.5 truncate">
+                        <MapPin className="w-3 h-3 text-[#800020]" />
+                        <span>{member.hub_city || 'Stockholm Hubb'}</span>
+                        <span>• Give/Take: {giveTakeRatio}x</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Middle: Skillbars & Endorse Voting */}
+                  <div className="flex-1 min-w-[200px] max-w-md">
+                    {mSkills.length > 0 ? (
+                      <div className="space-y-1.5">
+                        {mSkills.slice(0, 2).map(skill => {
+                          const pct = Math.min(100, Math.round((skill.endorsements_count / 15) * 100));
+                          return (
+                            <div key={skill.id} className="bg-gray-50 px-2.5 py-1.5 rounded-xl border border-gray-100">
+                              <div className="flex items-center justify-between text-[10px] font-bold text-gray-800 mb-0.5">
+                                <span className="truncate pr-1">{skill.skill_name}</span>
+                                <div className="flex items-center gap-1 flex-shrink-0">
+                                  <span className="text-gray-400 font-normal">{skill.endorsements_count} röster</span>
+                                  {!isMe && (
+                                    <button
+                                      type="button"
+                                      onClick={() => onEndorseSkill?.(skill.id)}
+                                      disabled={skill.has_endorsed}
+                                      className={`px-1.5 py-0.5 rounded text-[9px] font-bold transition flex items-center gap-0.5 ${
+                                        skill.has_endorsed
+                                          ? 'bg-emerald-100 text-emerald-800'
+                                          : 'bg-amber-100 text-amber-900 hover:bg-amber-200 cursor-pointer'
+                                      }`}
+                                    >
+                                      <ThumbsUp className="w-2 h-2" />
+                                      <span>{skill.has_endorsed ? 'Röstat' : '+ Rösta'}</span>
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="w-full bg-gray-200 h-1 rounded-full overflow-hidden">
+                                <div className="bg-[#800020] h-full rounded-full" style={{ width: `${pct}%` }} />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap gap-1">
+                        {(member.offering_tags || []).slice(0, 3).map((tag, i) => (
+                          <span key={i} className="text-[10px] bg-gray-100 text-gray-700 px-2 py-0.5 rounded-md font-medium">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right: Action Buttons */}
+                  <div className="flex items-center gap-1.5 flex-shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-gray-100 justify-end flex-wrap">
+                    {!isMe && (
+                      <button
+                        onClick={() => onFollowToggle(member.id)}
+                        className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 border ${
+                          isFollowing
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                            : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100 hover:text-[#800020]'
+                        }`}
+                        title={isFollowing ? 'Du följer denna medlem' : 'Följ'}
+                      >
+                        {isFollowing ? <UserCheck className="w-3.5 h-3.5 text-emerald-600" /> : <UserPlus className="w-3.5 h-3.5" />}
+                        <span className="hidden sm:inline">{isFollowing ? 'Följer' : 'Följ'}</span>
+                      </button>
+                    )}
+
+                    {!isMe && (
+                      <button
+                        onClick={() => onOpenDirectChat(member.id)}
+                        className="p-2 rounded-xl text-gray-600 hover:text-[#800020] hover:bg-[#800020]/5 transition border border-gray-200"
+                        title="Chatta"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+
+                    {!isMe && (
+                      <button
+                        onClick={() => setLunchTargetMember(member)}
+                        className="px-2.5 py-1.5 rounded-xl text-xs font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 transition border border-amber-200 flex items-center gap-1"
+                        title="Bjud på lunch"
+                      >
+                        <Coffee className="w-3 h-3 text-amber-700" />
+                        <span className="hidden sm:inline">Lunch</span>
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => onOpenUniversalConnect(member)}
+                      className="px-2.5 py-1.5 rounded-xl text-xs font-bold text-gray-700 bg-gray-50 hover:bg-gray-100 transition border border-gray-200 flex items-center gap-1"
+                      title="Visitkort"
+                    >
+                      <QrCode className="w-3 h-3 text-[#800020]" />
+                      <span className="hidden sm:inline">Visitkort</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          )}
 
           {filteredMembers.length === 0 && (
             <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center">
@@ -775,27 +1024,90 @@ export const ProfileSettingsAndDirectoryModule: React.FC<ProfileSettingsAndDirec
               </p>
             </div>
 
-            {/* Avatar & Cover selector */}
-            <div className="flex flex-col sm:flex-row items-center gap-4 pb-4 border-b border-gray-100">
-              <div className="relative">
+            {/* Avatar & File Upload */}
+            <div className="flex flex-col sm:flex-row items-center gap-5 pb-5 border-b border-gray-100">
+              <div className="relative group">
                 <img
                   src={formData.avatar}
                   alt={formData.full_name}
-                  className="w-20 h-20 rounded-2xl object-cover border-2 border-[#800020] shadow-sm"
+                  className="w-24 h-24 rounded-2xl object-cover border-2 border-[#800020] shadow-sm"
                 />
+                <label 
+                  htmlFor="profile-avatar-upload"
+                  className="absolute inset-0 bg-black/50 rounded-2xl opacity-0 group-hover:opacity-100 transition flex flex-col items-center justify-center text-white cursor-pointer"
+                  title="Klicka för att ladda upp ny bild från enhet"
+                >
+                  <Camera className="w-5 h-5 mb-1" />
+                  <span className="text-[10px] font-bold">Ladda upp</span>
+                </label>
                 <span className="absolute -bottom-1 -right-1 p-1 bg-[#800020] text-white rounded-full">
                   <Star className="w-3 h-3" />
                 </span>
               </div>
-              <div className="flex-1 space-y-2 text-center sm:text-left">
-                <label className="text-xs font-bold text-gray-700 block">Profilbild (Bild-URL)</label>
-                <input
-                  type="url"
-                  value={formData.avatar}
-                  onChange={(e) => setFormData({ ...formData, avatar: e.target.value })}
-                  placeholder="https://images.unsplash.com/..."
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#800020]/20"
-                />
+
+              <div className="flex-1 space-y-3 w-full">
+                <div>
+                  <label className="text-xs font-bold text-gray-800 block mb-1">
+                    Profilbild (Ladda upp fil eller ange bildlänk)
+                  </label>
+                  <p className="text-[11px] text-gray-500">
+                    Ladda upp en bild direkt från din dator eller mobil, eller klistra in en bild-URL.
+                  </p>
+                </div>
+
+                {uploadNotice && (
+                  <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-bold text-emerald-800 flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                    <span>{uploadNotice}</span>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    type="file"
+                    id="profile-avatar-upload"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        if (!file.type.startsWith('image/')) {
+                          alert('Vänligen välj en giltig bildfil (.png, .jpg, .webp).');
+                          return;
+                        }
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                          if (event.target?.result) {
+                            const dataUrl = event.target.result as string;
+                            setFormData(prev => ({ ...prev, avatar: dataUrl }));
+                            setUploadNotice('✓ Ny profilbild inläst! Klicka "Spara Ändringar" längst ned för att spara.');
+                            setTimeout(() => setUploadNotice(null), 6000);
+                          }
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="profile-avatar-upload"
+                    className="cursor-pointer px-3.5 py-2 bg-[#800020] hover:bg-[#580016] text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Ladda upp från enhet</span>
+                  </label>
+
+                  <span className="text-xs text-gray-400">eller URL:</span>
+                  <div className="flex-1 min-w-[180px]">
+                    <input
+                      type="url"
+                      value={formData.avatar}
+                      onChange={(e) => setFormData({ ...formData, avatar: e.target.value })}
+                      placeholder="https://images.unsplash.com/..."
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#800020]/20"
+                    />
+                  </div>
+                </div>
+
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-[10px] text-gray-400">Snabbval:</span>
                   {[
