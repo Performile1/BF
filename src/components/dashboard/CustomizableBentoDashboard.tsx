@@ -1732,52 +1732,78 @@ export const CustomizableBentoDashboard: React.FC<CustomizableBentoDashboardProp
         </div>
 
         <div className="flex items-center gap-2 flex-wrap w-full md:w-auto">
-          {/* Edit Mode Toggle */}
-          <button
-            type="button"
-            onClick={() => setCustomizingMode(!customizingMode)}
-            className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border shadow-xs ${
-              customizingMode
-                ? 'bg-[#800020] text-white border-[#800020] ring-2 ring-[#800020]/20'
-                : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
-            }`}
-            title="Växla redigeringsläge för storlekar och placering"
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5" />
-            <span>{customizingMode ? 'Klar med redigering' : 'Redigera layout'}</span>
-          </button>
+          {customizingMode ? (
+            <>
+              {/* Finish & Save Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  handleManualSaveLayout();
+                  setCustomizingMode(false);
+                }}
+                className="px-3.5 py-2 rounded-xl text-xs font-bold bg-[#800020] text-white hover:bg-[#580016] transition flex items-center gap-1.5 shadow-xs ring-2 ring-[#800020]/20"
+                title="Spara ändringar och lås dashboarden"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Klar med redigering</span>
+              </button>
 
-          {/* Add Widget Button */}
-          <button
-            type="button"
-            onClick={() => setShowWidgetPicker(true)}
-            className="px-3 py-2 rounded-xl text-xs font-bold bg-white text-[#800020] border border-[#800020]/30 hover:bg-[#800020]/5 transition flex items-center gap-1.5 shadow-xs"
-            title="Lägg till widgets från andra vyer"
-          >
-            <Plus className="w-3.5 h-3.5 text-[#800020]" />
-            <span>Lägg till widget</span>
-          </button>
+              {/* Add Widget Button */}
+              <button
+                type="button"
+                onClick={() => setShowWidgetPicker(true)}
+                className="px-3 py-2 rounded-xl text-xs font-bold bg-white text-[#800020] border border-[#800020]/30 hover:bg-[#800020]/5 transition flex items-center gap-1.5 shadow-xs"
+                title="Lägg till widgets från andra vyer"
+              >
+                <Plus className="w-3.5 h-3.5 text-[#800020]" />
+                <span>Lägg till widget</span>
+              </button>
 
-          {/* Explicit Save Layout Button (Punkt 30 & 33) */}
-          <button
-            type="button"
-            onClick={handleManualSaveLayout}
-            className="px-3 py-2 rounded-xl text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition flex items-center gap-1.5 shadow-xs"
-            title="Spara nuvarande grid-konfiguration och kortstorlekar"
-          >
-            <Save className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Spara layout</span>
-          </button>
+              {/* Reset to Default Button */}
+              <button
+                type="button"
+                onClick={() => setShowResetConfirm(true)}
+                className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition border border-gray-200"
+                title="Återställ till standardvy (4 kolumner, standardstorlekar)"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
+            </>
+          ) : (
+            <>
+              {/* Edit Mode Toggle Button */}
+              <button
+                type="button"
+                onClick={() => setCustomizingMode(true)}
+                className="px-3 py-2 rounded-xl text-xs font-bold bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 transition flex items-center gap-1.5 shadow-xs"
+                title="Växla till redigeringsläge för att ändra kolumner, kortstorlekar och ordning"
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5 text-[#800020]" />
+                <span>Redigera layout</span>
+              </button>
 
-          {/* Reset to Default Button */}
-          <button
-            type="button"
-            onClick={() => setShowResetConfirm(true)}
-            className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition border border-gray-200"
-            title="Återställ till standardvy (4 kolumner, standardstorlekar)"
-          >
-            <RotateCcw className="w-4 h-4" />
-          </button>
+              {/* Add Widget Button */}
+              <button
+                type="button"
+                onClick={() => setShowWidgetPicker(true)}
+                className="px-3 py-2 rounded-xl text-xs font-bold bg-white text-[#800020] border border-[#800020]/30 hover:bg-[#800020]/5 transition flex items-center gap-1.5 shadow-xs"
+                title="Lägg till widgets från andra vyer"
+              >
+                <Plus className="w-3.5 h-3.5 text-[#800020]" />
+                <span>Lägg till widget</span>
+              </button>
+
+              {/* Reset to Default Button */}
+              <button
+                type="button"
+                onClick={() => setShowResetConfirm(true)}
+                className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition border border-gray-200"
+                title="Återställ till standardvy"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -1860,21 +1886,23 @@ export const CustomizableBentoDashboard: React.FC<CustomizableBentoDashboardProp
             <div
               key={widgetId}
               draggable={customizingMode}
-              onDragStart={(e) => handleDragStart(e, widgetId)}
-              onDragOver={(e) => handleDragOver(e, widgetId)}
-              onDrop={(e) => handleDrop(e, widgetId)}
+              onDragStart={(e) => customizingMode && handleDragStart(e, widgetId)}
+              onDragOver={(e) => customizingMode && handleDragOver(e, widgetId)}
+              onDrop={(e) => customizingMode && handleDrop(e, widgetId)}
               onDragEnd={handleDragEnd}
               className={`${spanClasses} transition-all duration-200 ${
-                isDragging ? 'opacity-40 scale-[0.98]' : 'opacity-100'
+                isDragging && customizingMode ? 'opacity-40 scale-[0.98]' : 'opacity-100'
               } ${
-                isOver ? 'ring-2 ring-[#800020] ring-offset-2' : ''
+                isOver && customizingMode ? 'ring-2 ring-[#800020] ring-offset-2' : ''
               }`}
             >
-              <section className={`bg-white rounded-2xl border border-gray-200 p-5 shadow-xs flex flex-col justify-between h-full relative group transition-shadow hover:shadow-sm ${
+              <section className={`bg-white rounded-2xl border border-gray-200 p-5 shadow-xs flex flex-col justify-between h-full relative transition-shadow hover:shadow-sm ${
+                customizingMode ? 'ring-1 ring-[#800020]/20' : ''
+              } ${
                 dim.rowSpan === 2 ? 'min-h-[440px]' : ''
               }`}>
-                {/* Control handles in customizing mode or on hover */}
-                {customizingMode ? (
+                {/* Storlekskontroller och handles VISAS ENBART i Edit Mode (Punkt 30 Edit-låst resizing) */}
+                {customizingMode && (
                   <div className="flex flex-wrap items-center justify-between pb-3 mb-3 border-b border-gray-200 gap-2 bg-gray-50/90 -mx-5 -mt-5 p-3 rounded-t-2xl">
                     <div 
                       className="flex items-center gap-1.5 text-gray-500 cursor-grab active:cursor-grabbing bg-white px-2 py-1 rounded-lg border border-gray-200 shadow-2xs"
@@ -1987,29 +2015,9 @@ export const CustomizableBentoDashboard: React.FC<CustomizableBentoDashboardProp
                       </button>
                     </div>
                   </div>
-                ) : (
-                  <div className="hidden group-hover:flex items-center justify-between pb-2 mb-2 border-b border-gray-100 text-xs">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                        #{index + 1}
-                      </span>
-                      <span className="text-[10px] font-medium text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100">
-                        {Math.min(dim.colSpan, gridLayout.columnsCount)}K • {dim.rowSpan === 2 ? 'Utökad' : 'Standard'}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => setCustomizingMode(true)}
-                        className="text-[10px] text-gray-400 hover:text-[#800020] font-semibold transition"
-                      >
-                        Justera storlek
-                      </button>
-                    </div>
-                  </div>
                 )}
 
-                {/* Widget inner contents */}
+                {/* Innehåll i kortet (Visas alltid) */}
                 <div className="flex-1">
                   {renderWidgetContent(widgetId)}
                 </div>
