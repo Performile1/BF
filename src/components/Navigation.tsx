@@ -20,7 +20,9 @@ import {
   Shield, 
   Database,
   Sparkles,
-  Calendar
+  Calendar,
+  CreditCard,
+  Megaphone
 } from 'lucide-react';
 
 export type MainCategory = 
@@ -49,10 +51,12 @@ export type SubTabId =
   | 'webinars'
   | 'benefits'
   | 'promos'
+  | 'advertise'
   // 5. Mina Affärer & Profil
   | 'pipeline'
   | 'gamification'
   | 'profile_settings'
+  | 'membership'
   | 'admin'
   | 'architecture';
 
@@ -124,7 +128,8 @@ export const Navigation: React.FC<NavigationProps> = ({
         { id: 'academy', label: 'Kurser & Diplom', icon: GraduationCap },
         { id: 'webinars', label: 'Webinars', icon: Video, pulse: true },
         { id: 'benefits', label: 'Förmåner & Perks', icon: Gift },
-        { id: 'promos', label: 'Kampanjer & Fria Pass', icon: Tag }
+        { id: 'promos', label: 'Kampanjer & Fria Pass', icon: Tag },
+        { id: 'advertise', label: 'Annonsera & Banners', icon: Megaphone }
       ]
     },
     {
@@ -138,6 +143,7 @@ export const Navigation: React.FC<NavigationProps> = ({
         { id: 'pipeline', label: 'My Pipeline (CRM)', icon: TrendingUp },
         { id: 'gamification', label: 'Poäng & Status', icon: Trophy },
         { id: 'profile_settings', label: 'Min Profil & QR', icon: Settings },
+        { id: 'membership', label: 'Medlemskap (/profile/membership)', icon: CreditCard },
         { id: 'admin', label: 'Admin-Panel', icon: Shield, adminOnly: true },
         { id: 'architecture', label: 'Kravspec & Schema', icon: Database }
       ]

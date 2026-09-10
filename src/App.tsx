@@ -60,6 +60,7 @@ import { CustomizableBentoDashboard } from './components/dashboard/CustomizableB
 import { WebMeetingModal } from './components/calendar/WebMeetingModal';
 import { AdBannerEngine } from './components/ads/AdBannerEngine';
 import { QrScannerModal } from './components/common/QrScannerModal';
+import { PaymentLockoutScreen } from './components/billing/PaymentLockoutScreen';
 import {
   MasterCalendarEvent,
   CoworkingDeskBooking,
@@ -129,6 +130,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [deviceMode, setDeviceMode] = useState<'desktop' | 'ios' | 'android'>('desktop');
   const [quickChatInput, setQuickChatInput] = useState('');
+  const [isLockoutSimulated, setIsLockoutSimulated] = useState(false);
 
   // V8 Mobile FAB & Quick Action Bottom Sheet
   const [showFabModal, setShowFabModal] = useState(false);
@@ -1110,6 +1112,7 @@ export default function App() {
         onOpenCheckInModal={() => setShowScannerModal(true)}
         onOpenQrModal={() => setQrModalMember(currentUser)}
         onOpenArchitectureSpec={() => setActiveTab('architecture')}
+        onOpenMembership={() => setActiveTab('membership')}
       />
 
       {/* Main Container / Mobile Device Frame */}
@@ -1962,6 +1965,28 @@ export default function App() {
 
   // Helper to render the active module
   function renderActiveContent() {
+    // 🔒 Spärrskärm / Payment Lockout Guard (Krav: Suspended payment lockout)
+    if (isLockoutSimulated || currentUser.payment_status === 'SUSPENDED_PAYMENT') {
+      return (
+        <PaymentLockoutScreen
+          currentUser={currentUser}
+          onPaymentSuccess={() => {
+            setCurrentUser(prev => ({
+              ...prev,
+              payment_status: 'PAID'
+            }));
+            setMembers(prev => prev.map(m => m.id === currentUser.id ? { ...m, payment_status: 'PAID' } : m));
+            setIsLockoutSimulated(false);
+          }}
+          onCancelDemo={() => setIsLockoutSimulated(false)}
+          onContactSupport={() => {
+            setIsLockoutSimulated(false);
+            setActiveTab('chat');
+          }}
+        />
+      );
+    }
+
     switch (activeTab) {
       case 'overview':
       case 'home':
@@ -2182,6 +2207,7 @@ export default function App() {
 
       case 'directory':
       case 'profile_settings':
+      case 'membership':
         return (
           <ProfileSettingsAndDirectoryModule
             currentUser={currentUser}
@@ -2202,7 +2228,9 @@ export default function App() {
             }}
             onSendLunchRequest={handleSendLunchRequest}
             onAwardPoints={handleAwardPoints}
-            initialTab={activeTab === 'profile_settings' ? 'settings' : 'directory'}
+            onUpdateMemberLevel={handleUpdateMemberLevel}
+            onSimulateLockout={() => setIsLockoutSimulated(true)}
+            initialTab={activeTab === 'membership' ? 'membership' : activeTab === 'profile_settings' ? 'settings' : 'directory'}
           />
         );
 

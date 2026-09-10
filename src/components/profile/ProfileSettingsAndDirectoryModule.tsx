@@ -38,10 +38,12 @@ import {
   List,
   Camera,
   Upload,
+  CreditCard,
   X
 } from 'lucide-react';
 import { Member, MembershipLevel, LunchRequest, MemberMerit, MemberCaseStudy, MemberSkill } from '../../types';
 import { AdBannerEngine } from '../ads/AdBannerEngine';
+import { MembershipBillingModule } from './MembershipBillingModule';
 
 interface ProfileSettingsAndDirectoryModuleProps {
   currentUser: Member;
@@ -54,7 +56,9 @@ interface ProfileSettingsAndDirectoryModuleProps {
   onOpenUniversalConnect: (member?: Member) => void;
   onSendLunchRequest: (request: Partial<LunchRequest>) => void;
   onAwardPoints?: (points: number, title: string, activityType: any) => void;
-  initialTab?: 'directory' | 'settings';
+  onUpdateMemberLevel?: (memberId: string, level: MembershipLevel) => void;
+  onSimulateLockout?: () => void;
+  initialTab?: 'directory' | 'settings' | 'membership';
 }
 
 export const ProfileSettingsAndDirectoryModule: React.FC<ProfileSettingsAndDirectoryModuleProps> = ({
@@ -68,9 +72,11 @@ export const ProfileSettingsAndDirectoryModule: React.FC<ProfileSettingsAndDirec
   onOpenUniversalConnect,
   onSendLunchRequest,
   onAwardPoints,
+  onUpdateMemberLevel,
+  onSimulateLockout,
   initialTab = 'directory'
 }) => {
-  const [activeTab, setActiveTab] = useState<'directory' | 'settings'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'directory' | 'settings' | 'membership'>(initialTab);
 
   // Directory Filters & View Mode
   const [directoryViewMode, setDirectoryViewMode] = useState<'card' | 'list'>('card');
@@ -426,6 +432,17 @@ export const ProfileSettingsAndDirectoryModule: React.FC<ProfileSettingsAndDirec
             <Settings className="w-3.5 h-3.5 text-[#800020]" />
             <span>Min Profil & Inställningar</span>
           </button>
+          <button
+            onClick={() => setActiveTab('membership')}
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+              activeTab === 'membership'
+                ? 'bg-white text-[#800020] shadow-xs'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <CreditCard className="w-3.5 h-3.5 text-[#800020]" />
+            <span>Medlemskap & Fakturering (/profile/membership)</span>
+          </button>
         </div>
       </div>
 
@@ -434,6 +451,17 @@ export const ProfileSettingsAndDirectoryModule: React.FC<ProfileSettingsAndDirec
           <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
           <span>{savedSuccessNotice}</span>
         </div>
+      )}
+
+      {/* MEMBERSHIP & BILLING VIEW (/profile/membership) */}
+      {activeTab === 'membership' && (
+        <MembershipBillingModule
+          currentUser={currentUser}
+          allMembers={allMembers}
+          onUpdateMemberLevel={onUpdateMemberLevel || (() => {})}
+          onAwardPoints={onAwardPoints ? (pts, reason) => onAwardPoints(pts, reason, 'REFERRAL') : undefined}
+          onSimulateLockout={onSimulateLockout}
+        />
       )}
 
       {/* DIRECTORY VIEW */}

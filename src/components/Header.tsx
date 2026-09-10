@@ -18,7 +18,8 @@ import {
   Calendar,
   X,
   QrCode,
-  Camera
+  Camera,
+  CreditCard
 } from 'lucide-react';
 import { Member, Hub, ChatChannel } from '../types';
 
@@ -36,6 +37,7 @@ interface HeaderProps {
   onOpenCheckInModal: () => void;
   onOpenQrModal?: () => void;
   onOpenArchitectureSpec: () => void;
+  onOpenMembership?: () => void;
   channels?: ChatChannel[];
   onSelectChannel?: (channelId: string) => void;
   onOpenFullChat?: () => void;
@@ -55,6 +57,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenCheckInModal,
   onOpenQrModal,
   onOpenArchitectureSpec,
+  onOpenMembership,
   channels = [],
   onSelectChannel,
   onOpenFullChat
@@ -446,6 +449,20 @@ export const Header: React.FC<HeaderProps> = ({
                       <span className="text-gray-600">Booster Score:</span>
                       <span className="font-bold text-[#800020]">{currentUser.booster_score} poäng (Topp 5%)</span>
                     </div>
+
+                    <button
+                      onClick={() => {
+                        if (onOpenMembership) onOpenMembership();
+                        setShowUserMenu(false);
+                      }}
+                      className="w-full mt-2.5 py-2 px-3 rounded-xl bg-rose-50/70 hover:bg-[#800020] border border-[#800020]/20 text-xs font-bold text-[#800020] hover:text-white transition flex items-center justify-between group"
+                    >
+                      <div className="flex items-center gap-2">
+                        <CreditCard className="w-3.5 h-3.5 text-[#800020] group-hover:text-white transition" />
+                        <span>Medlemskap & Fakturor</span>
+                      </div>
+                      <span className="text-[10px] font-semibold text-[#800020]/70 group-hover:text-white/90">/profile/membership</span>
+                    </button>
 
                     {/* Enhetsvy Switcher: Desktop / iOS / Android i Inloggad Profil */}
                     {setDeviceMode && (

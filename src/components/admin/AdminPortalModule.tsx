@@ -26,7 +26,10 @@ import {
   MapPin,
   X,
   Sparkles,
-  UserPlus
+  UserPlus,
+  Layout,
+  Sliders,
+  CreditCard
 } from 'lucide-react';
 import { 
   Member, 
@@ -35,7 +38,9 @@ import {
   AdminMemberApplication, 
   AdminKpiStats,
   MembershipLevel,
-  QuizQuestion
+  QuizQuestion,
+  AdFormat,
+  AdPlacementType
 } from '../../types';
 import { 
   INITIAL_BANNER_ADS, 
@@ -43,6 +48,8 @@ import {
   INITIAL_ADMIN_APPLICATIONS 
 } from '../../data/communityAndMatchmakingData';
 import { SAMPLE_QUIZ_QUESTIONS } from '../../data/initialData';
+import { AdZonesVisualGuide } from '../ads/AdZonesVisualGuide';
+import { AdminBillingAndRulesModule } from './AdminBillingAndRulesModule';
 
 interface AdminPortalModuleProps {
   currentUser: Member;
@@ -67,18 +74,22 @@ export const AdminPortalModule: React.FC<AdminPortalModuleProps> = ({
   quizQuestions = SAMPLE_QUIZ_QUESTIONS,
   onCreateQuizQuestion
 }) => {
-  const [activeAdminTab, setActiveAdminTab] = useState<'KPIS' | 'APPLICATIONS' | 'BANNERS' | 'HUBS' | 'MEMBERS' | 'QUIZ'>('KPIS');
+  const [activeAdminTab, setActiveAdminTab] = useState<'KPIS' | 'BILLING' | 'RULES' | 'APPLICATIONS' | 'BANNERS' | 'HUBS' | 'MEMBERS' | 'QUIZ'>('KPIS');
   const [applications, setApplications] = useState<AdminMemberApplication[]>(INITIAL_ADMIN_APPLICATIONS);
   const [bannerAds, setBannerAds] = useState<BannerAd[]>(INITIAL_BANNER_ADS);
   const [feedbackNotice, setFeedbackNotice] = useState<string | null>(null);
 
   // New banner form modal state
   const [showAddBanner, setShowAddBanner] = useState(false);
+  const [showVisualGuide, setShowVisualGuide] = useState(false);
   const [newBannerTitle, setNewBannerTitle] = useState('');
   const [newBannerAdvertiser, setNewBannerAdvertiser] = useState('');
   const [newBannerPlacement, setNewBannerPlacement] = useState<BannerAd['placement']>('FEED_TOP');
   const [newBannerImage, setNewBannerImage] = useState('https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&auto=format&fit=crop&q=80');
   const [newBannerUrl, setNewBannerUrl] = useState('https://boosterfriends.se/partners');
+  const [newBannerFormat, setNewBannerFormat] = useState<AdFormat>('FULL_WIDTH');
+  const [newBannerHeight, setNewBannerHeight] = useState<number>(180);
+  const [newBannerWidth, setNewBannerWidth] = useState<string>('100%');
 
   // Hub Form Modal State (Create or Edit)
   const [editingHub, setEditingHub] = useState<Hub | null>(null);
@@ -254,7 +265,7 @@ export const AdminPortalModule: React.FC<AdminPortalModuleProps> = ({
     setBannerAds(prev => prev.map(b => b.id === bannerId ? { ...b, is_active: !b.is_active } : b));
   };
 
-  // Add Banner Handler
+  // Add Banner Handler with placement & size persistence
   const handleCreateBanner = (e: React.FormEvent) => {
     e.preventDefault();
     const newBan: BannerAd = {
@@ -266,14 +277,26 @@ export const AdminPortalModule: React.FC<AdminPortalModuleProps> = ({
       target_url: newBannerUrl,
       is_active: true,
       impressions_count: 0,
-      clicks_count: 0
+      clicks_count: 0,
+      format: newBannerFormat,
+      custom_height: newBannerHeight,
+      custom_width: newBannerWidth
     };
     setBannerAds(prev => [newBan, ...prev]);
     setShowAddBanner(false);
     setNewBannerTitle('');
     setNewBannerAdvertiser('');
-    setFeedbackNotice(`🎉 Ny annonsbanner aktiverad i Booster Friends!`);
+    setFeedbackNotice(`🎉 Ny annonsbanner (${newBannerFormat}, ${newBannerWidth} × ${newBannerHeight}px) aktiverad i Booster Friends!`);
     setTimeout(() => setFeedbackNotice(null), 3000);
+  };
+
+  const handleSelectFromGuide = (selectedZone: AdPlacementType, height: number, width: string) => {
+    setNewBannerPlacement(selectedZone as BannerAd['placement']);
+    setNewBannerHeight(height);
+    setNewBannerWidth(width);
+    setNewBannerFormat(selectedZone === 'CALENDAR_SIDEBAR' ? 'SIDEBAR' : 'FULL_WIDTH');
+    setShowVisualGuide(false);
+    setShowAddBanner(true);
   };
 
   return (
@@ -328,6 +351,30 @@ export const AdminPortalModule: React.FC<AdminPortalModuleProps> = ({
         >
           <BarChart3 className="w-4 h-4" />
           <span>KPI Dashboard & Tillväxt</span>
+        </button>
+
+        <button
+          onClick={() => setActiveAdminTab('BILLING')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 shrink-0 ${
+            activeAdminTab === 'BILLING'
+              ? 'bg-[#800020] text-white shadow-xs'
+              : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <CreditCard className="w-4 h-4" />
+          <span>Fakturering (/admin/billing)</span>
+        </button>
+
+        <button
+          onClick={() => setActiveAdminTab('RULES')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 shrink-0 ${
+            activeAdminTab === 'RULES'
+              ? 'bg-[#800020] text-white shadow-xs'
+              : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <Sliders className="w-4 h-4" />
+          <span>Booster Rules & Paket</span>
         </button>
 
         <button
@@ -503,6 +550,14 @@ export const AdminPortalModule: React.FC<AdminPortalModuleProps> = ({
         </div>
       )}
 
+      {/* TAB: Fakturering & Betalningsstatus (/admin/billing) & Booster Rules */}
+      {(activeAdminTab === 'BILLING' || activeAdminTab === 'RULES') && (
+        <AdminBillingAndRulesModule
+          allMembers={allMembers}
+          onUpdateMemberLevel={onUpdateMemberLevel}
+        />
+      )}
+
       {/* TAB 2: Medlemsansökningar */}
       {activeAdminTab === 'APPLICATIONS' && (
         <div className="space-y-4">
@@ -575,84 +630,133 @@ export const AdminPortalModule: React.FC<AdminPortalModuleProps> = ({
       {/* TAB 3: Annonser & Banners */}
       {activeAdminTab === 'BANNERS' && (
         <div className="space-y-6">
-          <div className="bg-white rounded-3xl border border-gray-200 p-6 shadow-xs flex items-center justify-between">
+          <div className="bg-white rounded-3xl border border-gray-200 p-6 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h3 className="text-lg font-black text-gray-900">Partnerannonser & Sponsrade Banners</h3>
-              <p className="text-xs text-gray-500">Styr visning i feed, kalender och hubbdetaljer</p>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-black text-gray-900">Partnerannonser & Sponsrade Banners</h3>
+                <span className="text-xs bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-full">
+                  {bannerAds.length} st
+                </span>
+              </div>
+              <p className="text-xs text-gray-500">Styr visning, format (fullbredd / sidopanel) och storlekar i feed, kalender och hubbdetaljer</p>
             </div>
-            <button
-              onClick={() => setShowAddBanner(true)}
-              className="px-4 py-2.5 rounded-2xl bg-[#800020] hover:bg-[#5a0016] text-white text-xs font-bold transition flex items-center gap-2 shadow-xs"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Ny Annonsbanner</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowVisualGuide(true)}
+                className="px-4 py-2.5 rounded-2xl bg-white hover:bg-gray-50 text-gray-800 border border-gray-200 text-xs font-bold transition flex items-center gap-2 shadow-2xs"
+              >
+                <Layout className="w-4 h-4 text-[#800020]" />
+                <span>🗺️ Visuell Zon-guide</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowAddBanner(true)}
+                className="px-4 py-2.5 rounded-2xl bg-[#800020] hover:bg-[#5a0016] text-white text-xs font-bold transition flex items-center gap-2 shadow-xs"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Ny Annonsbanner</span>
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {bannerAds.map((ban) => (
-              <div 
-                key={ban.id}
-                className="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-xs flex flex-col justify-between"
-              >
-                <div>
-                  <div className="h-36 overflow-hidden relative">
-                    <img 
-                      src={ban.image_url} 
-                      alt={ban.title} 
-                      className="w-full h-full object-cover"
-                    />
-                    <span className="absolute top-3 right-3 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-black/70 text-white backdrop-blur-xs">
-                      {ban.placement}
-                    </span>
+            {bannerAds.map((ban) => {
+              const isSidebar = ban.placement === 'CALENDAR_SIDEBAR' || ban.format === 'SIDEBAR';
+              const dispWidth = ban.custom_width || (isSidebar ? '320px' : '100%');
+              const dispHeight = ban.custom_height || (isSidebar ? 340 : 180);
+              const dispFormat = ban.format || (isSidebar ? 'Sidopanel' : 'Fullbredd');
+
+              return (
+                <div 
+                  key={ban.id}
+                  className="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-xs flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="h-36 overflow-hidden relative bg-gray-900">
+                      <img 
+                        src={ban.image_url} 
+                        alt={ban.title} 
+                        className="w-full h-full object-cover opacity-90"
+                      />
+                      <div className="absolute top-3 left-3 flex items-center gap-1.5 flex-wrap">
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-black/70 text-white backdrop-blur-xs">
+                          {ban.placement}
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#800020] text-white">
+                          {dispFormat}
+                        </span>
+                      </div>
+                      <span className="absolute bottom-2 right-3 px-2 py-0.5 rounded text-[10px] font-mono bg-black/60 text-white/90 backdrop-blur-xs">
+                        {dispWidth} × {dispHeight}px
+                      </span>
+                    </div>
+
+                    <div className="p-5 space-y-2">
+                      <div className="flex items-center justify-between text-xs text-gray-500">
+                        <span>Annonsör: <strong className="text-gray-800">{ban.advertiser_name}</strong></span>
+                        <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded font-mono">
+                          {dispWidth}
+                        </span>
+                      </div>
+                      <h4 className="font-extrabold text-gray-900 text-sm leading-snug">{ban.title}</h4>
+
+                      <div className="flex items-center gap-4 text-xs text-gray-600 pt-2 border-t border-gray-100">
+                        <span className="flex items-center gap-1 font-semibold">
+                          <Eye className="w-3.5 h-3.5 text-gray-400" /> {ban.impressions_count} visningar
+                        </span>
+                        <span className="flex items-center gap-1 font-semibold">
+                          <MousePointer className="w-3.5 h-3.5 text-gray-400" /> {ban.clicks_count} klick
+                        </span>
+                        <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">
+                          CTR: {((ban.clicks_count / (ban.impressions_count || 1)) * 100).toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="p-5 space-y-2">
-                    <h4 className="font-extrabold text-gray-900 text-sm">{ban.title}</h4>
-                    <p className="text-xs text-gray-500">Annonsör: <span className="font-bold text-gray-800">{ban.advertiser_name}</span></p>
-
-                    <div className="flex items-center gap-4 text-xs text-gray-600 pt-2 border-t border-gray-100">
-                      <span className="flex items-center gap-1 font-semibold">
-                        <Eye className="w-3.5 h-3.5 text-gray-400" /> {ban.impressions_count} visningar
-                      </span>
-                      <span className="flex items-center gap-1 font-semibold">
-                        <MousePointer className="w-3.5 h-3.5 text-gray-400" /> {ban.clicks_count} klick
-                      </span>
-                      <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">
-                        CTR: {((ban.clicks_count / (ban.impressions_count || 1)) * 100).toFixed(1)}%
-                      </span>
+                  <div className="p-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+                    <span className="text-xs text-gray-600 font-medium">Status: {ban.is_active ? 'Aktiv' : 'Pausad'}</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowVisualGuide(true)}
+                        className="px-2.5 py-1.5 rounded-xl border border-gray-200 bg-white text-gray-700 text-xs font-semibold hover:bg-gray-100"
+                        title="Förhandsgranska i visuell zon-karta"
+                      >
+                        Förhandsgranska
+                      </button>
+                      <button
+                        onClick={() => handleToggleBanner(ban.id)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                          ban.is_active 
+                            ? 'bg-emerald-100 text-emerald-900 hover:bg-emerald-200' 
+                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        }`}
+                      >
+                        {ban.is_active ? 'Pausa Banner' : 'Aktivera'}
+                      </button>
                     </div>
                   </div>
                 </div>
-
-                <div className="p-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
-                  <span className="text-xs text-gray-600 font-medium">Status: {ban.is_active ? 'Aktiv' : 'Pausad'}</span>
-                  <button
-                    onClick={() => handleToggleBanner(ban.id)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
-                      ban.is_active 
-                        ? 'bg-emerald-100 text-emerald-900 hover:bg-emerald-200' 
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
-                  >
-                    {ban.is_active ? 'Pausa Banner' : 'Aktivera'}
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Add Banner Form Modal */}
           {showAddBanner && (
             <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in">
-              <form onSubmit={handleCreateBanner} className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-6 space-y-3.5 shadow-2xl max-h-[90vh] overflow-y-auto">
+              <form onSubmit={handleCreateBanner} className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-6 space-y-3.5 shadow-2xl max-h-[92vh] overflow-y-auto">
                 <div className="flex items-center justify-between pb-2 border-b">
-                  <h3 className="font-black text-gray-900 text-base">Skapa Ny Annonsbanner</h3>
+                  <div>
+                    <h3 className="font-black text-gray-900 text-base">Skapa Ny Annonsbanner</h3>
+                    <p className="text-xs text-gray-500">Ställ in annonsörens erbjudande, format och dimensioner</p>
+                  </div>
                   <button type="button" onClick={() => setShowAddBanner(false)} className="text-gray-400 hover:text-gray-600 p-1">✕</button>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Titel:</label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Titel / Kampanjbudskap:</label>
                   <input 
                     type="text" 
                     required 
@@ -676,19 +780,160 @@ export const AdminPortalModule: React.FC<AdminPortalModuleProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Placering / Annonszon:</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold text-gray-700">Placering / Annonszon:</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAddBanner(false);
+                        setShowVisualGuide(true);
+                      }}
+                      className="text-[11px] text-[#800020] font-bold hover:underline flex items-center gap-1"
+                    >
+                      <Layout className="w-3 h-3" />
+                      <span>Se placeringar i guiden</span>
+                    </button>
+                  </div>
                   <select 
                     value={newBannerPlacement}
-                    onChange={(e: any) => setNewBannerPlacement(e.target.value)}
+                    onChange={(e: any) => {
+                      const sel = e.target.value;
+                      setNewBannerPlacement(sel);
+                      if (sel === 'CALENDAR_SIDEBAR') {
+                        setNewBannerFormat('SIDEBAR');
+                        setNewBannerHeight(340);
+                        setNewBannerWidth('320px');
+                      } else {
+                        setNewBannerFormat('FULL_WIDTH');
+                        setNewBannerHeight(180);
+                        setNewBannerWidth('100%');
+                      }
+                    }}
                     className="w-full px-3 py-2 rounded-xl border text-xs bg-white font-medium text-gray-800"
                   >
-                    <option value="FEED_TOP">Högst upp i Feed / Community</option>
-                    <option value="CALENDAR_SIDEBAR">Sidopanel i Masterkalendern</option>
+                    <option value="FEED_TOP">Högst upp i Feed / Community (Fullbredd)</option>
+                    <option value="CALENDAR_SIDEBAR">Sidopanel i Masterkalendern (Sidopanel 320px)</option>
                     <option value="HUB_DETAILS">Inuti Hubb & Coworking</option>
-                    <option value="MEMBERS_DIRECTORY">Medlemskatalogen (Directory)</option>
+                    <option value="MEMBERS_DIRECTORY">Medlemskatalogen (Directory Leaderboard)</option>
                     <option value="EVENT_LIST">Eventlistan & Frukostar</option>
                     <option value="HUB_HEADER">Topp-banner i Coworking Hubbar</option>
                   </select>
+                </div>
+
+                {/* Sizing & Dimensions Box */}
+                <div className="p-3.5 bg-gray-50 rounded-2xl border border-gray-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+                      <Sliders className="w-3.5 h-3.5 text-[#800020]" />
+                      <span>Storlek & Format för vald zon</span>
+                    </span>
+                    <span className="text-[11px] font-mono text-gray-700 bg-white px-2 py-0.5 rounded border border-gray-200">
+                      {newBannerWidth} × {newBannerHeight}px
+                    </span>
+                  </div>
+
+                  {/* Format Pills */}
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewBannerFormat('FULL_WIDTH');
+                        setNewBannerWidth('100%');
+                        setNewBannerHeight(180);
+                      }}
+                      className={`py-1.5 px-2 rounded-xl text-xs font-bold border transition ${
+                        newBannerFormat === 'FULL_WIDTH'
+                          ? 'bg-[#800020] text-white border-[#800020]'
+                          : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-100'
+                      }`}
+                    >
+                      Fullbredd (100%)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewBannerFormat('SIDEBAR');
+                        setNewBannerWidth('320px');
+                        setNewBannerHeight(340);
+                      }}
+                      className={`py-1.5 px-2 rounded-xl text-xs font-bold border transition ${
+                        newBannerFormat === 'SIDEBAR'
+                          ? 'bg-[#800020] text-white border-[#800020]'
+                          : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-100'
+                      }`}
+                    >
+                      Sidopanel (320px)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewBannerFormat('IN_FEED');
+                        setNewBannerWidth('100%');
+                        setNewBannerHeight(150);
+                      }}
+                      className={`py-1.5 px-2 rounded-xl text-xs font-bold border transition ${
+                        newBannerFormat === 'IN_FEED'
+                          ? 'bg-[#800020] text-white border-[#800020]'
+                          : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-100'
+                      }`}
+                    >
+                      In-Feed Kort
+                    </button>
+                  </div>
+
+                  {/* Height presets and slider */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="font-bold text-gray-700">Höjd i pixlar:</span>
+                      <span className="font-mono text-[#800020] font-bold">{newBannerHeight}px</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {[130, 160, 180, 240, 340].map(h => (
+                        <button
+                          key={h}
+                          type="button"
+                          onClick={() => setNewBannerHeight(h)}
+                          className={`px-2 py-0.5 rounded text-[11px] font-bold transition ${
+                            newBannerHeight === h
+                              ? 'bg-[#800020] text-white'
+                              : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                          }`}
+                        >
+                          {h}px
+                        </button>
+                      ))}
+                    </div>
+                    <input
+                      type="range"
+                      min={100}
+                      max={440}
+                      step={10}
+                      value={newBannerHeight}
+                      onChange={e => setNewBannerHeight(Number(e.target.value))}
+                      className="w-full accent-[#800020] cursor-pointer"
+                    />
+                  </div>
+
+                  {/* Width selector */}
+                  <div className="space-y-1.5">
+                    <span className="block text-[11px] font-bold text-gray-700">Bredd-begränsning:</span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {['100%', '320px', '360px', 'max-w-4xl', 'max-w-6xl'].map(w => (
+                        <button
+                          key={w}
+                          type="button"
+                          onClick={() => setNewBannerWidth(w)}
+                          className={`px-2 py-0.5 rounded text-[11px] font-bold transition ${
+                            newBannerWidth === w
+                              ? 'bg-[#800020] text-white'
+                              : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                          }`}
+                        >
+                          {w}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
                 <div>
@@ -731,6 +976,13 @@ export const AdminPortalModule: React.FC<AdminPortalModuleProps> = ({
               </form>
             </div>
           )}
+
+          {/* Visual Guide Modal */}
+          <AdZonesVisualGuide
+            isOpen={showVisualGuide}
+            onClose={() => setShowVisualGuide(false)}
+            onSelectZoneToCreate={handleSelectFromGuide}
+          />
         </div>
       )}
 

@@ -27,7 +27,9 @@ export type TabKey =
   | 'directory'
   | 'profile_settings'
   | 'admin'
-  | 'architecture';
+  | 'architecture'
+  | 'membership'
+  | 'advertise';
 
 export interface Member {
   id: string;
@@ -71,6 +73,197 @@ export interface Member {
     likes_count: number;
     url: string;
   }[];
+  payment_status?: PaymentStatus;
+  billing_cycle?: 'MONTHLY' | 'ANNUAL';
+  next_billing_date?: string;
+  trial_ends_at?: string;
+  is_paused?: boolean;
+  paused_until?: string;
+  company_group_id?: string;
+  vat_number?: string;
+  gift_upgrade?: {
+    target_level: MembershipLevel;
+    expires_at: string;
+    from_member_name: string;
+  };
+}
+
+export type PaymentStatus = 'PAID' | 'DUE' | 'OVERDUE' | 'TRIAL' | 'PAUSED' | 'SUSPENDED_PAYMENT';
+
+export interface InvoiceRecord {
+  id: string;
+  invoice_number: string;
+  date: string;
+  due_date: string;
+  amount_sek: number;
+  status: 'PAID' | 'DUE' | 'OVERDUE';
+  plan: MembershipLevel;
+  recipient_name: string;
+  recipient_email: string;
+  company_name?: string;
+  vat_amount_sek?: number;
+  pdf_url?: string;
+  payment_link?: string;
+}
+
+export interface GiftUpgradeRecord {
+  id: string;
+  sender_id: string;
+  sender_name: string;
+  recipient_id: string;
+  recipient_name: string;
+  target_level: MembershipLevel;
+  bp_spent: number;
+  expires_at: string;
+  created_at: string;
+}
+
+export interface BoosterSystemRuleConfig {
+  guest_qr_checkin_bp: number;
+  guest_conversion_bp: number;
+  ai_fact_check_bp: number;
+  cv_parse_bp: number;
+  gift_upgrade_silver_cost_bp: number;
+  gift_upgrade_gold_cost_bp: number;
+  grace_period_days: number;
+  freemium_auto_upgrade_bp: number;
+  default_trial_days: number;
+  default_vat_rate: number;
+  eu_reverse_charge_enabled: boolean;
+}
+
+export interface MembershipPackageDefinition {
+  level: MembershipLevel;
+  name: string;
+  monthly_price_sek: number;
+  annual_price_sek: number;
+  stripe_monthly_price_id: string;
+  stripe_annual_price_id: string;
+  description: string;
+  badge_color: string;
+  bg_gradient: string;
+
+  // 1. Profil & Skills
+  max_skills: number; // 5 | 15 | 999
+  max_case_studies: number; // 1 | 5 | 999
+  priority_directory_placement: boolean;
+  vip_profile_badge: boolean;
+  multi_user_seats: number; // 1 för brons/silver, 4 för guld (1 ägare + 3 kollegor)
+
+  // 2. Coworking & Hubbar
+  free_hub_flex_bookings_per_month: number; // 1 | 4 | 999 (obegränsat)
+  priority_hub_desk: boolean;
+  priority_hub_highlight: boolean; // Guldglänsande ram i 'Vem är på hubben idag?'
+
+  // 3. Webbmöten & Webinarier
+  max_web_meetings_per_month: number; // 3 | 15 | 999 (obegränsat)
+  can_create_events_and_meetings: boolean;
+  access_executive_webinars: boolean;
+  can_host_webinars: boolean;
+  max_webinar_attendees: number; // 0 | 25 | 1000
+  can_sell_webinar_tickets: boolean; // Biljettförsäljning via Swish/Stripe
+
+  // 4. Akademi & Kurser
+  can_sell_courses: boolean;
+  platform_course_fee_percent: number; // 10% för Silver, 0% för Gold
+  can_publish_pro_masterclasses: boolean; // Bakom betalvägg
+
+  // 5. Affärer, Leads & B2B
+  can_sell_services_b2b: boolean;
+  can_publish_sponsored_banners: boolean;
+  ai_matchmaking_warm_leads: boolean;
+  ad_discount_percent: number; // 20% för Guld
+  free_ad_feed_top_per_year: number; // 1 fri banner/år för Guld
+
+  // 6. Forum & AI Fact-Check
+  can_create_forum_topics: boolean;
+  ai_fact_check_bonus_bp: boolean; // +50 BP
+  can_pin_forum_posts: boolean;
+  expert_tag: boolean;
+
+  // 7. Booster Points & Kickback
+  bp_multiplier: number; // 1.0 | 1.5 | 2.0
+  cash_kickback_per_member_sek: number; // 0 | 0 | 500 kr/medlem
+  can_gift_upgrades_bp: boolean;
+
+  // 8. Proximity Ping / Närhetsradar
+  proximity_ping_allowed: boolean;
+  max_monthly_pings_sent: number; // 1 för Brons, 999 för Silver & Guld
+  advance_travel_status_allowed: boolean; // Resestatus i förväg för Guld
+
+  // 9. VIP QR Badge & Fysiska Event
+  vip_qr_audio_chime: boolean;
+  vip_lounge_access: boolean;
+}
+
+export type AdPlacementType = 
+  | 'HOME_TOP' 
+  | 'FEED_TOP' 
+  | 'CALENDAR_SIDEBAR' 
+  | 'HUB_HEADER' 
+  | 'WEBINAR_SPONSOR';
+
+export interface AdPlacementConfig {
+  id: AdPlacementType;
+  name: string;
+  location_description: string;
+  monthly_fixed_price_sek: number;
+  cpm_price_sek: number;
+  aspect_ratio: string;
+  dimensions_px: string;
+  format_type: 'full_width' | 'sidebar' | 'feed' | 'modal';
+  example_reach: string;
+  sample_image: string;
+}
+
+export interface AdCampaign {
+  id: string;
+  advertiser_id: string;
+  advertiser_name: string;
+  advertiser_company: string;
+  placement: AdPlacementType;
+  title: string;
+  image_url: string;
+  target_url: string;
+  pricing_model: 'FIXED_MONTHLY' | 'CPM';
+  start_date: string;
+  end_date: string;
+  status: 'ACTIVE' | 'PENDING_APPROVAL' | 'EXPIRED' | 'PAUSED';
+  impressions_count: number;
+  clicks_count: number;
+  conversions_count: number;
+  amount_paid_sek: number;
+  payment_status: 'PAID' | 'DUE';
+}
+
+export interface MemberActiveLocation {
+  id: string;
+  member_id: string;
+  current_city: string; // t.ex. 'Mölnlycke', 'Göteborg C', 'Borås', 'Stockholm Kista'
+  is_available_for_coffee: boolean;
+  is_available_for_lunch: boolean;
+  travel_destination?: string; // Om Guld har ställt in resestatus
+  travel_date?: string;
+  expires_at: string;
+  created_at: string;
+}
+
+export interface ProximityPing {
+  id: string;
+  sender_member_id: string;
+  sender_name: string;
+  sender_avatar: string;
+  sender_company: string;
+  sender_city: string;
+  receiver_member_id: string;
+  receiver_name: string;
+  receiver_avatar?: string;
+  receiver_company?: string;
+  ping_type: 'COFFEE' | 'LUNCH';
+  status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED';
+  suggested_location: string;
+  custom_message?: string;
+  created_at: string;
 }
 
 export interface MemberMerit {
@@ -957,16 +1150,37 @@ export interface AdminKpiStats {
   monthly_churn_rate_percent: number;
 }
 
+export type AdPlacementType = 
+  | 'FEED_TOP' 
+  | 'COMMUNITY_FEED' 
+  | 'CALENDAR_SIDEBAR' 
+  | 'HUB_HEADER' 
+  | 'HUB_PORTAL' 
+  | 'HUB_DETAILS' 
+  | 'MEMBERS_DIRECTORY' 
+  | 'EVENT_LIST'
+  | 'DASHBOARD_BENTO'
+  | string;
+
+export type AdFormat = 'FULL_WIDTH' | 'SIDEBAR' | 'IN_FEED' | 'COMPACT' | 'PANORAMA' | 'CUSTOM';
+
 export interface BannerAd {
   id: string;
   title: string;
   advertiser_name: string;
-  placement: 'FEED_TOP' | 'COMMUNITY_FEED' | 'CALENDAR_SIDEBAR' | 'HUB_HEADER' | 'HUB_PORTAL' | 'HUB_DETAILS' | 'MEMBERS_DIRECTORY' | 'EVENT_LIST' | string;
+  placement: AdPlacementType;
   image_url: string;
   target_url: string;
   is_active: boolean;
   impressions_count: number;
   clicks_count: number;
+  // Size & placement customization (Höjd, bredd & format)
+  format?: AdFormat;
+  custom_height?: number; // px, e.g. 120, 160, 200, 260, 320
+  custom_width?: string;  // e.g. '100%', '320px', '360px', 'max-w-5xl'
+  aspect_ratio?: '16:9' | '21:9' | '4:3' | '1:1' | 'auto';
+  cta_text?: string;
+  badge_text?: string;
 }
 
 export interface AdminMemberApplication {
