@@ -57,6 +57,7 @@ import { CommunityAndBlogModule } from './components/community/CommunityAndBlogM
 import { AdminPortalModule } from './components/admin/AdminPortalModule';
 import { ProfileSettingsAndDirectoryModule } from './components/profile/ProfileSettingsAndDirectoryModule';
 import { CustomizableBentoDashboard } from './components/dashboard/CustomizableBentoDashboard';
+import { WebMeetingModal } from './components/calendar/WebMeetingModal';
 import { AdBannerEngine } from './components/ads/AdBannerEngine';
 import { QrScannerModal } from './components/common/QrScannerModal';
 import {
@@ -67,7 +68,8 @@ import {
   PromoCode,
   FreeTrialPass,
   MemberCoworkingCredits,
-  LunchRequest
+  LunchRequest,
+  WebMeeting
 } from './types';
 import {
   INITIAL_MASTER_EVENTS,
@@ -76,7 +78,8 @@ import {
   INITIAL_DESK_SWAPS,
   INITIAL_PROMO_CODES,
   INITIAL_TRIAL_PASSES,
-  INITIAL_COWORKING_CREDITS
+  INITIAL_COWORKING_CREDITS,
+  INITIAL_WEB_MEETINGS
 } from './data/calendarAndCoworkingData';
 import { 
   Smartphone, 
@@ -260,6 +263,48 @@ export default function App() {
   const [certificates, setCertificates] = useState<Certificate[]>(INITIAL_CERTIFICATES);
   const [mentorSlots, setMentorSlots] = useState<MentorSlot[]>(INITIAL_MENTOR_SLOTS);
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>(SAMPLE_QUIZ_QUESTIONS);
+
+  // V12 Web Meeting state & modal controls
+  const [webMeetings, setWebMeetings] = useState<WebMeeting[]>(() => {
+    try {
+      const saved = localStorage.getItem('booster_web_meetings');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {
+      // ignore
+    }
+    return INITIAL_WEB_MEETINGS;
+  });
+  const [isWebMeetingModalOpen, setIsWebMeetingModalOpen] = useState(false);
+  const [webMeetingTargetMember, setWebMeetingTargetMember] = useState<Member | null>(null);
+  const [webMeetingInitialType, setWebMeetingInitialType] = useState<'ONE_TO_ONE' | 'GROUP'>('ONE_TO_ONE');
+
+  const handleOpenWebMeetingModal = (targetMember?: Member | null, initialType?: 'ONE_TO_ONE' | 'GROUP') => {
+    setWebMeetingTargetMember(targetMember || null);
+    setWebMeetingInitialType(initialType || 'ONE_TO_ONE');
+    setIsWebMeetingModalOpen(true);
+  };
+
+  const handleCreateWebMeeting = (meeting: WebMeeting) => {
+    setWebMeetings(prev => {
+      const next = [meeting, ...prev];
+      try {
+        localStorage.setItem('booster_web_meetings', JSON.stringify(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+
+    // Award +20 BP for booking a 1-to-1 or group web meeting (Punkt 23)
+    handleAwardPoints(
+      20,
+      `Bokat webbmöte (${meeting.meeting_type === 'ONE_TO_ONE' ? '1-till-1' : 'Gruppmöte'}): ${meeting.title}`,
+      'MEETING_1ON1'
+    );
+  };
 
   // Unread badge count for chat
   const unreadChatCount = channels.reduce((acc, c) => acc + (c.unread_count || 0), 0);
@@ -1544,6 +1589,32 @@ export default function App() {
                       </div>
                     </button>
 
+                    {/* Action 7: Boka Webbmöte (Google Meet / Teams) */}
+                    <button
+                      onClick={() => {
+                        setShowFabModal(false);
+                        handleOpenWebMeetingModal();
+                      }}
+                      className="p-4 rounded-2xl border border-gray-200 hover:border-indigo-600 hover:bg-indigo-50/40 text-left transition flex flex-col justify-between group space-y-2 sm:col-span-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-700">
+                          <Video className="w-4 h-4" />
+                        </div>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-900">
+                          +20 BP • V12
+                        </span>
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-gray-900 group-hover:text-indigo-700">
+                          Boka Digitalt Webbmöte (1-1 el. Grupp)
+                        </h4>
+                        <p className="text-[11px] text-gray-500 mt-0.5">
+                          Generera automatisk länk (Google Meet, Teams, Zoom), synka kalender och bjud in medlemmar
+                        </p>
+                      </div>
+                    </button>
+
                   </div>
                 ) : (
                   <div>
@@ -1873,6 +1944,17 @@ export default function App() {
           }}
         />
 
+        {/* V12 Web Meeting Modal (Punkt 23 & 64) */}
+        <WebMeetingModal
+          isOpen={isWebMeetingModalOpen}
+          onClose={() => setIsWebMeetingModalOpen(false)}
+          currentUser={currentUser}
+          allMembers={members}
+          targetMember={webMeetingTargetMember}
+          initialMeetingType={webMeetingInitialType}
+          onSaveMeeting={handleCreateWebMeeting}
+        />
+
       </div>
 
     </div>
@@ -1882,7 +1964,33 @@ export default function App() {
   function renderActiveContent() {
     switch (activeTab) {
       case 'overview':
-        return renderOverviewDashboard();
+      case 'home':
+        return (
+          <CustomizableBentoDashboard
+            currentUser={currentUser}
+            hubs={hubs}
+            selectedHub={selectedHub}
+            pipelineItems={pipelineItems}
+            members={members}
+            scoreLogs={scoreLogs}
+            coworkingBookings={coworkingBookings}
+            deskSwaps={deskSwaps}
+            trialPasses={trialPasses}
+            webMeetings={webMeetings}
+            onNavigateTab={(tab) => setActiveTab(tab)}
+            onOpenDirectChat={(memberId) => {
+              const target = members.find(m => m.id === memberId);
+              if (target) {
+                handleCreateChannel(target);
+                setActiveTab('chat');
+              }
+            }}
+            onStartIntroWith={handleStartIntroWith}
+            onAwardPoints={handleAwardPoints}
+            onCheckInGeoOrQr={() => setActiveTab('coworking')}
+            onOpenWebMeetingModal={handleOpenWebMeetingModal}
+          />
+        );
 
       case 'matchmaking':
         return (
@@ -2095,32 +2203,6 @@ export default function App() {
             onSendLunchRequest={handleSendLunchRequest}
             onAwardPoints={handleAwardPoints}
             initialTab={activeTab === 'profile_settings' ? 'settings' : 'directory'}
-          />
-        );
-
-      case 'home':
-        return (
-          <CustomizableBentoDashboard
-            currentUser={currentUser}
-            hubs={hubs}
-            selectedHub={selectedHub}
-            pipelineItems={pipelineItems}
-            members={members}
-            scoreLogs={scoreLogs}
-            coworkingBookings={coworkingBookings}
-            deskSwaps={deskSwaps}
-            trialPasses={trialPasses}
-            onNavigateTab={(tab) => setActiveTab(tab as ActiveTab)}
-            onOpenDirectChat={(memberId) => {
-              const target = members.find(m => m.id === memberId);
-              if (target) {
-                handleCreateChannel(target);
-                setActiveTab('chat');
-              }
-            }}
-            onStartIntroWith={handleStartIntroWith}
-            onAwardPoints={handleAwardPoints}
-            onCheckInGeoOrQr={() => setActiveTab('coworking')}
           />
         );
 

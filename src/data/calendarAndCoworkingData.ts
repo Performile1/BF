@@ -1316,3 +1316,199 @@ CREATE TABLE flash_deals (
   remaining_deals INT DEFAULT 1,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );`;
+
+// ==========================================================
+// V12 Punkt 23: INITIALA WEBBMÖTEN (1-TILL-1 OCH GRUPP)
+// ==========================================================
+export const INITIAL_WEB_MEETINGS = [
+  {
+    id: 'meet_101',
+    title: 'Strategisk Sparring: SaaS-Expansion & B2B Sälj',
+    description: '1-till-1 möte för att kartlägga synergier inom SaaS-arkitektur och potentiella kundintroduktioner i DACH-regionen.',
+    meeting_type: 'ONE_TO_ONE' as const,
+    status: 'CONFIRMED' as const,
+    host_member_id: 'usr_johan_lindberg',
+    host_name: 'Johan Lindberg',
+    host_avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+    host_company: 'Nordic Growth Consulting AB',
+    participants: [
+      {
+        member_id: 'usr_johan_lindberg',
+        full_name: 'Johan Lindberg',
+        company: 'Nordic Growth Consulting AB',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+        role: 'HOST' as const,
+        status: 'ACCEPTED' as const,
+        email: 'johan.lindberg@nordicgrowth.se'
+      },
+      {
+        member_id: 'usr_sofia_eklund',
+        full_name: 'Sofia Eklund',
+        company: 'SaaSify Scale AB',
+        avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150',
+        role: 'INVITEE' as const,
+        status: 'ACCEPTED' as const,
+        email: 'sofia@saasify.se'
+      }
+    ],
+    date_str: '2026-09-15',
+    start_time: '10:00',
+    end_time: '10:45',
+    meeting_link: 'https://meet.google.com/bf-johan-sofia-v12',
+    provider: 'GOOGLE_MEET' as const,
+    created_at: '2026-09-08T09:00:00Z',
+    reminder_sent: true,
+    notes: 'Diskutera gemensamt erbjudande för Q4 och CRM-integration.'
+  },
+  {
+    id: 'meet_102',
+    title: 'Gruppmöte: Styrelseråd & Finansiering 2026',
+    description: 'Rundabords-webbmöte med utvalda medlemmar kring kapitalanskaffning, VC-relationer och värderingsmultiplar.',
+    meeting_type: 'GROUP' as const,
+    status: 'CONFIRMED' as const,
+    host_member_id: 'usr_erik_svensson',
+    host_name: 'Erik Svensson',
+    host_avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+    host_company: 'InnovateTech Solutions',
+    participants: [
+      {
+        member_id: 'usr_erik_svensson',
+        full_name: 'Erik Svensson',
+        company: 'InnovateTech Solutions',
+        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+        role: 'HOST' as const,
+        status: 'ACCEPTED' as const,
+        email: 'erik@innovatetech.se'
+      },
+      {
+        member_id: 'usr_johan_lindberg',
+        full_name: 'Johan Lindberg',
+        company: 'Nordic Growth Consulting AB',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+        role: 'ATTENDEE' as const,
+        status: 'ACCEPTED' as const,
+        email: 'johan.lindberg@nordicgrowth.se'
+      },
+      {
+        member_id: 'usr_marcus_wallin',
+        full_name: 'Marcus Wallin',
+        company: 'CloudOps Nordic',
+        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
+        role: 'ATTENDEE' as const,
+        status: 'ACCEPTED' as const,
+        email: 'marcus@cloudops.se'
+      }
+    ],
+    date_str: '2026-09-18',
+    start_time: '14:00',
+    end_time: '15:15',
+    meeting_link: 'https://teams.microsoft.com/l/meetup-join/bf-roundtable-q3',
+    provider: 'MICROSOFT_TEAMS' as const,
+    created_at: '2026-09-09T11:30:00Z',
+    reminder_sent: false,
+    notes: 'Ta med 1 case vardera gällande bryggfinansiering.'
+  }
+];
+
+// ==========================================================
+// V12 Punkt 77: SUPABASE ROW LEVEL SECURITY (RLS) POLICIES
+// ==========================================================
+export const SUPABASE_RLS_SECURITY_SQL = `-- ============================================================
+-- BOOSTER FRIENDS V12 - PRODUCTION-READY SUPABASE RLS & AUTH
+-- Punkt 77: RLS, Auth, 2FA (TOTP), RBAC & Server-Side Security
+-- ============================================================
+
+-- 1. AKTIVERA ROW LEVEL SECURITY PÅ SAMTLIGA KÄRNTABELLER
+ALTER TABLE members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE flex_bookings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE payment_transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE event_referrals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE forum_topics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE web_meetings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE booster_score_logs ENABLE ROW LEVEL SECURITY;
+
+-- 2. RLS: MEMBERS (Användare kan uppdatera sin egen profil, alla autentiserade kan läsa)
+CREATE POLICY "Public profiles are readable by authenticated members"
+ON members FOR SELECT
+TO authenticated
+USING (true);
+
+CREATE POLICY "Users can only update their own profile"
+ON members FOR UPDATE
+TO authenticated
+USING (auth.uid() = id)
+WITH CHECK (auth.uid() = id);
+
+-- 3. RLS: FLEX BOOKINGS (Isolerad per användar-ID: auth.uid() = member_id)
+CREATE POLICY "Users can read their own flex bookings"
+ON flex_bookings FOR SELECT
+TO authenticated
+USING (auth.uid() = member_id);
+
+CREATE POLICY "Users can insert their own flex bookings"
+ON flex_bookings FOR INSERT
+TO authenticated
+WITH CHECK (auth.uid() = member_id);
+
+CREATE POLICY "Users can cancel or modify their own bookings"
+ON flex_bookings FOR UPDATE
+TO authenticated
+USING (auth.uid() = member_id)
+WITH CHECK (auth.uid() = member_id);
+
+-- 4. RLS: PAYMENT TRANSACTIONS (Strikt isolerad finansiell data)
+CREATE POLICY "Users can only view their own payment transactions"
+ON payment_transactions FOR SELECT
+TO authenticated
+USING (auth.uid() = member_id);
+
+-- 5. RLS: FORUM TOPICS & POSTS (Alla medlemmar läser, författare ändrar)
+CREATE POLICY "Authenticated members can read forum topics"
+ON forum_topics FOR SELECT
+TO authenticated
+USING (is_hidden = FALSE OR auth.uid() = author_id);
+
+CREATE POLICY "Authenticated members can post new topics"
+ON forum_topics FOR INSERT
+TO authenticated
+WITH CHECK (auth.uid() = author_id);
+
+CREATE POLICY "Authors and Admins can update topics"
+ON forum_topics FOR UPDATE
+TO authenticated
+USING (
+  auth.uid() = author_id OR 
+  EXISTS (SELECT 1 FROM members WHERE id = auth.uid() AND is_admin = TRUE)
+);
+
+-- 6. RLS: WEB MEETINGS (Endast värd och inbjudna deltagare kan se mötet)
+CREATE POLICY "Meeting participants can view their web meetings"
+ON web_meetings FOR SELECT
+TO authenticated
+USING (
+  auth.uid() = host_member_id OR 
+  EXISTS (
+    SELECT 1 FROM jsonb_array_elements(participants) AS p 
+    WHERE (p->>'member_id')::uuid = auth.uid()
+  )
+);
+
+-- 7. TVÅFAKTORSAUTENTISERING (TOTP MFA FÖR ADMIN OCH HUB LEADS)
+CREATE TABLE IF NOT EXISTS user_mfa_settings (
+  user_id UUID PRIMARY KEY REFERENCES members(id) ON DELETE CASCADE,
+  is_totp_enabled BOOLEAN DEFAULT FALSE,
+  totp_secret_encrypted TEXT,
+  backup_codes TEXT[],
+  enforced_by_role BOOLEAN DEFAULT FALSE,
+  last_verified_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE user_mfa_settings ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users view own MFA settings"
+ON user_mfa_settings FOR ALL
+TO authenticated
+USING (auth.uid() = user_id);
+`;
+

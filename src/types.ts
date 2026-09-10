@@ -295,6 +295,8 @@ export type ActivityType =
   | 'EVENT_ATTENDED'      // +20 BP
   | 'MEETING_CONFIRMED'   // +20 BP
   | 'ONE_ON_ONE_LOGGED'   // +20 BP
+  | 'MEETING_1ON1'        // +20 BP alias
+  | 'WEB_MEETING_CREATED' // +20 BP Webbmöte (Google Meet / Teams / Zoom)
   | 'INTRO_3WAY'          // +40 BP
   | 'INTRO_3_WAY'         // +40 BP alias
   | 'INTRO_MADE'          // +40 BP
@@ -925,6 +927,10 @@ export interface CommunityPost {
   created_at: string;
   read_time_min?: number;
   is_featured?: boolean;
+  is_pinned?: boolean;
+  is_locked?: boolean;
+  is_hidden?: boolean;
+  original_category?: string;
   fact_check_status?: 'VERIFIED' | 'PENDING' | 'DISPUTED';
   fact_check_details?: {
     verified_by?: string;
@@ -976,3 +982,91 @@ export interface AdminMemberApplication {
   applied_at: string;
   financial_score: string;
 }
+
+// ==========================================================
+// V12 Punkt 23: Webbmöten (1-till-1 och Grupp)
+// ==========================================================
+export type MeetingType = 'ONE_TO_ONE' | 'GROUP';
+export type MeetingStatus = 'DRAFT' | 'SCHEDULED' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
+
+export interface MeetingParticipant {
+  member_id: string;
+  full_name: string;
+  company: string;
+  avatar: string;
+  role: 'HOST' | 'INVITEE' | 'ATTENDEE';
+  status: 'ACCEPTED' | 'PENDING' | 'DECLINED';
+  email?: string;
+}
+
+export interface WebMeeting {
+  id: string;
+  title: string;
+  description: string;
+  meeting_type: MeetingType;
+  status: MeetingStatus;
+  host_member_id: string;
+  host_name: string;
+  host_avatar: string;
+  host_company: string;
+  participants: MeetingParticipant[];
+  date_str: string;         // YYYY-MM-DD
+  start_time: string;       // HH:MM (t.ex. "10:00")
+  end_time: string;         // HH:MM (t.ex. "10:45")
+  meeting_link: string;     // Simulated video link
+  provider: 'GOOGLE_MEET' | 'MICROSOFT_TEAMS' | 'ZOOM' | 'SIMULATED';
+  created_at: string;
+  reminder_sent?: boolean;
+  notes?: string;
+  related_deal_id?: string;
+}
+
+// ==========================================================
+// V12 Punkt 29-35: Dashboard Widget Configuration & Grid Layout
+// ==========================================================
+export type WidgetSize = 'SMALL' | 'MEDIUM' | 'LARGE' | 'WIDE';
+export type WidgetCategoryGroup = 'mitt' | 'natverk' | 'hub' | 'community' | 'kpi';
+
+export type DashboardColumnsCount = 2 | 3 | 4;
+export type DashboardGridGap = '12px' | '16px' | '24px';
+
+export interface DashboardGridLayout {
+  columnsCount: DashboardColumnsCount;
+  gap: DashboardGridGap;
+}
+
+export interface SavedWidgetLayoutItem {
+  widgetId: string;
+  order: number;
+  colSpan: number;
+  rowSpan: number;
+  isVisible: boolean;
+}
+
+export interface UserDashboardLayout {
+  userId: string;
+  gridLayout: DashboardGridLayout;
+  widgets: SavedWidgetLayoutItem[];
+}
+
+export interface DashboardWidgetConfig {
+  id: string;
+  title: string;
+  category: WidgetCategoryGroup;
+  size: WidgetSize;
+  order: number;
+  is_visible: boolean;
+  settings?: Record<string, any>;
+}
+
+// ==========================================================
+// V12 Punkt 77: Säkerhet, Supabase RLS & 2FA
+// ==========================================================
+export interface TotpSecuritySettings {
+  is_2fa_enabled: boolean;
+  secret_key?: string;
+  backup_codes?: string[];
+  last_verified_at?: string;
+  enforced_by_role?: boolean;
+}
+
