@@ -61,6 +61,9 @@ import { WebMeetingModal } from './components/calendar/WebMeetingModal';
 import { AdBannerEngine } from './components/ads/AdBannerEngine';
 import { QrScannerModal } from './components/common/QrScannerModal';
 import { PaymentLockoutScreen } from './components/billing/PaymentLockoutScreen';
+import { AdServerModule } from './components/advertising/AdServerModule';
+import { LocationPingModal } from './components/networking/LocationPingModal';
+import { INITIAL_MEMBER_LOCATIONS, INITIAL_PROXIMITY_PINGS } from './data/billingAndRulesData';
 import {
   MasterCalendarEvent,
   CoworkingDeskBooking,
@@ -70,7 +73,9 @@ import {
   FreeTrialPass,
   MemberCoworkingCredits,
   LunchRequest,
-  WebMeeting
+  WebMeeting,
+  MemberActiveLocation,
+  ProximityPing
 } from './types';
 import {
   INITIAL_MASTER_EVENTS,
@@ -201,6 +206,73 @@ export default function App() {
       created_at: new Date().toISOString()
     };
     setLunchRequests(prev => [fullRequest, ...prev]);
+  };
+
+  // V12 Proximity Ping & Location Radar States
+  const [memberLocations, setMemberLocations] = useState<MemberActiveLocation[]>(INITIAL_MEMBER_LOCATIONS);
+  const [proximityPings, setProximityPings] = useState<ProximityPing[]>(INITIAL_PROXIMITY_PINGS);
+  const [isLocationPingModalOpen, setIsLocationPingModalOpen] = useState(false);
+
+  const handleUpdateLocationStatus = (status: Partial<MemberActiveLocation>) => {
+    setMemberLocations(prev => {
+      const existingIdx = prev.findIndex(l => l.member_id === currentUser.id);
+      if (existingIdx >= 0) {
+        const updated = [...prev];
+        updated[existingIdx] = { ...updated[existingIdx], ...status };
+        return updated;
+      } else {
+        const newLoc: MemberActiveLocation = {
+          id: `loc_${Date.now()}`,
+          member_id: currentUser.id,
+          current_city: status.current_city || currentUser.city || 'Mölnlycke',
+          is_available_for_coffee: status.is_available_for_coffee ?? true,
+          is_available_for_lunch: status.is_available_for_lunch ?? true,
+          expires_at: new Date(Date.now() + 8 * 3600 * 1000).toISOString(),
+          created_at: new Date().toISOString(),
+          ...status
+        };
+        return [newLoc, ...prev];
+      }
+    });
+  };
+
+  const handleSendPing = (pingData: {
+    receiver_id: string;
+    receiver_name: string;
+    receiver_avatar?: string;
+    receiver_company?: string;
+    ping_type: 'COFFEE' | 'LUNCH';
+    suggested_location: string;
+    custom_message?: string;
+  }) => {
+    const newPing: ProximityPing = {
+      id: `ping_${Date.now()}`,
+      sender_member_id: currentUser.id,
+      sender_name: currentUser.full_name,
+      sender_avatar: currentUser.avatar,
+      sender_company: currentUser.company_name,
+      sender_city: currentUser.city || 'Mölnlycke',
+      receiver_member_id: pingData.receiver_id,
+      receiver_name: pingData.receiver_name,
+      receiver_avatar: pingData.receiver_avatar,
+      receiver_company: pingData.receiver_company,
+      ping_type: pingData.ping_type,
+      status: 'PENDING',
+      suggested_location: pingData.suggested_location,
+      custom_message: pingData.custom_message,
+      created_at: new Date().toISOString()
+    };
+    setProximityPings(prev => [newPing, ...prev]);
+    handleAwardPoints(10, `Skickat ${pingData.ping_type === 'COFFEE' ? 'Kaffe' : 'Lunch'}-ping till ${pingData.receiver_name}`, 'MEETING_1ON1');
+  };
+
+  const handleRespondPing = (pingId: string, status: 'ACCEPTED' | 'DECLINED') => {
+    setProximityPings(prev =>
+      prev.map(p => (p.id === pingId ? { ...p, status } : p))
+    );
+    if (status === 'ACCEPTED') {
+      handleAwardPoints(20, 'Tackade ja till Kaffe/Lunch-ping', 'MEETING_1ON1');
+    }
   };
 
   // Quick Action Form states
@@ -1958,6 +2030,19 @@ export default function App() {
           onSaveMeeting={handleCreateWebMeeting}
         />
 
+        {/* V12 Location & Proximity Ping Modal */}
+        <LocationPingModal
+          isOpen={isLocationPingModalOpen}
+          onClose={() => setIsLocationPingModalOpen(false)}
+          currentUser={currentUser}
+          allMembers={members}
+          memberLocations={memberLocations}
+          proximityPings={proximityPings}
+          onSendPing={handleSendPing}
+          onRespondPing={handleRespondPing}
+          onUpdateLocationStatus={handleUpdateLocationStatus}
+        />
+
       </div>
 
     </div>
@@ -2014,6 +2099,12 @@ export default function App() {
             onAwardPoints={handleAwardPoints}
             onCheckInGeoOrQr={() => setActiveTab('coworking')}
             onOpenWebMeetingModal={handleOpenWebMeetingModal}
+            memberLocations={memberLocations}
+            proximityPings={proximityPings}
+            onSendPing={handleSendPing}
+            onRespondPing={handleRespondPing}
+            onUpdateLocationStatus={handleUpdateLocationStatus}
+            onOpenLocationPingModal={() => setIsLocationPingModalOpen(true)}
           />
         );
 
@@ -2290,6 +2381,15 @@ export default function App() {
             onCreateMember={handleCreateMember}
             quizQuestions={quizQuestions}
             onCreateQuizQuestion={(q) => setQuizQuestions(prev => [q, ...prev])}
+          />
+        );
+
+      case 'advertise':
+        return (
+          <AdServerModule
+            currentUser={currentUser}
+            onAwardPoints={handleAwardPoints}
+            onNavigateTab={(tab) => setActiveTab(tab)}
           />
         );
 

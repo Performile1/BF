@@ -194,14 +194,32 @@ export interface MembershipPackageDefinition {
   // 9. VIP QR Badge & Fysiska Event
   vip_qr_audio_chime: boolean;
   vip_lounge_access: boolean;
+
+  // Aliases & extensions for package builder
+  max_cases_in_gallery?: number;
+  featured_portfolio?: boolean;
+  pro_badge_and_expanded_profile?: boolean;
+  vip_gold_badge?: boolean;
+  web_meetings_per_month?: number;
+  webinars_per_month?: number;
+  who_is_at_hub_priority?: boolean;
+  course_platform_fee_percent?: number;
+  can_publish_ads?: boolean;
 }
 
 export type AdPlacementType = 
   | 'HOME_TOP' 
   | 'FEED_TOP' 
+  | 'COMMUNITY_FEED'
   | 'CALENDAR_SIDEBAR' 
   | 'HUB_HEADER' 
-  | 'WEBINAR_SPONSOR';
+  | 'HUB_PORTAL' 
+  | 'HUB_DETAILS' 
+  | 'MEMBERS_DIRECTORY' 
+  | 'EVENT_LIST'
+  | 'DASHBOARD_BENTO'
+  | 'WEBINAR_SPONSOR'
+  | string;
 
 export interface AdPlacementConfig {
   id: AdPlacementType;
@@ -1150,18 +1168,6 @@ export interface AdminKpiStats {
   monthly_churn_rate_percent: number;
 }
 
-export type AdPlacementType = 
-  | 'FEED_TOP' 
-  | 'COMMUNITY_FEED' 
-  | 'CALENDAR_SIDEBAR' 
-  | 'HUB_HEADER' 
-  | 'HUB_PORTAL' 
-  | 'HUB_DETAILS' 
-  | 'MEMBERS_DIRECTORY' 
-  | 'EVENT_LIST'
-  | 'DASHBOARD_BENTO'
-  | string;
-
 export type AdFormat = 'FULL_WIDTH' | 'SIDEBAR' | 'IN_FEED' | 'COMPACT' | 'PANORAMA' | 'CUSTOM';
 
 export interface BannerAd {
@@ -1282,5 +1288,20 @@ export interface TotpSecuritySettings {
   backup_codes?: string[];
   last_verified_at?: string;
   enforced_by_role?: boolean;
+}
+
+// ==========================================================
+// V12 Punkt 78: Live Ticker & Activity Stream
+// ==========================================================
+export type TabType = string;
+
+export interface SystemActivityTickerEvent {
+  id: string;
+  event_type: 'NEW_MEMBER' | 'COFFEE_PING' | 'BADGE_EARNED' | 'EVENT_CREATED' | 'CASE_ADDED' | 'SYSTEM_ANNOUNCEMENT';
+  message: string;
+  target_url?: string;
+  target_tab?: TabType;
+  is_pinned_by_admin?: boolean;
+  created_at: string;
 }
 

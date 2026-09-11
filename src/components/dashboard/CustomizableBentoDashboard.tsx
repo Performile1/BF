@@ -63,6 +63,15 @@ import { formatSek } from '../../utils/calendar';
 import { INITIAL_WEB_MEETINGS } from '../../data/calendarAndCoworkingData';
 import { INITIAL_COMMUNITY_POSTS } from '../../data/communityAndMatchmakingData';
 import { CoffeePingWidget } from '../networking/CoffeePingWidget';
+import { SystemTickerWidget } from './SystemTickerWidget';
+import { INITIAL_TICKER_EVENTS } from '../../data/tickerData';
+import {
+  MiniWidgetContainer,
+  MiniBpCounterWidget,
+  MiniCoffeeToggleWidget,
+  MiniQuickQrWidget,
+  MiniHubAttendanceWidget
+} from './MiniWidgets';
 
 export interface WidgetDefinition {
   id: string;
@@ -76,6 +85,28 @@ export interface WidgetDefinition {
 }
 
 export const ALL_AVAILABLE_WIDGETS: WidgetDefinition[] = [
+  // ==================== LIVE NOTISER & MINI WIDGETS ====================
+  {
+    id: 'system_ticker_widget',
+    title: 'Live Ticker (Realtidsnotiser & Nyhetsflöde)',
+    category: 'community',
+    defaultSpan: 'col-span-12',
+    defaultSize: 'WIDE',
+    defaultColSpan: 4,
+    defaultRowSpan: 1,
+    description: 'Rullande realtidsnotiser, kaffeping-aktivitet och systemmeddelanden med pause-on-hover och djuplänkar.'
+  },
+  {
+    id: 'mini_widgets_bar',
+    title: 'Snabb-Puckar & Status (Mini Widgets 1x1)',
+    category: 'mitt',
+    defaultSpan: 'col-span-12',
+    defaultSize: 'WIDE',
+    defaultColSpan: 4,
+    defaultRowSpan: 1,
+    description: 'Kompakta 1x1 sub-widgets för BP-saldo, Kaffe/Lunch-toggle, vCard QR och Hubb-närvaro.'
+  },
+
   // ==================== MITT ====================
   {
     id: 'profile_gamification',
@@ -268,6 +299,8 @@ export const ALL_AVAILABLE_WIDGETS: WidgetDefinition[] = [
 ];
 
 export const DEFAULT_WIDGET_ORDER = [
+  'system_ticker_widget',
+  'mini_widgets_bar',
   'profile_gamification',
   'coffee_ping_radar',
   'my_meetings',
@@ -1759,6 +1792,66 @@ export const CustomizableBentoDashboard: React.FC<CustomizableBentoDashboardProp
             mode="extended"
           />
         );
+
+      // ==================== LIVE TICKER WIDGET ====================
+      case 'system_ticker_widget':
+        return (
+          <div className="-mx-1 sm:-mx-2">
+            <SystemTickerWidget
+              events={INITIAL_TICKER_EVENTS}
+              onNavigate={(tab) => onNavigateTab(tab)}
+              onOpenPingModal={onOpenLocationPingModal}
+              isEditMode={customizingMode}
+            />
+          </div>
+        );
+
+      // ==================== MINI WIDGETS SUB-GRID ====================
+      case 'mini_widgets_bar': {
+        const myActiveLoc = memberLocations.find(l => l.member_id === currentUser.id);
+        return (
+          <MiniWidgetContainer isEditMode={customizingMode}>
+            <MiniBpCounterWidget
+              currentUser={currentUser}
+              onClick={() => onNavigateTab('gamification')}
+              isEditMode={customizingMode}
+            />
+            <MiniCoffeeToggleWidget
+              currentUser={currentUser}
+              myLocation={myActiveLoc}
+              onToggleStatus={() => {
+                const currentStatus = myActiveLoc?.is_available_for_coffee || myActiveLoc?.is_available_for_lunch;
+                if (onUpdateLocationStatus) {
+                  onUpdateLocationStatus({
+                    is_available_for_coffee: !currentStatus,
+                    is_available_for_lunch: !currentStatus,
+                    current_city: currentUser.city || 'Mölnlycke'
+                  });
+                }
+              }}
+              onOpenPingModal={onOpenLocationPingModal}
+              isEditMode={customizingMode}
+            />
+            <MiniQuickQrWidget
+              currentUser={currentUser}
+              onClick={() => {
+                if (onCheckInGeoOrQr) {
+                  onCheckInGeoOrQr();
+                } else {
+                  onNavigateTab('profile_settings');
+                }
+              }}
+              isEditMode={customizingMode}
+            />
+            <MiniHubAttendanceWidget
+              members={members}
+              currentUser={currentUser}
+              onClick={() => onNavigateTab('directory')}
+              isEditMode={customizingMode}
+            />
+          </MiniWidgetContainer>
+        );
+      }
 
       default:
         return null;
