@@ -29,7 +29,9 @@ export type TabKey =
   | 'admin'
   | 'architecture'
   | 'membership'
-  | 'advertise';
+  | 'advertise'
+  | 'connect'
+  | 'auth';
 
 export interface Member {
   id: string;
@@ -52,6 +54,7 @@ export interface Member {
   rating_avg: number;
   reviews_count: number;
   created_at: string;
+  industry?: string;
   is_online?: boolean;
   is_admin?: boolean;
   linkedin_url?: string;
@@ -87,6 +90,12 @@ export interface Member {
     from_member_name: string;
   };
 }
+
+/**
+ * Profile definition matching Supabase `profiles` table and Frontend Member object.
+ * Guarantees required email and optional linkedin_url for vCard and matchmaking.
+ */
+export type Profile = Member;
 
 export type PaymentStatus = 'PAID' | 'DUE' | 'OVERDUE' | 'TRIAL' | 'PAUSED' | 'SUSPENDED_PAYMENT';
 
@@ -530,6 +539,8 @@ export type ActivityType =
   | 'TRIAL_PASS_REDEEMED' // +50 BP
   | 'TRIAL_GUEST_CHECKIN' // +50 BP
   | 'REFERRAL_SENT'       // +15 BP
+  | 'REFERRAL'            // +150 BP
+  | 'REFERRAL_CONVERSION' // +150 BP
   | 'EVENT_INVITE_SENT'   // +15 BP
   | 'P2P_TIP_SENT'        // Sent from monthly allowance (0 score deducted)
   | 'P2P_TIP_RECEIVED'    // +10 / +25 / +50 BP received from peer

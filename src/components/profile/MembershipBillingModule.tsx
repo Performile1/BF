@@ -22,7 +22,8 @@ import {
   Lock,
   Building2,
   ChevronRight,
-  Info
+  Info,
+  AlertCircle
 } from 'lucide-react';
 import { 
   Member, 
@@ -241,7 +242,17 @@ export const MembershipBillingModule: React.FC<MembershipBillingModuleProps> = (
               <span className={`px-2.5 py-0.5 rounded-full text-xs font-black border ${currentPkg.badge_color}`}>
                 {currentPkg.name}
               </span>
-              {isPaused ? (
+              {currentUser.payment_status === 'TRIAL' ? (
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-900 border border-amber-300 flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-amber-600" />
+                  <span>Provperiod ({currentUser.trial_ends_at ? Math.max(0, Math.ceil((new Date(currentUser.trial_ends_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : 14} dgr kvar)</span>
+                </span>
+              ) : currentUser.payment_status === 'DUE' ? (
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-50 text-red-800 border border-red-200 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3 text-red-600" />
+                  <span>Provperiod utgången – Välj paket</span>
+                </span>
+              ) : isPaused ? (
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1">
                   <PauseCircle className="w-3 h-3" />
                   <span>Pausat (Sabbatical)</span>

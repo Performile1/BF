@@ -16,6 +16,7 @@ import {
   QrCode, 
   MessageSquare, 
   ExternalLink, 
+  Download,
   Plus, 
   Trash2, 
   Save, 
@@ -39,11 +40,15 @@ import {
   Camera,
   Upload,
   CreditCard,
+  AlertCircle,
+  Lock,
   X
 } from 'lucide-react';
 import { Member, MembershipLevel, LunchRequest, MemberMerit, MemberCaseStudy, MemberSkill } from '../../types';
 import { AdBannerEngine } from '../ads/AdBannerEngine';
 import { MembershipBillingModule } from './MembershipBillingModule';
+import { MemberCard } from './MemberCard';
+import { downloadVCard } from '../../utils/vcard';
 
 interface ProfileSettingsAndDirectoryModuleProps {
   currentUser: Member;
@@ -92,6 +97,7 @@ export const ProfileSettingsAndDirectoryModule: React.FC<ProfileSettingsAndDirec
     full_name: currentUser.full_name,
     role_title: currentUser.role_title,
     company_name: currentUser.company_name,
+    email: currentUser.email || '',
     phone: currentUser.phone || '',
     linkedin_url: currentUser.linkedin_url || '',
     website_url: currentUser.website_url || '',
@@ -118,6 +124,24 @@ export const ProfileSettingsAndDirectoryModule: React.FC<ProfileSettingsAndDirec
       }
     ]
   });
+
+  const [isEmailEditable, setIsEmailEditable] = useState(false);
+  const [linkedinError, setLinkedinError] = useState<string | null>(null);
+
+  const validateLinkedInUrl = (url: string): boolean => {
+    if (!url || url.trim() === '') {
+      setLinkedinError(null);
+      return true;
+    }
+    const cleanUrl = url.trim();
+    const pattern = /^(https?:\/\/)?(www\.)?linkedin\.com\/in\/[a-zA-Z0-9_\-\.%]+\/?$/i;
+    if (!pattern.test(cleanUrl)) {
+      setLinkedinError('Ange en giltig LinkedIn-profiladress, t.ex. https://linkedin.com/in/ditt-namn');
+      return false;
+    }
+    setLinkedinError(null);
+    return true;
+  };
 
   const [newSeekingTag, setNewSeekingTag] = useState('');
   const [newOfferingTag, setNewOfferingTag] = useState('');
@@ -180,8 +204,21 @@ export const ProfileSettingsAndDirectoryModule: React.FC<ProfileSettingsAndDirec
 
   const handleSaveSettings = (e: React.FormEvent) => {
     e.preventDefault();
-    onUpdateProfile(formData);
-    setSavedSuccessNotice('Din profil har uppdaterats framgångsrikt!');
+
+    if (formData.linkedin_url && !validateLinkedInUrl(formData.linkedin_url)) {
+      return;
+    }
+
+    let formattedLinkedIn = formData.linkedin_url.trim();
+    if (formattedLinkedIn && !formattedLinkedIn.startsWith('http://') && !formattedLinkedIn.startsWith('https://')) {
+      formattedLinkedIn = `https://${formattedLinkedIn}`;
+    }
+
+    onUpdateProfile({
+      ...formData,
+      linkedin_url: formattedLinkedIn
+    });
+    setSavedSuccessNotice('Din profil och visitkortsuppgifter har uppdaterats!');
     setTimeout(() => setSavedSuccessNotice(null), 4000);
   };
 
@@ -618,7 +655,7 @@ export const ProfileSettingsAndDirectoryModule: React.FC<ProfileSettingsAndDirec
                           </span>
                         </div>
                         <div>
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
                             <h3 className="text-sm font-bold text-gray-900 leading-tight">
                               {member.full_name}
                             </h3>
@@ -626,6 +663,19 @@ export const ProfileSettingsAndDirectoryModule: React.FC<ProfileSettingsAndDirec
                               <span className="text-[9px] font-bold uppercase px-1.5 py-0.2 rounded bg-[#800020] text-white">
                                 Du
                               </span>
+                            )}
+                            {member.linkedin_url && (
+                              <a
+                                href={member.linkedin_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="text-[#0A66C2] hover:text-[#004182] hover:bg-blue-50 p-1 rounded-md transition inline-flex items-center justify-center"
+                                title={`Öppna ${member.full_name}s LinkedIn-profil`}
+                                aria-label={`LinkedIn-profil för ${member.full_name}`}
+                              >
+                                <Linkedin className="w-3.5 h-3.5 fill-current" />
+                              </a>
                             )}
                           </div>
                           <p className="text-xs text-gray-600 font-medium truncate mt-0.5">
@@ -852,15 +902,23 @@ export const ProfileSettingsAndDirectoryModule: React.FC<ProfileSettingsAndDirec
                       )}
                     </div>
 
-                    {/* QR & Contact Card button */}
-                    <button
-                      onClick={() => onOpenUniversalConnect(member)}
-                      className="px-2.5 py-1.5 rounded-xl text-xs font-bold text-gray-700 bg-gray-50 hover:bg-gray-100 transition border border-gray-200 flex items-center gap-1"
-                      title="Visa digitalt visitkort och QR-kod"
-                    >
-                      <QrCode className="w-3 h-3 text-[#800020]" />
-                      <span>Visitkort</span>
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => downloadVCard(member)}
+                        className="p-2 rounded-xl text-gray-600 hover:text-[#800020] hover:bg-gray-100 transition border border-gray-200"
+                        title="Ladda ner vCard (.vcf kontakt)"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => onOpenUniversalConnect(member)}
+                        className="px-2.5 py-1.5 rounded-xl text-xs font-bold text-gray-700 bg-gray-50 hover:bg-gray-100 transition border border-gray-200 flex items-center gap-1"
+                        title="Visa digitalt visitkort och QR-kod"
+                      >
+                        <QrCode className="w-3 h-3 text-[#800020]" />
+                        <span>Visitkort</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -903,6 +961,19 @@ export const ProfileSettingsAndDirectoryModule: React.FC<ProfileSettingsAndDirec
                           <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.2 rounded font-semibold">
                             Du
                           </span>
+                        )}
+                        {member.linkedin_url && (
+                          <a
+                            href={member.linkedin_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-[#0A66C2] hover:text-[#004182] hover:bg-blue-50 p-1 rounded-md transition inline-flex items-center justify-center"
+                            title={`Öppna ${member.full_name}s LinkedIn-profil`}
+                            aria-label={`LinkedIn-profil för ${member.full_name}`}
+                          >
+                            <Linkedin className="w-3.5 h-3.5 fill-current" />
+                          </a>
                         )}
                         <span className="text-[10px] font-bold text-amber-900 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/60">
                           {member.booster_score} BP
@@ -1001,6 +1072,14 @@ export const ProfileSettingsAndDirectoryModule: React.FC<ProfileSettingsAndDirec
                         <span className="hidden sm:inline">Lunch</span>
                       </button>
                     )}
+
+                    <button
+                      onClick={() => downloadVCard(member)}
+                      className="p-1.5 rounded-xl text-gray-600 hover:text-[#800020] hover:bg-gray-100 transition border border-gray-200"
+                      title="Ladda ner vCard (.vcf kontakt)"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                    </button>
 
                     <button
                       onClick={() => onOpenUniversalConnect(member)}
@@ -1203,24 +1282,117 @@ export const ProfileSettingsAndDirectoryModule: React.FC<ProfileSettingsAndDirec
 
               <div>
                 <label className="text-xs font-bold text-gray-700 block mb-1">Telefonnummer (för vCard)</label>
-                <input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="+46 70 123 45 67"
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#800020]/20"
-                />
+                <div className="relative">
+                  <input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    placeholder="+46 70 123 45 67"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#800020]/20"
+                  />
+                  <Phone className="w-3 h-3 text-gray-400 absolute right-3 top-2.5" />
+                </div>
               </div>
 
+              {/* E-postadress med Supabase Auth koppling */}
               <div>
-                <label className="text-xs font-bold text-gray-700 block mb-1">LinkedIn URL</label>
-                <input
-                  type="url"
-                  value={formData.linkedin_url}
-                  onChange={(e) => setFormData({ ...formData, linkedin_url: e.target.value })}
-                  placeholder="https://linkedin.com/in/ditt-namn"
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#800020]/20"
-                />
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-gray-700 flex items-center gap-1">
+                    <Mail className="w-3.5 h-3.5 text-[#800020]" />
+                    <span>E-postadress</span>
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 font-semibold border border-blue-200 flex items-center gap-0.5">
+                      <ShieldCheck className="w-2.5 h-2.5 text-blue-600" />
+                      <span>Supabase Auth</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setIsEmailEditable(!isEmailEditable)}
+                      className="text-[10px] text-gray-500 hover:text-[#800020] underline font-medium"
+                    >
+                      {isEmailEditable ? 'Lås' : 'Ändra'}
+                    </button>
+                  </div>
+                </div>
+                <div className="relative">
+                  <input
+                    type="email"
+                    required
+                    readOnly={!isEmailEditable}
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="namn@foretag.se"
+                    className={`w-full px-3 py-2 rounded-xl text-xs border transition ${
+                      isEmailEditable 
+                        ? 'bg-white border-[#800020]/30 focus:ring-2 focus:ring-[#800020]/20' 
+                        : 'bg-gray-100 text-gray-700 border-gray-200 cursor-not-allowed'
+                    }`}
+                  />
+                  {!isEmailEditable && (
+                    <Lock className="w-3 h-3 text-gray-400 absolute right-3 top-2.5" />
+                  )}
+                </div>
+                <p className="text-[10px] text-gray-400 mt-0.5">
+                  Kopplad till ditt konto. Inkluderas automatiskt i vCard-visitkortet.
+                </p>
+              </div>
+
+              {/* LinkedIn-profil med validering */}
+              <div className="sm:col-span-2">
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-gray-700 flex items-center gap-1">
+                    <Linkedin className="w-3.5 h-3.5 text-[#0A66C2]" />
+                    <span>LinkedIn-profil</span>
+                  </label>
+                  {formData.linkedin_url && !linkedinError && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200 flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                      <span>Giltig LinkedIn-profil</span>
+                    </span>
+                  )}
+                </div>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={formData.linkedin_url}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormData(prev => ({ ...prev, linkedin_url: val }));
+                      validateLinkedInUrl(val);
+                    }}
+                    placeholder="https://linkedin.com/in/ditt-namn"
+                    className={`w-full px-3 py-2 bg-gray-50 rounded-xl text-xs border transition ${
+                      linkedinError 
+                        ? 'border-rose-400 focus:ring-2 focus:ring-rose-200' 
+                        : formData.linkedin_url 
+                        ? 'border-emerald-300 focus:ring-2 focus:ring-emerald-200' 
+                        : 'border-gray-200 focus:ring-2 focus:ring-[#800020]/20'
+                    }`}
+                  />
+                  {formData.linkedin_url && !linkedinError && (
+                    <a
+                      href={formData.linkedin_url.startsWith('http') ? formData.linkedin_url : `https://${formData.linkedin_url}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="absolute right-2.5 top-2 text-xs font-bold text-[#0A66C2] hover:underline flex items-center gap-0.5"
+                      title="Testa LinkedIn-länk"
+                    >
+                      <span>Testa länk</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </div>
+                {linkedinError ? (
+                  <p className="text-[11px] text-rose-600 font-medium mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3 flex-shrink-0" />
+                    <span>{linkedinError}</span>
+                  </p>
+                ) : (
+                  <p className="text-[10px] text-gray-400 mt-0.5">
+                    Exempel: <code className="text-gray-600 bg-gray-100 px-1 py-0.5 rounded">https://linkedin.com/in/ditt-namn</code>. Inkluderas i vCard-exporten och visar en klickbar LinkedIn-ikon i nätverket.
+                  </p>
+                )}
               </div>
             </div>
 

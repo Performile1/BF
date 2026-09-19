@@ -19,7 +19,10 @@ import {
   X,
   QrCode,
   Camera,
-  CreditCard
+  CreditCard,
+  LogIn,
+  LogOut,
+  UserPlus
 } from 'lucide-react';
 import { Member, Hub, ChatChannel } from '../types';
 
@@ -41,6 +44,9 @@ interface HeaderProps {
   channels?: ChatChannel[];
   onSelectChannel?: (channelId: string) => void;
   onOpenFullChat?: () => void;
+  isGuest?: boolean;
+  onOpenAuthModal?: () => void;
+  onSignOut?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -60,7 +66,10 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenMembership,
   channels = [],
   onSelectChannel,
-  onOpenFullChat
+  onOpenFullChat,
+  isGuest = false,
+  onOpenAuthModal,
+  onSignOut
 }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showHubMenu, setShowHubMenu] = useState(false);
@@ -419,24 +428,35 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* User Profile & Persona Switcher */}
             <div className="relative">
-              <button
-                onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center gap-3 border-l pl-3 sm:pl-4 border-gray-200 hover:opacity-95 transition"
-                id="btn-user-profile-menu"
-              >
-                <div className="text-right hidden sm:block">
-                  <p className="text-xs font-bold text-gray-900 leading-tight">{currentUser.full_name}</p>
-                  <p className="text-[10px] text-[#800020] font-bold uppercase tracking-wider">{currentUser.membership_level} Member</p>
-                </div>
-                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gray-200 border-2 border-[#800020] overflow-hidden flex-shrink-0 shadow-2xs">
-                  <img
-                    src={currentUser.avatar}
-                    alt={currentUser.full_name}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
-              </button>
+              {isGuest ? (
+                <button
+                  onClick={onOpenAuthModal}
+                  className="flex items-center gap-2 py-2 px-3 sm:px-4 rounded-xl bg-[#800020] text-white text-xs font-bold shadow-xs hover:bg-[#68001a] transition"
+                  id="btn-guest-login"
+                >
+                  <LogIn className="w-3.5 h-3.5" />
+                  <span>Logga in / Skapa konto</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="flex items-center gap-3 border-l pl-3 sm:pl-4 border-gray-200 hover:opacity-95 transition"
+                  id="btn-user-profile-menu"
+                >
+                  <div className="text-right hidden sm:block">
+                    <p className="text-xs font-bold text-gray-900 leading-tight">{currentUser.full_name}</p>
+                    <p className="text-[10px] text-[#800020] font-bold uppercase tracking-wider">{currentUser.membership_level} Member</p>
+                  </div>
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gray-200 border-2 border-[#800020] overflow-hidden flex-shrink-0 shadow-2xs">
+                    <img
+                      src={currentUser.avatar}
+                      alt={currentUser.full_name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+                </button>
+              )}
 
               {/* Persona switcher dropdown */}
               {showUserMenu && (
@@ -463,6 +483,29 @@ export const Header: React.FC<HeaderProps> = ({
                       </div>
                       <span className="text-[10px] font-semibold text-[#800020]/70 group-hover:text-white/90">/profile/membership</span>
                     </button>
+
+                    <div className="grid grid-cols-2 gap-1.5 mt-2">
+                      <button
+                        onClick={() => {
+                          if (onOpenAuthModal) onOpenAuthModal();
+                          setShowUserMenu(false);
+                        }}
+                        className="py-1.5 px-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-[11px] font-bold transition flex items-center justify-center gap-1.5"
+                      >
+                        <UserPlus className="w-3.5 h-3.5 text-gray-600" />
+                        <span>Byt konto</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (onSignOut) onSignOut();
+                          setShowUserMenu(false);
+                        }}
+                        className="py-1.5 px-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-800 text-[11px] font-bold transition flex items-center justify-center gap-1.5"
+                      >
+                        <LogOut className="w-3.5 h-3.5 text-rose-700" />
+                        <span>Logga ut</span>
+                      </button>
+                    </div>
 
                     {/* Enhetsvy Switcher: Desktop / iOS / Android i Inloggad Profil */}
                     {setDeviceMode && (

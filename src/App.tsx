@@ -129,20 +129,78 @@ import {
   Camera
 } from 'lucide-react';
 import { formatSek } from './utils/calendar';
+import { AuthModal } from './components/auth/AuthModal';
+import { InviteLandingPage } from './pages/InviteLandingPage';
+import { AuthPage } from './pages/AuthPage';
+import { useAuthRedirect } from './hooks/useAuthRedirect';
+import { useAuth } from './context/AuthContext';
+import { generateVCardString, downloadVCard } from './utils/vcard';
 
 export default function App() {
-  // Supabase Auth & Session State
+  // Auth Context (Supabase Auth & Session State + Mock Fallback)
+  const { 
+    currentUser, 
+    setCurrentUser, 
+    isGuest, 
+    signOut, 
+    isSupabaseOnline: authSupabaseOnline 
+  } = useAuth();
+  const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   const [supabaseSession, setSupabaseSession] = useState<any>(null);
   const [isSupabaseOnline, setIsSupabaseOnline] = useState<boolean>(isSupabaseConfigured);
 
   // Application State
-  const [currentUser, setCurrentUser] = useState<Member>(INITIAL_MEMBERS[0]);
   const [hubs, setHubs] = useState<Hub[]>(INITIAL_HUBS);
   const [selectedHub, setSelectedHub] = useState<Hub>(INITIAL_HUBS[0]);
   const [activeTab, setActiveTab] = useState<string>('overview');
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [deviceMode, setDeviceMode] = useState<'desktop' | 'ios' | 'android'>('desktop');
   const [quickChatInput, setQuickChatInput] = useState('');
   const [isLockoutSimulated, setIsLockoutSimulated] = useState(false);
+
+  // Referral URL tracking & Auto-redirect to /connect
+  const { referralCode, inviter: redirectInviter, isConnectRoute } = useAuthRedirect(INITIAL_MEMBERS);
+
+  // Check URL on load for /connect, ref= or inviter=
+  useEffect(() => {
+    const path = window.location.pathname;
+    const search = window.location.search;
+    if (path.includes('/connect') || search.includes('ref=') || search.includes('inviter=')) {
+      setActiveTab('connect');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isConnectRoute) {
+      setActiveTab('connect');
+    }
+  }, [isConnectRoute]);
+
+  // Trial state & Expiration handling
+  const [showExpiredTrialModal, setShowExpiredTrialModal] = useState(false);
+
+  useEffect(() => {
+    if (currentUser.payment_status === 'TRIAL' && currentUser.trial_ends_at) {
+      const isPast = new Date(currentUser.trial_ends_at).getTime() < Date.now();
+      if (isPast) {
+        // Schedule state update safely outside the render cycle
+        const timer = setTimeout(() => {
+          setCurrentUser(prev => ({ ...prev, payment_status: 'DUE' }));
+          setShowExpiredTrialModal(true);
+        }, 0);
+        return () => clearTimeout(timer);
+      }
+    } else if (currentUser.payment_status === 'DUE' && !showExpiredTrialModal) {
+      const timer = setTimeout(() => {
+        setShowExpiredTrialModal(true);
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [currentUser.payment_status, currentUser.trial_ends_at, setCurrentUser, showExpiredTrialModal]);
+
+  const trialDaysRemaining = currentUser.trial_ends_at
+    ? Math.max(0, Math.ceil((new Date(currentUser.trial_ends_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    : 14;
 
   // Realtime System Activity Ticker State (Supabase / Local fallback)
   const [tickerEvents, setTickerEvents] = useState<SystemActivityTickerEvent[]>(INITIAL_TICKER_EVENTS);
@@ -1376,6 +1434,28 @@ export default function App() {
     }
   };
 
+  // Standalone public routes for invitations and authentication
+  if (activeTab === 'connect') {
+    return (
+      <InviteLandingPage
+        onGoToAuth={(mode) => {
+          setAuthMode(mode);
+          setActiveTab('auth');
+        }}
+        onBackToApp={() => setActiveTab('overview')}
+      />
+    );
+  }
+
+  if (activeTab === 'auth') {
+    return (
+      <AuthPage
+        initialMode={authMode}
+        onBackToApp={() => setActiveTab('overview')}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#F4F5F7] text-[#1F2937] font-sans antialiased">
       
@@ -1398,7 +1478,46 @@ export default function App() {
         onOpenQrModal={() => setQrModalMember(currentUser)}
         onOpenArchitectureSpec={() => setActiveTab('architecture')}
         onOpenMembership={() => setActiveTab('membership')}
+        isGuest={isGuest}
+        onOpenAuthModal={() => setShowAuthModal(true)}
+        onSignOut={signOut}
       />
+
+      {/* Top Banner: Provperiod (TRIAL) */}
+      {currentUser.payment_status === 'TRIAL' && (
+        <div className="bg-gradient-to-r from-amber-500 via-[#800020] to-[#580016] text-white py-2.5 px-4 shadow-md sticky top-0 z-30 animate-in slide-in-from-top-2">
+          <div className="max-w-7xl mx-auto flex items-center justify-between flex-wrap gap-2 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-base">🌟</span>
+              <span className="font-medium">
+                Du kör Booster Friends kostnadsfria provperiod – <strong className="font-bold underline">{trialDaysRemaining} dagar kvar</strong>.
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setActiveTab('membership')}
+                className="px-3.5 py-1.5 bg-white text-[#800020] hover:bg-amber-50 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5"
+              >
+                <span>Välj betalplan nu för att behålla dina förmåner →</span>
+              </button>
+              <button
+                onClick={() => {
+                  setCurrentUser(prev => ({
+                    ...prev,
+                    payment_status: 'DUE',
+                    trial_ends_at: new Date(Date.now() - 1000).toISOString()
+                  }));
+                  setShowExpiredTrialModal(true);
+                }}
+                className="text-[10px] text-white/70 hover:text-white underline cursor-pointer"
+                title="Testa utgången provperiod"
+              >
+                (Testa utgång)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Container / Mobile Device Frame */}
       <div className={`transition-all duration-300 ${
@@ -2172,7 +2291,7 @@ export default function App() {
               <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 inline-block mx-auto">
                 <img
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
-                    `BEGIN:VCARD\nVERSION:3.0\nN:${qrModalMember.full_name}\nORG:${qrModalMember.company_name}\nTITLE:${qrModalMember.role_title}\nTEL:${qrModalMember.phone || '+46700000000'}\nEMAIL:${qrModalMember.email}\nURL:${qrModalMember.linkedin_url || 'https://boosterfriends.se'}\nEND:VCARD`
+                    generateVCardString(qrModalMember)
                   )}`}
                   alt="QR Visitkort"
                   className="w-40 h-40 mx-auto rounded-xl mix-blend-multiply"
@@ -2185,20 +2304,24 @@ export default function App() {
               <div className="space-y-2 pt-2">
                 <button
                   onClick={() => {
-                    const vcardData = `BEGIN:VCARD\nVERSION:3.0\nFN:${qrModalMember.full_name}\nORG:${qrModalMember.company_name}\nTITLE:${qrModalMember.role_title}\nTEL:${qrModalMember.phone || ''}\nEMAIL:${qrModalMember.email}\nURL:${qrModalMember.linkedin_url || ''}\nEND:VCARD`;
-                    const blob = new Blob([vcardData], { type: 'text/vcard' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `${qrModalMember.full_name.replace(/\s+/g, '_')}_vcard.vcf`;
-                    a.click();
-                    URL.revokeObjectURL(url);
+                    downloadVCard(qrModalMember);
                     handleAwardPoints(20, `Delat QR-visitkort med ${qrModalMember.full_name}`, 'UNIVERSAL_QR_CONNECT');
                   }}
                   className="w-full py-2.5 bg-[#800020] hover:bg-[#660018] text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center justify-center gap-1.5"
                 >
                   <QrCode className="w-4 h-4" />
                   <span>Ladda ner vCard (.vcf kontakt)</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setQrModalMember(null);
+                    setActiveTab('connect');
+                  }}
+                  className="w-full py-2 bg-rose-50 hover:bg-rose-100 text-[#800020] border border-[#800020]/20 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Öppna inbjudningssida (/connect)</span>
                 </button>
 
                 <button
@@ -2255,6 +2378,89 @@ export default function App() {
           onRespondPing={handleRespondPing}
           onUpdateLocationStatus={handleUpdateLocationStatus}
         />
+
+        {/* Supabase & Mock Auth Modal */}
+        <AuthModal
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          invitedByName={redirectInviter?.full_name}
+          onLoginSuccess={() => setShowAuthModal(false)}
+        />
+
+        {/* Modal för utgången provperiod (Krav 3: Expiration-hantering) */}
+        {showExpiredTrialModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 animate-in fade-in">
+            <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl border border-gray-100 text-center space-y-6 animate-in zoom-in-95">
+              <div className="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 mx-auto flex items-center justify-center">
+                <Clock className="w-7 h-7" />
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="text-xl sm:text-2xl font-black text-gray-900 font-display">
+                  Din provperiod har upphört
+                </h3>
+                <p className="text-xs sm:text-sm text-gray-600 max-w-md mx-auto">
+                  Välj medlemskapsnivå (Brons, Silver eller Guld) för att fortsätta nätverka, boka flexplatser och få leads i Booster Friends.
+                </p>
+              </div>
+
+              {/* Plan selector cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-left">
+                {[
+                  { level: 'BRONZE' as const, name: 'Brons', price: '390 kr/mån', desc: 'Basprofil & 1 flexdag/mån' },
+                  { level: 'SILVER' as const, name: 'Silver', price: '990 kr/mån', desc: '4 flexdagar & frukostmöten', popular: true },
+                  { level: 'GOLD' as const, name: 'Guld', price: '2 490 kr/mån', desc: 'Fri flexplats & VIP-synlighet' }
+                ].map(plan => (
+                  <div 
+                    key={plan.level}
+                    className={`p-4 rounded-2xl border transition-all flex flex-col justify-between ${
+                      plan.popular ? 'border-[#800020] bg-rose-50/40 ring-1 ring-[#800020]' : 'border-gray-200 bg-white hover:border-gray-300'
+                    }`}
+                  >
+                    <div>
+                      {plan.popular && (
+                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-[#800020] text-white uppercase mb-2 inline-block">
+                          Mest populär
+                        </span>
+                      )}
+                      <h4 className="text-sm font-bold text-gray-900">{plan.name}</h4>
+                      <p className="text-xs font-black text-[#800020] mt-1">{plan.price}</p>
+                      <p className="text-[11px] text-gray-500 mt-1">{plan.desc}</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        handleUpdateMemberLevel(currentUser.id, plan.level);
+                        setCurrentUser(prev => ({
+                          ...prev,
+                          membership_level: plan.level,
+                          payment_status: 'PAID'
+                        }));
+                        setShowExpiredTrialModal(false);
+                      }}
+                      className={`mt-4 w-full py-2 rounded-xl text-xs font-bold transition shadow-xs ${
+                        plan.popular ? 'bg-[#800020] text-white hover:bg-[#68001a]' : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                      }`}
+                    >
+                      Välj {plan.name}
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="pt-2 flex items-center justify-center gap-3">
+                <button
+                  onClick={() => {
+                    setShowExpiredTrialModal(false);
+                    setActiveTab('membership');
+                  }}
+                  className="text-xs font-semibold text-[#800020] hover:underline cursor-pointer"
+                >
+                  Gå till fullständig paketöversikt och företagsfaktura →
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
 
@@ -2604,6 +2810,25 @@ export default function App() {
             currentUser={currentUser}
             onAwardPoints={handleAwardPoints}
             onNavigateTab={(tab) => setActiveTab(tab)}
+          />
+        );
+
+      case 'auth':
+        return (
+          <AuthPage
+            initialMode={authMode}
+            onBackToApp={() => setActiveTab('overview')}
+          />
+        );
+
+      case 'connect':
+        return (
+          <InviteLandingPage
+            onGoToAuth={(mode) => {
+              setAuthMode(mode);
+              setActiveTab('auth');
+            }}
+            onBackToApp={() => setActiveTab('overview')}
           />
         );
 

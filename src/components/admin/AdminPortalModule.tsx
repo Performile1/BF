@@ -29,7 +29,8 @@ import {
   UserPlus,
   Layout,
   Sliders,
-  CreditCard
+  CreditCard,
+  Clock
 } from 'lucide-react';
 import { 
   Member, 
@@ -50,6 +51,7 @@ import {
 import { SAMPLE_QUIZ_QUESTIONS } from '../../data/initialData';
 import { AdZonesVisualGuide } from '../ads/AdZonesVisualGuide';
 import { AdminBillingAndRulesModule } from './AdminBillingAndRulesModule';
+import { AdminTrialSettings } from './AdminTrialSettings';
 
 interface AdminPortalModuleProps {
   currentUser: Member;
@@ -74,7 +76,7 @@ export const AdminPortalModule: React.FC<AdminPortalModuleProps> = ({
   quizQuestions = SAMPLE_QUIZ_QUESTIONS,
   onCreateQuizQuestion
 }) => {
-  const [activeAdminTab, setActiveAdminTab] = useState<'KPIS' | 'BILLING' | 'RULES' | 'APPLICATIONS' | 'BANNERS' | 'HUBS' | 'MEMBERS' | 'QUIZ'>('KPIS');
+  const [activeAdminTab, setActiveAdminTab] = useState<'KPIS' | 'BILLING' | 'RULES' | 'APPLICATIONS' | 'BANNERS' | 'HUBS' | 'MEMBERS' | 'QUIZ' | 'TRIAL'>('KPIS');
   const [applications, setApplications] = useState<AdminMemberApplication[]>(INITIAL_ADMIN_APPLICATIONS);
   const [bannerAds, setBannerAds] = useState<BannerAd[]>(INITIAL_BANNER_ADS);
   const [feedbackNotice, setFeedbackNotice] = useState<string | null>(null);
@@ -438,6 +440,18 @@ export const AdminPortalModule: React.FC<AdminPortalModuleProps> = ({
         >
           <GraduationCap className="w-4 h-4" />
           <span>Kunskapsprov & Cert ({quizQuestions.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveAdminTab('TRIAL')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 shrink-0 ${
+            activeAdminTab === 'TRIAL'
+              ? 'bg-[#800020] text-white shadow-xs'
+              : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <Clock className="w-4 h-4" />
+          <span>Provperiod & Trial</span>
         </button>
       </div>
 
@@ -1183,6 +1197,11 @@ export const AdminPortalModule: React.FC<AdminPortalModuleProps> = ({
             ))}
           </div>
         </div>
+      )}
+
+      {/* TAB: Provperiod & Trial */}
+      {activeAdminTab === 'TRIAL' && (
+        <AdminTrialSettings />
       )}
 
       {/* MODAL: Redigera Hubb */}
