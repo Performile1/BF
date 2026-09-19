@@ -205,9 +205,32 @@ export const AdZonesVisualGuide: React.FC<AdZonesVisualGuideProps> = ({
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop');
   
   // Dynamic size configuration in the guide
-  const currentZone = AD_ZONES_CATALOG.find(z => z.id === selectedZoneId) || AD_ZONES_CATALOG[0];
-  const [customHeight, setCustomHeight] = useState<number>(currentZone.defaultHeight);
-  const [customWidth, setCustomWidth] = useState<string>(currentZone.defaultWidth);
+  const currentZone = (selectedZoneId ? AD_ZONES_CATALOG.find(z => z.id === selectedZoneId) : undefined) || AD_ZONES_CATALOG[0] || {
+    id: 'FEED_TOP',
+    title: 'Huvudflöde',
+    category: 'FULL_WIDTH',
+    badge: '',
+    defaultWidth: '100%',
+    defaultHeight: 180,
+    allowedHeights: [
+      { label: 'Kompakt (130px)', height: 130 },
+      { label: 'Standard (180px)', height: 180 },
+      { label: 'Panorama (240px)', height: 240 }
+    ],
+    allowedWidths: [
+      { label: '100% Fullbredd', width: '100%' },
+      { label: 'Max bredd (1140px)', width: 'max-w-6xl' }
+    ],
+    description: '',
+    reach: '',
+    audience: '',
+    recommendedAspect: '',
+    sampleImg: '',
+    sampleHeadline: '',
+    sampleAdvertiser: ''
+  };
+  const [customHeight, setCustomHeight] = useState<number>(currentZone?.defaultHeight || 180);
+  const [customWidth, setCustomWidth] = useState<string>(currentZone?.defaultWidth || '100%');
 
   // Update defaults when zone changes
   const handleZoneChange = (zoneId: AdPlacementType) => {
@@ -501,7 +524,7 @@ export const AdZonesVisualGuide: React.FC<AdZonesVisualGuideProps> = ({
                       Höjd (Vertikalt): <span className="text-[#800020]">{customHeight}px</span>
                     </label>
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      {currentZone.allowedHeights.map(h => (
+                      {(currentZone?.allowedHeights || []).map(h => (
                         <button
                           key={h.height}
                           type="button"
@@ -534,7 +557,7 @@ export const AdZonesVisualGuide: React.FC<AdZonesVisualGuideProps> = ({
                       Bredd (Horisontellt): <span className="text-[#800020]">{customWidth}</span>
                     </label>
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      {currentZone.allowedWidths.map(w => (
+                      {(currentZone?.allowedWidths || []).map(w => (
                         <button
                           key={w.width}
                           type="button"

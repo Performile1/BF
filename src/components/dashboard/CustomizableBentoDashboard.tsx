@@ -338,6 +338,7 @@ interface CustomizableBentoDashboardProps {
   onOpenWebMeetingModal?: (targetMember?: Member | null, initialType?: 'ONE_TO_ONE' | 'GROUP') => void;
   memberLocations?: import('../../types').MemberActiveLocation[];
   proximityPings?: import('../../types').ProximityPing[];
+  tickerEvents?: import('../../types').SystemActivityTickerEvent[];
   onSendPing?: (ping: {
     receiver_id: string;
     receiver_name: string;
@@ -369,6 +370,7 @@ export const CustomizableBentoDashboard: React.FC<CustomizableBentoDashboardProp
   onOpenWebMeetingModal,
   memberLocations = [],
   proximityPings = [],
+  tickerEvents = INITIAL_TICKER_EVENTS,
   onSendPing,
   onRespondPing,
   onUpdateLocationStatus,
@@ -1798,7 +1800,7 @@ export const CustomizableBentoDashboard: React.FC<CustomizableBentoDashboardProp
         return (
           <div className="-mx-1 sm:-mx-2">
             <SystemTickerWidget
-              events={INITIAL_TICKER_EVENTS}
+              events={tickerEvents}
               onNavigate={(tab) => onNavigateTab(tab)}
               onOpenPingModal={onOpenLocationPingModal}
               isEditMode={customizingMode}

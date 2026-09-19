@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { supabase, isSupabaseConfigured } from './lib/supabaseClient';
 import { 
   INITIAL_MEMBERS, 
   INITIAL_HUBS, 
@@ -75,8 +76,10 @@ import {
   LunchRequest,
   WebMeeting,
   MemberActiveLocation,
-  ProximityPing
+  ProximityPing,
+  SystemActivityTickerEvent
 } from './types';
+import { INITIAL_TICKER_EVENTS } from './data/tickerData';
 import {
   INITIAL_MASTER_EVENTS,
   INITIAL_COWORKING_BOOKINGS,
@@ -128,6 +131,10 @@ import {
 import { formatSek } from './utils/calendar';
 
 export default function App() {
+  // Supabase Auth & Session State
+  const [supabaseSession, setSupabaseSession] = useState<any>(null);
+  const [isSupabaseOnline, setIsSupabaseOnline] = useState<boolean>(isSupabaseConfigured);
+
   // Application State
   const [currentUser, setCurrentUser] = useState<Member>(INITIAL_MEMBERS[0]);
   const [hubs, setHubs] = useState<Hub[]>(INITIAL_HUBS);
@@ -136,6 +143,9 @@ export default function App() {
   const [deviceMode, setDeviceMode] = useState<'desktop' | 'ios' | 'android'>('desktop');
   const [quickChatInput, setQuickChatInput] = useState('');
   const [isLockoutSimulated, setIsLockoutSimulated] = useState(false);
+
+  // Realtime System Activity Ticker State (Supabase / Local fallback)
+  const [tickerEvents, setTickerEvents] = useState<SystemActivityTickerEvent[]>(INITIAL_TICKER_EVENTS);
 
   // V8 Mobile FAB & Quick Action Bottom Sheet
   const [showFabModal, setShowFabModal] = useState(false);
@@ -213,6 +223,155 @@ export default function App() {
   const [proximityPings, setProximityPings] = useState<ProximityPing[]>(INITIAL_PROXIMITY_PINGS);
   const [isLocationPingModalOpen, setIsLocationPingModalOpen] = useState(false);
 
+  // =========================================================================
+  // SUPABASE INTEGRATION: Auth, Session & Realtime Subscriptions
+  // =========================================================================
+  useEffect(() => {
+    // 1. Initialize Supabase Auth Session & Listener
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (!error && session) {
+        setSupabaseSession(session);
+        setIsSupabaseOnline(true);
+      }
+    }).catch(err => {
+      console.warn('Supabase auth getSession warning:', err);
+    });
+
+    const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSupabaseSession(session);
+        setIsSupabaseOnline(true);
+      }
+    );
+
+    // 2. Fetch initial ticker events from Supabase if configured
+    const fetchInitialData = async () => {
+      try {
+        const { data: tickerData, error: tickerErr } = await supabase
+          .from('system_activity_ticker_events')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(20);
+
+        if (!tickerErr && tickerData && tickerData.length > 0) {
+          const mapped: SystemActivityTickerEvent[] = tickerData.map(t => ({
+            id: t.id,
+            event_type: t.event_type as SystemActivityTickerEvent['event_type'],
+            message: t.message,
+            target_url: t.target_url || undefined,
+            target_tab: (t.target_tab as any) || undefined,
+            is_pinned_by_admin: t.is_pinned_by_admin,
+            created_at: t.created_at
+          }));
+          setTickerEvents(mapped);
+        }
+
+        const { data: pingData, error: pingErr } = await supabase
+          .from('proximity_pings')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(30);
+
+        if (!pingErr && pingData && pingData.length > 0) {
+          const mappedPings: ProximityPing[] = pingData.map(p => ({
+            id: p.id,
+            sender_member_id: p.sender_member_id,
+            sender_name: p.sender_name || 'Medlem',
+            sender_avatar: p.sender_avatar || '',
+            sender_company: p.sender_company || '',
+            sender_city: p.sender_city || 'Mölnlycke',
+            receiver_member_id: p.receiver_member_id,
+            receiver_name: p.receiver_name || 'Mottagare',
+            receiver_avatar: p.receiver_avatar || '',
+            receiver_company: p.receiver_company || '',
+            ping_type: p.ping_type as 'COFFEE' | 'LUNCH',
+            status: p.status as 'PENDING' | 'ACCEPTED' | 'DECLINED',
+            suggested_location: p.suggested_location,
+            custom_message: p.custom_message || undefined,
+            created_at: p.created_at
+          }));
+          setProximityPings(mappedPings);
+        }
+      } catch (err) {
+        console.warn('Supabase initial fetch info:', err);
+      }
+    };
+
+    fetchInitialData();
+
+    // 3. Supabase Realtime Channel Subscription
+    // Listens to postgres_changes for system ticker events and proximity pings
+    const realtimeChannel = supabase
+      .channel('booster_realtime_stream')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'system_activity_ticker_events' },
+        (payload) => {
+          const newEvent = payload.new as any;
+          if (newEvent && newEvent.id) {
+            setTickerEvents(prev => {
+              if (prev.some(e => e.id === newEvent.id)) return prev;
+              const formatted: SystemActivityTickerEvent = {
+                id: newEvent.id,
+                event_type: newEvent.event_type,
+                message: newEvent.message,
+                target_url: newEvent.target_url || undefined,
+                target_tab: newEvent.target_tab || undefined,
+                is_pinned_by_admin: newEvent.is_pinned_by_admin ?? false,
+                created_at: newEvent.created_at || new Date().toISOString()
+              };
+              return [formatted, ...prev];
+            });
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'proximity_pings' },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newPing = payload.new as any;
+            setProximityPings(prev => {
+              if (prev.some(p => p.id === newPing.id)) return prev;
+              const formatted: ProximityPing = {
+                id: newPing.id,
+                sender_member_id: newPing.sender_member_id,
+                sender_name: newPing.sender_name || 'Medlem',
+                sender_avatar: newPing.sender_avatar || '',
+                sender_company: newPing.sender_company || '',
+                sender_city: newPing.sender_city || 'Mölnlycke',
+                receiver_member_id: newPing.receiver_member_id,
+                receiver_name: newPing.receiver_name || 'Mottagare',
+                receiver_avatar: newPing.receiver_avatar || '',
+                receiver_company: newPing.receiver_company || '',
+                ping_type: newPing.ping_type,
+                status: newPing.status,
+                suggested_location: newPing.suggested_location,
+                custom_message: newPing.custom_message || undefined,
+                created_at: newPing.created_at || new Date().toISOString()
+              };
+              return [formatted, ...prev];
+            });
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedPing = payload.new as any;
+            setProximityPings(prev =>
+              prev.map(p => (p.id === updatedPing.id ? { ...p, status: updatedPing.status } : p))
+            );
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          setIsSupabaseOnline(true);
+        }
+      });
+
+    return () => {
+      authSubscription.unsubscribe();
+      supabase.removeChannel(realtimeChannel);
+    };
+  }, []);
+
   const handleUpdateLocationStatus = (status: Partial<MemberActiveLocation>) => {
     setMemberLocations(prev => {
       const existingIdx = prev.findIndex(l => l.member_id === currentUser.id);
@@ -234,9 +393,25 @@ export default function App() {
         return [newLoc, ...prev];
       }
     });
+
+    // Sync active location status to Supabase member_active_locations if online
+    if (isSupabaseConfigured) {
+      Promise.resolve(
+        supabase.from('member_active_locations').upsert({
+          member_id: currentUser.id,
+          current_city: status.current_city || currentUser.city || 'Mölnlycke',
+          is_available_for_coffee: status.is_available_for_coffee ?? true,
+          is_available_for_lunch: status.is_available_for_lunch ?? true,
+          expires_at: new Date(Date.now() + 8 * 3600 * 1000).toISOString(),
+          updated_at: new Date().toISOString()
+        })
+      ).then((res: any) => {
+        if (res?.error) console.warn('Supabase upsert member_active_locations notice:', res.error.message);
+      }).catch(e => console.warn('Supabase error:', e));
+    }
   };
 
-  const handleSendPing = (pingData: {
+  const handleSendPing = async (pingData: {
     receiver_id: string;
     receiver_name: string;
     receiver_avatar?: string;
@@ -264,14 +439,52 @@ export default function App() {
     };
     setProximityPings(prev => [newPing, ...prev]);
     handleAwardPoints(10, `Skickat ${pingData.ping_type === 'COFFEE' ? 'Kaffe' : 'Lunch'}-ping till ${pingData.receiver_name}`, 'MEETING_1ON1');
+
+    // Sync to Supabase proximity_pings & broadcast activity ticker
+    if (isSupabaseConfigured) {
+      try {
+        await supabase.from('proximity_pings').insert({
+          id: newPing.id,
+          sender_member_id: newPing.sender_member_id,
+          receiver_member_id: newPing.receiver_member_id,
+          ping_type: newPing.ping_type,
+          status: 'PENDING',
+          suggested_location: newPing.suggested_location,
+          custom_message: newPing.custom_message || null,
+          created_at: newPing.created_at
+        });
+
+        const tickerMsg = `${newPing.ping_type === 'COFFEE' ? '☕' : '🍽️'} ${currentUser.full_name.split(' ')[0]} skickade ${newPing.ping_type === 'COFFEE' ? 'kaffe' : 'lunch'}-ping i ${newPing.suggested_location}`;
+        await supabase.from('system_activity_ticker_events').insert({
+          event_type: 'COFFEE_PING',
+          message: tickerMsg,
+          target_tab: 'directory',
+          is_pinned_by_admin: false
+        });
+      } catch (err) {
+        console.warn('Supabase ping sync note:', err);
+      }
+    }
   };
 
-  const handleRespondPing = (pingId: string, status: 'ACCEPTED' | 'DECLINED') => {
+  const handleRespondPing = async (pingId: string, status: 'ACCEPTED' | 'DECLINED') => {
     setProximityPings(prev =>
       prev.map(p => (p.id === pingId ? { ...p, status } : p))
     );
     if (status === 'ACCEPTED') {
       handleAwardPoints(20, 'Tackade ja till Kaffe/Lunch-ping', 'MEETING_1ON1');
+    }
+
+    // Sync status change to Supabase
+    if (isSupabaseConfigured) {
+      try {
+        await supabase
+          .from('proximity_pings')
+          .update({ status })
+          .eq('id', pingId);
+      } catch (err) {
+        console.warn('Supabase respond ping sync notice:', err);
+      }
     }
   };
 
@@ -2101,6 +2314,7 @@ export default function App() {
             onOpenWebMeetingModal={handleOpenWebMeetingModal}
             memberLocations={memberLocations}
             proximityPings={proximityPings}
+            tickerEvents={tickerEvents}
             onSendPing={handleSendPing}
             onRespondPing={handleRespondPing}
             onUpdateLocationStatus={handleUpdateLocationStatus}

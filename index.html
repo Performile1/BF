@@ -12,6 +12,25 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <script>
+      // Prevent external Chrome extension disconnect messages from breaking the application preview
+      window.addEventListener('error', function(e) {
+        var msg = (e && e.message) || '';
+        if (msg.indexOf('Could not establish connection') !== -1 || msg.indexOf('Receiving end does not exist') !== -1 || msg.indexOf('allowed') !== -1) {
+          if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+          if (e.preventDefault) e.preventDefault();
+          return true;
+        }
+      }, true);
+      window.addEventListener('unhandledrejection', function(e) {
+        var reason = e && e.reason;
+        var msg = (typeof reason === 'string' ? reason : (reason && reason.message)) || '';
+        if (msg.indexOf('Could not establish connection') !== -1 || msg.indexOf('Receiving end does not exist') !== -1 || msg.indexOf('allowed') !== -1) {
+          if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+          if (e.preventDefault) e.preventDefault();
+        }
+      }, true);
+    </script>
   </head>
   <body class="bg-[#F4F5F7] text-[#1F2937] antialiased selection:bg-[#800020] selection:text-white">
     <div id="root"></div>

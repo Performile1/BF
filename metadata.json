@@ -1,6 +1,6 @@
 {
   "name": "Booster Friends",
   "description": "Affärsmotor & Digital Medlemsportal – Intro-AI, Pay It Forward Bounties, Warm Intro DNA, Speed Networking, Community & Medlemsblogg med Viktad BP-Algoritm samt Super Admin Portal.",
-  "requestFramePermissions": ["geolocation"],
+  "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
