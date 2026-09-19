@@ -7,6 +7,8 @@ export interface DemoProfiles {
   bronze: Member;
   silver: Member;
   gold: Member;
+  hub_host: Member;
+  guest: Member;
 }
 
 export interface SignUpParams {
@@ -40,11 +42,39 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Identified 3 archetypal demo personas for rapid 1-click B2B testing
+const GUEST_MEMBER: Member = {
+  id: 'usr_guest_demo',
+  full_name: 'Besökare (Gäst)',
+  email: 'gast@exempel.se',
+  role: 'GUEST',
+  is_admin: false,
+  primary_hub_id: null,
+  company_name: 'Ej anslutet bolag',
+  role_title: 'Oinloggad gäst',
+  membership_level: 'BRONZE',
+  booster_score: 0,
+  city: 'Stockholm',
+  avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+  bio: 'Oinloggad gäst som utforskar Booster Friends-plattformen.',
+  offering_tags: [],
+  seeking_tags: [],
+  created_at: new Date().toISOString()
+};
+
+const HUB_HOST_MEMBER = INITIAL_MEMBERS.find(m => m.role === 'HUB_HOST') || {
+  ...INITIAL_MEMBERS[1],
+  role: 'HUB_HOST',
+  primary_hub_id: 'hub_stockholm',
+  role_title: 'Hub Host Stockholm'
+};
+
+// Identified 5 archetypal demo personas for rapid 1-click B2B testing
 const DEMO_PROFILES: DemoProfiles = {
-  gold: CURRENT_USER, // Rickard Wigrund (Gold / Founder)
+  gold: CURRENT_USER, // Rickard Wigrund (Super Admin / Gold)
   silver: INITIAL_MEMBERS.find(m => m.membership_level === 'SILVER') || INITIAL_MEMBERS[3], // Elena Rostova
-  bronze: INITIAL_MEMBERS.find(m => m.membership_level === 'BRONZE') || INITIAL_MEMBERS[5]  // Amanda Berg
+  bronze: INITIAL_MEMBERS.find(m => m.membership_level === 'BRONZE') || INITIAL_MEMBERS[5],  // Amanda Berg
+  hub_host: HUB_HOST_MEMBER,
+  guest: GUEST_MEMBER
 };
 
 export const AuthProvider: React.FC<{

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { filterMockBookings } from '../../lib/mockRbacFilter';
 import { 
   Building2, 
   MapPin, 
@@ -71,7 +72,24 @@ export const CoworkingHubsModule: React.FC<CoworkingHubsModuleProps> = ({
 }) => {
   // Main view navigation tabs
   const [activeSubTab, setActiveSubTab] = useState<'HUB_RADAR' | 'PARTNERS' | 'DESK_SWAP' | 'CREDITS_PASSES' | 'PARTNER_DASHBOARD'>('HUB_RADAR');
-  const [selectedHubId, setSelectedHubId] = useState<string>(hubs[0]?.id || 'hub_stockholm');
+  // RBAC allowed hubs: HUB_HOST only sees their assigned hub
+  const allowedHubs = useMemo(() => {
+    if (currentUser.role === 'HUB_HOST') {
+      const hostHubId = currentUser.primary_hub_id || currentUser.hub_id;
+      if (hostHubId) {
+        const found = hubs.filter(h => h.id === hostHubId);
+        if (found.length > 0) return found;
+      }
+    }
+    return hubs;
+  }, [hubs, currentUser]);
+
+  const [selectedHubId, setSelectedHubId] = useState<string>(() => {
+    if (currentUser.role === 'HUB_HOST' && (currentUser.primary_hub_id || currentUser.hub_id)) {
+      return currentUser.primary_hub_id || currentUser.hub_id || 'hub_stockholm';
+    }
+    return hubs[0]?.id || 'hub_stockholm';
+  });
   const [competenceSearch, setCompetenceSearch] = useState('');
   const [bookingSlot, setBookingSlot] = useState<'FULL_DAY' | 'AM' | 'PM'>('FULL_DAY');
 
@@ -95,13 +113,27 @@ export const CoworkingHubsModule: React.FC<CoworkingHubsModuleProps> = ({
   const [selectedPartnerDashboardId, setSelectedPartnerDashboardId] = useState<string>(partnerLocations[0]?.id || '');
   const [partnerDeskLimit, setPartnerDeskLimit] = useState<number>(partnerLocations[0]?.daily_desk_allocation || 8);
 
-  const currentHub = hubs.find(h => h.id === selectedHubId) || hubs[0];
+  const currentHub = allowedHubs.find(h => h.id === selectedHubId) || allowedHubs[0] || hubs[0];
+
+  // RBAC Filtered bookings:
+  // SUPER_ADMIN: Alla bokningar
+  // HUB_HOST: Endast sin tilldelade hubb
+  // MEMBER: Idag + egna bokningar
+  // GUEST: Endast dagens publika platser
+  const userVisibleBookings = useMemo(() => {
+    return filterMockBookings(bookings, currentUser);
+  }, [bookings, currentUser]);
 
   // Bookings for selected hub today
   const todayStr = new Date().toISOString().split('T')[0];
-  const hubBookingsToday = bookings.filter(b => b.hub_id === selectedHubId && b.booking_date === todayStr);
+  const hubBookingsToday = userVisibleBookings.filter(b => b.hub_id === selectedHubId && b.booking_date === todayStr);
   const checkedInMembers = hubBookingsToday.filter(b => b.is_checked_in);
   const prebookedMembers = hubBookingsToday.filter(b => !b.is_checked_in);
+
+  // User's own upcoming bookings for this member
+  const userFutureBookings = useMemo(() => {
+    return userVisibleBookings.filter(b => b.member_id === currentUser.id && b.booking_date > todayStr);
+  }, [userVisibleBookings, currentUser.id, todayStr]);
 
   // Filtered by competence
   const filteredCheckedIn = checkedInMembers.filter(b => {
@@ -210,7 +242,7 @@ export const CoworkingHubsModule: React.FC<CoworkingHubsModuleProps> = ({
         <div className="space-y-6">
           {/* Hub Selector bar */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-            {hubs.map(h => (
+            {allowedHubs.map(h => (
               <button
                 key={h.id}
                 onClick={() => setSelectedHubId(h.id)}
@@ -222,11 +254,15 @@ export const CoworkingHubsModule: React.FC<CoworkingHubsModuleProps> = ({
               >
                 <Building2 className="w-3.5 h-3.5" />
                 <span>{h.name}</span>
-                {h.id === currentUser.hub_id && (
+                {currentUser.role === 'HUB_HOST' ? (
+                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-800 text-white font-bold">
+                    Tilldelad Hubb
+                  </span>
+                ) : h.id === currentUser.hub_id ? (
                   <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/20 text-white">
                     Min Hubb
                   </span>
-                )}
+                ) : null}
               </button>
             ))}
           </div>
@@ -350,7 +386,14 @@ export const CoworkingHubsModule: React.FC<CoworkingHubsModuleProps> = ({
                     ))}
                   </div>
 
-                  {currentUserBooking ? (
+                  {currentUser.role === 'GUEST' ? (
+                    <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-center space-y-1">
+                      <div className="text-xs font-bold text-amber-900">Gästläge – Boka Flexplats</div>
+                      <p className="text-[11px] text-amber-800">
+                        Skapa eller uppgradera till ett medlemskonto för att boka flexplatser och få pass.
+                      </p>
+                    </div>
+                  ) : currentUserBooking ? (
                     <div className="space-y-2">
                       <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-bold flex items-center justify-between">
                         <span className="flex items-center gap-1.5">
@@ -390,9 +433,28 @@ export const CoworkingHubsModule: React.FC<CoworkingHubsModuleProps> = ({
                     </div>
                   )}
 
-                  <div className="text-[11px] text-gray-500 text-center">
-                    Du har <strong>{credits.included_monthly_quota + credits.purchased_extra_credits - credits.used_monthly_quota}</strong> pass kvar denna månad.
-                  </div>
+                  {currentUser.role !== 'GUEST' && (
+                    <div className="text-[11px] text-gray-500 text-center">
+                      Du har <strong>{credits.included_monthly_quota + credits.purchased_extra_credits - credits.used_monthly_quota}</strong> pass kvar denna månad.
+                    </div>
+                  )}
+
+                  {userFutureBookings.length > 0 && (
+                    <div className="p-3 bg-rose-50/70 rounded-xl border border-rose-200/80 space-y-1.5">
+                      <div className="text-[10px] font-bold text-[#800020] uppercase flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5" />
+                        <span>Mina Framtida Bokningar ({userFutureBookings.length})</span>
+                      </div>
+                      <div className="space-y-1">
+                        {userFutureBookings.map(fb => (
+                          <div key={fb.id} className="text-[11px] bg-white p-2 rounded-lg border border-rose-100 flex items-center justify-between">
+                            <span className="font-semibold text-gray-800">{fb.booking_date} ({fb.slot_type})</span>
+                            <span className="text-gray-500 text-[10px]">{fb.hub_name || 'Hubb'}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -428,95 +490,107 @@ export const CoworkingHubsModule: React.FC<CoworkingHubsModuleProps> = ({
             </div>
 
             {/* Incheckade medlemmar (Just nu) */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between text-xs font-bold text-gray-700">
-                <span className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-                  <span>Fysiskt på plats just nu ({filteredCheckedIn.length})</span>
-                </span>
-                <span className="text-gray-400 font-normal text-[11px]">Verifierade via QR & Geofence</span>
+            {currentUser.role === 'GUEST' ? (
+              <div className="p-8 rounded-2xl bg-amber-50/70 border border-amber-200 text-center space-y-2">
+                <ShieldCheck className="w-8 h-8 text-amber-700 mx-auto" />
+                <h4 className="text-sm font-bold text-amber-900">Publik Hubb-översikt (Gästläge)</h4>
+                <p className="text-xs text-amber-800 max-w-md mx-auto">
+                  Just nu är {occupiedSpots} av {totalCapacity} flexplatser belagda/bokade idag på {currentHub.name}. Medlemsnamn, incheckade profiler och kompetensmatchning visas för inloggade medlemmar.
+                </p>
               </div>
+            ) : (
+              <>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-xs font-bold text-gray-700">
+                    <span className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                      <span>Fysiskt på plats just nu ({filteredCheckedIn.length})</span>
+                    </span>
+                    <span className="text-gray-400 font-normal text-[11px]">Verifierade via QR & Geofence</span>
+                  </div>
 
-              {filteredCheckedIn.length === 0 ? (
-                <div className="p-6 rounded-2xl bg-gray-50 border border-gray-100 text-center text-xs text-gray-500">
-                  {competenceSearch ? 'Inga incheckade medlemmar matchade din kompetenssökning.' : 'Inga medlemmar incheckade just nu. Bli den första idag!'}
+                  {filteredCheckedIn.length === 0 ? (
+                    <div className="p-6 rounded-2xl bg-gray-50 border border-gray-100 text-center text-xs text-gray-500">
+                      {competenceSearch ? 'Inga incheckade medlemmar matchade din kompetenssökning.' : 'Inga medlemmar incheckade just nu. Bli den första idag!'}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {filteredCheckedIn.map(bk => (
+                        <div
+                          key={bk.id}
+                          className="p-4 rounded-2xl border border-emerald-200 bg-emerald-50/30 hover:bg-emerald-50/60 transition flex items-start gap-3 relative group"
+                        >
+                          <div className="relative shrink-0">
+                            <img
+                              src={bk.member_avatar}
+                              alt={bk.member_name}
+                              className="w-12 h-12 rounded-full object-cover ring-2 ring-emerald-500"
+                              referrerPolicy="no-referrer"
+                            />
+                            <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-500 ring-2 ring-white"></span>
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-bold text-gray-900 text-sm truncate">{bk.member_name}</h4>
+                              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.2 rounded">
+                                {bk.check_in_time}
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-600 truncate">{bk.member_role} • {bk.member_company}</p>
+
+                            {/* Tags */}
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {bk.competence_tags?.slice(0, 3).map(tag => (
+                                <span
+                                  key={tag}
+                                  className="text-[10px] px-1.5 py-0.5 rounded bg-white text-gray-700 border border-gray-200 font-medium"
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredCheckedIn.map(bk => (
-                    <div
-                      key={bk.id}
-                      className="p-4 rounded-2xl border border-emerald-200 bg-emerald-50/30 hover:bg-emerald-50/60 transition flex items-start gap-3 relative group"
-                    >
-                      <div className="relative shrink-0">
+
+                {/* Förhandsbokade medlemmar */}
+                <div className="space-y-3 pt-4 border-t border-gray-100">
+                  <div className="flex items-center justify-between text-xs font-bold text-gray-700">
+                    <span>Förhandsbokade flexplatser idag ({prebookedMembers.length})</span>
+                    <span className="text-gray-400 font-normal text-[11px]">Väntas in under dagen</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {prebookedMembers.map(bk => (
+                      <div
+                        key={bk.id}
+                        className="p-3 rounded-xl border border-gray-200 bg-white flex items-center gap-3"
+                      >
                         <img
                           src={bk.member_avatar}
                           alt={bk.member_name}
-                          className="w-12 h-12 rounded-full object-cover ring-2 ring-emerald-500"
+                          className="w-10 h-10 rounded-full object-cover shrink-0"
                           referrerPolicy="no-referrer"
                         />
-                        <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-500 ring-2 ring-white"></span>
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-bold text-gray-900 text-sm truncate">{bk.member_name}</h4>
-                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.2 rounded">
-                            {bk.check_in_time}
-                          </span>
-                        </div>
-                        <p className="text-xs text-gray-600 truncate">{bk.member_role} • {bk.member_company}</p>
-
-                        {/* Tags */}
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {bk.competence_tags?.slice(0, 3).map(tag => (
-                            <span
-                              key={tag}
-                              className="text-[10px] px-1.5 py-0.5 rounded bg-white text-gray-700 border border-gray-200 font-medium"
-                            >
-                              {tag}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-xs text-gray-900 truncate">{bk.member_name}</span>
+                            <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-1.5 py-0.2 rounded">
+                              {bk.slot_type === 'PM' ? 'Eftermiddag' : 'Förmiddag'}
                             </span>
-                          ))}
+                          </div>
+                          <p className="text-[11px] text-gray-500 truncate">{bk.member_role}</p>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Förhandsbokade medlemmar */}
-            <div className="space-y-3 pt-4 border-t border-gray-100">
-              <div className="flex items-center justify-between text-xs font-bold text-gray-700">
-                <span>Förhandsbokade flexplatser idag ({prebookedMembers.length})</span>
-                <span className="text-gray-400 font-normal text-[11px]">Väntas in under dagen</span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {prebookedMembers.map(bk => (
-                  <div
-                    key={bk.id}
-                    className="p-3 rounded-xl border border-gray-200 bg-white flex items-center gap-3"
-                  >
-                    <img
-                      src={bk.member_avatar}
-                      alt={bk.member_name}
-                      className="w-10 h-10 rounded-full object-cover shrink-0"
-                      referrerPolicy="no-referrer"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-xs text-gray-900 truncate">{bk.member_name}</span>
-                        <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-1.5 py-0.2 rounded">
-                          {bk.slot_type === 'PM' ? 'Eftermiddag' : 'Förmiddag'}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-gray-500 truncate">{bk.member_role}</p>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

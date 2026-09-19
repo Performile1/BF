@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { filterMockPings } from '../../lib/mockRbacFilter';
 import { 
   Coffee, 
   Utensils, 
@@ -62,6 +63,11 @@ export const CoffeePingWidget: React.FC<CoffeePingWidgetProps> = ({
 
   const isVisibleToday = myLocation.is_available_for_coffee || myLocation.is_available_for_lunch;
 
+  // RBAC filter for pings
+  const userVisiblePings = useMemo(() => {
+    return filterMockPings(proximityPings, currentUser);
+  }, [proximityPings, currentUser]);
+
   // Selected city/zone (defaults to user's city or Mölnlycke)
   const [activeZone, setActiveZone] = useState<string>(myLocation.current_city || 'Mölnlycke');
   const [selectedQuickTarget, setSelectedQuickTarget] = useState<Member | null>(null);
@@ -75,13 +81,36 @@ export const CoffeePingWidget: React.FC<CoffeePingWidgetProps> = ({
   const [travelDestination, setTravelDestination] = useState(myLocation.travel_destination || 'Stockholm Kista');
   const [travelDate, setTravelDate] = useState(myLocation.travel_date || '2026-09-12');
 
+  // If GUEST: return protected screen according to permission matrix
+  if (currentUser.role === 'GUEST') {
+    return (
+      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-amber-200 shadow-xs text-center space-y-4">
+        <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-800 border border-amber-200 flex items-center justify-center mx-auto">
+          <Coffee className="w-6 h-6" />
+        </div>
+        <div className="max-w-md mx-auto space-y-1">
+          <h3 className="text-base font-bold text-gray-900 font-display">Kaffe- & Lunch-pings (Gästläge)</h3>
+          <p className="text-xs text-gray-600 leading-relaxed">
+            Spontana kaffe- och lunchinbjudningar samt geobaserad närvaroradar är reserverade för registrerade medlemmar. Skapa ett medlemskonto för att börja pinga kollegor i din närhet!
+          </p>
+        </div>
+        <div className="pt-2">
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-100 text-amber-900 text-xs font-bold border border-amber-300">
+            <ShieldCheck className="w-4 h-4" />
+            Måste skapa konto först
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   // Package permissions
   const isBronze = currentUser.membership_level === 'BRONZE';
   const isSilver = currentUser.membership_level === 'SILVER';
   const isGold = currentUser.membership_level === 'GOLD';
 
   // Count sent pings this month by current user
-  const monthlyPingsSent = proximityPings.filter(
+  const monthlyPingsSent = userVisiblePings.filter(
     p => p.sender_member_id === currentUser.id
   ).length;
   const isBronzeLimitReached = isBronze && monthlyPingsSent >= 1;
@@ -102,8 +131,8 @@ export const CoffeePingWidget: React.FC<CoffeePingWidgetProps> = ({
   }).filter((item): item is { member: Member; location: MemberActiveLocation } => item.member !== undefined);
 
   // Inbound pings for current user (PENDING)
-  const incomingPings = proximityPings.filter(
-    p => p.receiver_member_id === currentUser.id && p.status === 'PENDING'
+  const incomingPings = userVisiblePings.filter(
+    p => (p.receiver_member_id === currentUser.id || currentUser.role === 'SUPER_ADMIN') && p.status === 'PENDING'
   );
 
   // Handle toggling overall visibility
@@ -188,8 +217,18 @@ export const CoffeePingWidget: React.FC<CoffeePingWidgetProps> = ({
               <h3 className="text-sm sm:text-base font-black text-gray-900">
                 Proximity Ping (Kaffe & Lunch-Radar)
               </h3>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
-                Live Radar
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                currentUser.role === 'SUPER_ADMIN' || currentUser.is_admin
+                  ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                  : currentUser.role === 'HUB_HOST'
+                  ? 'bg-slate-100 text-slate-800 border border-slate-300'
+                  : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+              }`}>
+                {currentUser.role === 'SUPER_ADMIN' || currentUser.is_admin
+                  ? 'SUPER ADMIN'
+                  : currentUser.role === 'HUB_HOST'
+                  ? 'HUB HOST'
+                  : 'Live Radar'}
               </span>
             </div>
             <p className="text-xs text-gray-500">
@@ -385,6 +424,38 @@ export const CoffeePingWidget: React.FC<CoffeePingWidgetProps> = ({
                     Hinner inte idag
                   </button>
                 </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 2b. Supervisory Pings (For Super Admin and Hub Host) */}
+      {(currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'HUB_HOST') && userVisiblePings.length > 0 && (
+        <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+          <div className="flex items-center justify-between text-xs font-bold text-slate-900">
+            <span className="flex items-center gap-1.5">
+              <Building2 className="w-3.5 h-3.5 text-slate-700" />
+              <span>{currentUser.role === 'SUPER_ADMIN' ? 'Alla Pings i Plattformen' : `Pings i ${currentUser.hub_name || 'Hubben'}`} ({userVisiblePings.length})</span>
+            </span>
+            <span className="text-[10px] text-slate-500 font-mono">Övervakningsvy</span>
+          </div>
+          <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+            {userVisiblePings.map(p => (
+              <div key={p.id} className="text-[11px] bg-white p-2 rounded-xl border border-slate-200 flex items-center justify-between">
+                <div>
+                  <span className="font-bold text-gray-900">{p.sender_name}</span>
+                  <span className="text-gray-400 mx-1">➜</span>
+                  <span className="font-semibold text-gray-700">{p.receiver_name}</span>
+                  <span className="ml-1 text-[10px] text-gray-500">({p.suggested_location})</span>
+                </div>
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                  p.status === 'ACCEPTED' ? 'bg-emerald-100 text-emerald-800' :
+                  p.status === 'DECLINED' ? 'bg-gray-100 text-gray-600' :
+                  'bg-amber-100 text-amber-800'
+                }`}>
+                  {p.status}
+                </span>
               </div>
             ))}
           </div>

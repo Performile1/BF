@@ -57,6 +57,8 @@ export interface Member {
   industry?: string;
   is_online?: boolean;
   is_admin?: boolean;
+  role?: UserRole;
+  primary_hub_id?: string;
   linkedin_url?: string;
   website_url?: string;
   target_audience?: string;
@@ -91,11 +93,14 @@ export interface Member {
   };
 }
 
+export type UserRole = 'SUPER_ADMIN' | 'HUB_HOST' | 'MEMBER' | 'GUEST';
+
 /**
  * Profile definition matching Supabase `profiles` table and Frontend Member object.
  * Guarantees required email and optional linkedin_url for vCard and matchmaking.
  */
 export type Profile = Member;
+export type MemberProfile = Member;
 
 export type PaymentStatus = 'PAID' | 'DUE' | 'OVERDUE' | 'TRIAL' | 'PAUSED' | 'SUSPENDED_PAYMENT';
 
@@ -109,6 +114,7 @@ export interface InvoiceRecord {
   plan: MembershipLevel;
   recipient_name: string;
   recipient_email: string;
+  member_id?: string;
   company_name?: string;
   vat_amount_sek?: number;
   pdf_url?: string;
@@ -496,6 +502,7 @@ export interface DealPipelineItem {
   title: string;
   client_company: string;
   contact_person: string;
+  owner_member_id?: string;
   contact_member_id?: string;
   contact_member_avatar?: string;
   referral_source?: string;

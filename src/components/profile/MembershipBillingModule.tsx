@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { filterMockInvoices } from '../../lib/mockRbacFilter';
 import { 
   CreditCard, 
   Sparkles, 
@@ -74,9 +75,9 @@ export const MembershipBillingModule: React.FC<MembershipBillingModuleProps> = (
 
   // Invoice modal view state
   const [viewingInvoice, setViewingInvoice] = useState<InvoiceRecord | null>(null);
-  const [userInvoices, setUserInvoices] = useState<InvoiceRecord[]>(() => {
-    return invoices.filter(inv => inv.recipient_email === currentUser.email || inv.recipient_name === currentUser.full_name);
-  });
+  const userInvoices = useMemo(() => {
+    return filterMockInvoices(invoices, currentUser);
+  }, [invoices, currentUser]);
 
   const [notificationNotice, setNotificationNotice] = useState<string | null>(null);
 
@@ -518,70 +519,111 @@ export const MembershipBillingModule: React.FC<MembershipBillingModuleProps> = (
       <div className="bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
-            <h3 className="text-lg font-black text-gray-900">Fakturahistorik & Kvitton</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-black text-gray-900">
+                {currentUser.role === 'SUPER_ADMIN' || currentUser.is_admin 
+                  ? 'Fakturahistorik (Super Admin - Alla medlemmars fakturor)' 
+                  : 'Fakturahistorik & Kvitton'}
+              </h3>
+              {(currentUser.role === 'SUPER_ADMIN' || currentUser.is_admin) && (
+                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                  Super Admin
+                </span>
+              )}
+            </div>
             <p className="text-xs text-gray-500">
-              Alla dragningar via Stripe. Ladda ner bokföringsunderlag och momsspecifikationer.
+              {currentUser.role === 'SUPER_ADMIN' || currentUser.is_admin
+                ? 'Full transparens: Visar alla medlemmars fakturor och betalstatus i plattformen.'
+                : 'Alla dragningar via Stripe. Ladda ner bokföringsunderlag och momsspecifikationer.'}
             </p>
           </div>
-          <button
-            onClick={() => {
-              setStripeActionType('PORTAL');
-              setShowStripeModal(true);
-            }}
-            className="text-xs font-bold text-[#800020] hover:underline flex items-center gap-1"
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-            <span>Öppna Stripe Kundportal</span>
-          </button>
+          {currentUser.role !== 'GUEST' && currentUser.role !== 'HUB_HOST' && (
+            <button
+              onClick={() => {
+                setStripeActionType('PORTAL');
+                setShowStripeModal(true);
+              }}
+              className="text-xs font-bold text-[#800020] hover:underline flex items-center gap-1"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span>Öppna Stripe Kundportal</span>
+            </button>
+          )}
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-gray-200 text-gray-400 font-bold">
-                <th className="pb-3">Fakturanr</th>
-                <th className="pb-3">Datum</th>
-                <th className="pb-3">Beskrivning</th>
-                <th className="pb-3">Belopp</th>
-                <th className="pb-3">Status</th>
-                <th className="pb-3 text-right">Åtgärd</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 text-gray-700">
-              {userInvoices.map((inv) => (
-                <tr key={inv.id} className="hover:bg-gray-50/70 transition">
-                  <td className="py-3 font-mono font-bold text-gray-900">{inv.invoice_number}</td>
-                  <td className="py-3 text-gray-600">{inv.date}</td>
-                  <td className="py-3">
-                    <span className="font-semibold text-gray-900">Booster Friends {inv.plan} Medlemskap</span>
-                    <div className="text-[10px] text-gray-400">Moms: {inv.vat_amount_sek || 0} SEK</div>
-                  </td>
-                  <td className="py-3 font-mono font-bold text-gray-900">
-                    {inv.amount_sek.toLocaleString('sv-SE')} SEK
-                  </td>
-                  <td className="py-3">
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                      inv.status === 'PAID'
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                        : 'bg-rose-50 text-rose-700 border border-rose-200'
-                    }`}>
-                      {inv.status === 'PAID' ? 'Betald' : 'Förfallen'}
-                    </span>
-                  </td>
-                  <td className="py-3 text-right">
-                    <button
-                      onClick={() => setViewingInvoice(inv)}
-                      className="px-2.5 py-1 rounded-lg border border-gray-200 hover:bg-gray-100 text-gray-700 text-[11px] font-bold transition inline-flex items-center gap-1"
-                    >
-                      <FileText className="w-3 h-3 text-[#800020]" />
-                      <span>Visa Faktura</span>
-                    </button>
-                  </td>
+        {currentUser.role === 'GUEST' ? (
+          <div className="p-6 bg-amber-50 rounded-2xl border border-amber-200 text-center space-y-2">
+            <Lock className="w-6 h-6 text-amber-700 mx-auto" />
+            <div className="text-xs font-bold text-amber-900">Ingen tillgång till fakturor (Gästkonto)</div>
+            <p className="text-[11px] text-amber-800 max-w-md mx-auto">
+              Du är inloggad med ett gästkonto. Skapa eller uppgradera till ett medlemskonto (Brons, Silver eller Guld) för att aktivera medlemskap och fakturering.
+            </p>
+          </div>
+        ) : currentUser.role === 'HUB_HOST' ? (
+          <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200 text-center space-y-2">
+            <ShieldCheck className="w-6 h-6 text-slate-700 mx-auto" />
+            <div className="text-xs font-bold text-slate-900">Hubb-värd (Begränsad ekonomiåtkomst)</div>
+            <p className="text-[11px] text-slate-700 max-w-md mx-auto">
+              Som Hubb-värd hanterar du hubbens coworking, medlemsinteraktion och event. Medlemmars fakturor och ekonomiska avtal hanteras centralt av Super Admin.
+            </p>
+          </div>
+        ) : userInvoices.length === 0 ? (
+          <div className="p-6 bg-gray-50 rounded-2xl border border-gray-200 text-center space-y-1">
+            <div className="text-xs font-bold text-gray-700">Inga fakturor hittades för ditt konto</div>
+            <p className="text-[11px] text-gray-500">
+              Dina framtida fakturor och kvitto-PDF:er visas här så snart en dragning har genererats.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-gray-200 text-gray-400 font-bold">
+                  <th className="pb-3">Fakturanr</th>
+                  <th className="pb-3">Datum</th>
+                  <th className="pb-3">Beskrivning & Mottagare</th>
+                  <th className="pb-3">Belopp</th>
+                  <th className="pb-3">Status</th>
+                  <th className="pb-3 text-right">Åtgärd</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-gray-100 text-gray-700">
+                {userInvoices.map((inv) => (
+                  <tr key={inv.id} className="hover:bg-gray-50/70 transition">
+                    <td className="py-3 font-mono font-bold text-gray-900">{inv.invoice_number}</td>
+                    <td className="py-3 text-gray-600">{inv.date}</td>
+                    <td className="py-3">
+                      <span className="font-semibold text-gray-900">Booster Friends {inv.plan} Medlemskap</span>
+                      <div className="text-[10px] text-gray-500">Mottagare: {inv.recipient_name} ({inv.recipient_email})</div>
+                      <div className="text-[10px] text-gray-400">Moms: {inv.vat_amount_sek || 0} SEK</div>
+                    </td>
+                    <td className="py-3 font-mono font-bold text-gray-900">
+                      {inv.amount_sek.toLocaleString('sv-SE')} SEK
+                    </td>
+                    <td className="py-3">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        inv.status === 'PAID'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : 'bg-rose-50 text-rose-700 border border-rose-200'
+                      }`}>
+                        {inv.status === 'PAID' ? 'Betald' : 'Förfallen'}
+                      </span>
+                    </td>
+                    <td className="py-3 text-right">
+                      <button
+                        onClick={() => setViewingInvoice(inv)}
+                        className="px-2.5 py-1 rounded-lg border border-gray-200 hover:bg-gray-100 text-gray-700 text-[11px] font-bold transition inline-flex items-center gap-1"
+                      >
+                        <FileText className="w-3 h-3 text-[#800020]" />
+                        <span>Visa Faktura</span>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* STRIPE CHECKOUT / PRORATION MODAL */}

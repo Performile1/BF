@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { filterMockDeals } from '../../lib/mockRbacFilter';
 import { 
   TrendingUp, 
   DollarSign, 
@@ -126,12 +127,17 @@ export const CrmPipelineModule: React.FC<CrmPipelineModuleProps> = ({
     },
   ];
 
+  // Filter deals according to RBAC Matrix
+  const userVisiblePipeline = useMemo(() => {
+    return filterMockDeals(pipelineItems, currentUser);
+  }, [pipelineItems, currentUser]);
+
   // Calculations for KPIs
-  const totalClosedSek = pipelineItems
+  const totalClosedSek = userVisiblePipeline
     .filter(i => i.stage === 'closed_won')
     .reduce((sum, i) => sum + i.value_sek, 0);
 
-  const totalActivePipelineSek = pipelineItems
+  const totalActivePipelineSek = userVisiblePipeline
     .filter(i => i.stage !== 'closed_won')
     .reduce((sum, i) => sum + i.value_sek, 0);
 
@@ -213,7 +219,7 @@ export const CrmPipelineModule: React.FC<CrmPipelineModuleProps> = ({
   };
 
   // Filter items
-  const filteredPipeline = pipelineItems.filter(deal => {
+  const filteredPipeline = userVisiblePipeline.filter(deal => {
     const matchSearch = 
       deal.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       deal.client_company.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -222,6 +228,22 @@ export const CrmPipelineModule: React.FC<CrmPipelineModuleProps> = ({
     const matchStage = selectedStageFilter === 'ALL' || deal.stage === selectedStageFilter;
     return matchSearch && matchStage;
   });
+
+  if (currentUser.role === 'GUEST') {
+    return (
+      <div className="bg-white rounded-3xl border border-gray-200 p-8 sm:p-12 text-center space-y-4 shadow-xs">
+        <div className="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700 mx-auto">
+          <Briefcase className="w-7 h-7" />
+        </div>
+        <div className="space-y-1">
+          <h3 className="text-xl font-bold text-gray-900">Ingen tillgång till CRM & Deals</h3>
+          <p className="text-xs text-gray-500 max-w-md mx-auto">
+            CRM-pipelinen och B2B affärsmatchning är exklusivt för registrerade medlemmar (Brons, Silver, Guld). Skapa ett konto eller logga in för att registrera och följa dina affärer.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -266,14 +288,32 @@ export const CrmPipelineModule: React.FC<CrmPipelineModuleProps> = ({
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-lg font-bold text-gray-900 font-display">
-                    My Booster Pipeline – Medlemmens Privata Nätverks-CRM
+                    {currentUser.role === 'SUPER_ADMIN' || currentUser.is_admin
+                      ? 'Plattformens Affärspipeline (Super Admin)'
+                      : currentUser.role === 'HUB_HOST'
+                      ? `Hubb-pipeline (${currentUser.hub_name || 'Sin Hubb'})`
+                      : 'My Booster Pipeline – Medlemmens Privata Nätverks-CRM'}
                   </h2>
-                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-                    V4 Kravspec
+                  <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
+                    currentUser.role === 'SUPER_ADMIN' || currentUser.is_admin
+                      ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                      : currentUser.role === 'HUB_HOST'
+                      ? 'bg-slate-100 text-slate-900 border border-slate-300'
+                      : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                  }`}>
+                    {currentUser.role === 'SUPER_ADMIN' || currentUser.is_admin
+                      ? 'SUPER ADMIN (Alla Deals)'
+                      : currentUser.role === 'HUB_HOST'
+                      ? 'HUB HOST'
+                      : 'MEMBER (Egna Deals)'}
                   </span>
                 </div>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Spåra det kommersiella och relationella värdet av ditt medlemskap genom 5 verifierbara faser.
+                  {currentUser.role === 'SUPER_ADMIN' || currentUser.is_admin
+                    ? 'Full tillgång: Övervaka och bistå alla medlemmars pågående affärer och stängda kontrakt.'
+                    : currentUser.role === 'HUB_HOST'
+                    ? 'Hubb-vy: Överblick över affärsflödet kopplat till din tilldelade hubb.'
+                    : 'Spåra det kommersiella och relationella värdet av ditt medlemskap genom 5 verifierbara faser.'}
                 </p>
               </div>
             </div>
@@ -354,7 +394,7 @@ export const CrmPipelineModule: React.FC<CrmPipelineModuleProps> = ({
             <div className="flex items-center justify-between pt-1 border-t border-gray-200/80 text-[11px]">
               <span className="text-emerald-700 font-semibold flex items-center gap-1">
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                {pipelineItems.filter(i => i.stage === 'closed_won').length} stängda kontrakt
+                {userVisiblePipeline.filter(i => i.stage === 'closed_won').length} stängda kontrakt
               </span>
               <span className="text-gray-500">
                 Aktiv pipeline: {formatSek(totalActivePipelineSek)}
@@ -437,7 +477,7 @@ export const CrmPipelineModule: React.FC<CrmPipelineModuleProps> = ({
       {activeView === 'kanban' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3.5">
           {stages.map(stg => {
-            const itemsInStage = pipelineItems.filter(item => {
+            const itemsInStage = userVisiblePipeline.filter(item => {
               if (stg.id === 'meeting_done') {
                 return item.stage === 'meeting_done' || item.stage === 'contact';
               }
@@ -581,10 +621,10 @@ export const CrmPipelineModule: React.FC<CrmPipelineModuleProps> = ({
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              Alla Affärer ({pipelineItems.length})
+              Alla Affärer ({userVisiblePipeline.length})
             </button>
             {stages.map(stg => {
-              const count = pipelineItems.filter(i => {
+              const count = userVisiblePipeline.filter(i => {
                 const norm = i.stage === 'contact' ? 'meeting_done' : i.stage;
                 return norm === stg.id;
               }).length;
@@ -611,7 +651,7 @@ export const CrmPipelineModule: React.FC<CrmPipelineModuleProps> = ({
 
           {/* Cards List */}
           <div className="space-y-3">
-            {pipelineItems
+            {userVisiblePipeline
               .filter(i => {
                 const norm = i.stage === 'contact' ? 'meeting_done' : i.stage;
                 if (selectedMobileStage === 'ALL') return true;
@@ -729,7 +769,7 @@ export const CrmPipelineModule: React.FC<CrmPipelineModuleProps> = ({
                 onChange={e => setSelectedStageFilter(e.target.value)}
                 className="bg-white border border-gray-200 rounded-xl px-3 py-1.5 text-xs text-gray-800 font-semibold focus:outline-none"
               >
-                <option value="ALL">Alla faser ({pipelineItems.length})</option>
+                <option value="ALL">Alla faser ({userVisiblePipeline.length})</option>
                 <option value="lead">1. Lead</option>
                 <option value="intro_sent">2. Intro skickad</option>
                 <option value="meeting_done">3. 1-till-1 möte</option>

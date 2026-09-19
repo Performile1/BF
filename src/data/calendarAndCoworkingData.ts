@@ -800,6 +800,36 @@ export const INITIAL_COWORKING_BOOKINGS: CoworkingDeskBooking[] = [
     check_in_time: '08:30',
     check_in_method: 'GEO',
     created_at: '2026-09-04T08:15:00Z'
+  },
+  {
+    id: 'bk_elena_future',
+    hub_id: 'hub_goteborg',
+    hub_name: 'Hubb Göteborg Avenyn',
+    member_id: 'usr_elena_rostova',
+    member_name: 'Elena Rostova',
+    member_avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
+    member_company: 'SalesPeak Academy',
+    member_role: 'VD & Försäljningstränare',
+    competence_tags: ['B2B Säljträning', 'Keynote Speaker', 'Pipeline Byggande'],
+    booking_date: '2026-09-24',
+    slot_type: 'FULL_DAY',
+    is_checked_in: false,
+    created_at: '2026-09-12T10:00:00Z'
+  },
+  {
+    id: 'bk_amanda_future',
+    hub_id: 'hub_stockholm',
+    hub_name: 'Hubb Stockholm City',
+    member_id: 'usr_amanda_berg',
+    member_name: 'Amanda Berg',
+    member_avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
+    member_company: 'Studio North Creative',
+    member_role: 'Senior Brand Strategist & Designer',
+    competence_tags: ['Varumärkesidentitet', 'UX/UI', 'Design Sprint'],
+    booking_date: '2026-09-22',
+    slot_type: 'AM',
+    is_checked_in: false,
+    created_at: '2026-09-14T09:30:00Z'
   }
 ];
 
