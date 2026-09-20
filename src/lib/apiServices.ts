@@ -164,3 +164,25 @@ export async function processReferralSignup(newUserId: string, referrerId: strin
   }
   return { data, error };
 }
+
+/**
+ * Uppdatera profilbild via den strikta RPC-funktionen 'update_profile_avatar'.
+ * Funktionen validerar auth.uid() och kör SECURITY DEFINER på databassidan.
+ *
+ * @param avatarUrl Ny URL eller dataUrl för profilbilden
+ */
+export async function updateProfileAvatar(avatarUrl: string) {
+  if (!isSupabaseConfigured) {
+    console.info('[updateProfileAvatar] Demoläge - sparar avatar i lokalt tillstånd');
+    return { data: { success: true, avatar_url: avatarUrl }, error: null };
+  }
+
+  const { data, error } = await supabase.rpc('update_profile_avatar', {
+    p_avatar_url: avatarUrl
+  });
+
+  if (error) {
+    console.error('Kunde inte uppdatera profilbild via RPC:', error);
+  }
+  return { data, error };
+}

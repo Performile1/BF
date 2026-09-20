@@ -143,7 +143,8 @@ export default function App() {
     setCurrentUser, 
     isGuest, 
     signOut, 
-    isSupabaseOnline 
+    isSupabaseOnline,
+    updateProfile 
   } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
 
@@ -254,6 +255,9 @@ export default function App() {
     if (!currentUser) return;
     setCurrentUser(prev => (prev ? { ...prev, ...updatedData } : null));
     setMembers(prev => prev.map(m => m.id === currentUser.id ? { ...m, ...updatedData } : m));
+    updateProfile(updatedData).catch(err => {
+      console.warn('Fel vid synkning av profil via AuthContext:', err);
+    });
     handleAwardPoints(15, 'Uppdaterat profil och kompetenser', 'PROFILE_UPDATE');
   };
 

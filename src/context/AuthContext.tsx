@@ -3,9 +3,9 @@ import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import { Member, MembershipLevel } from '../types';
 import { CURRENT_USER, INITIAL_MEMBERS } from '../data/initialData';
 import { useAccountSecurityEnforcer } from '../hooks/useAccountSecurityEnforcer';
-import { deleteAccount, sendBroadcastCampaign, toggleSubscription, processReferralSignup, connectVCardFriend } from '../lib/apiServices';
+import { deleteAccount, sendBroadcastCampaign, toggleSubscription, processReferralSignup, connectVCardFriend, updateProfileAvatar } from '../lib/apiServices';
 
-export { useAccountSecurityEnforcer, deleteAccount, sendBroadcastCampaign, toggleSubscription, processReferralSignup, connectVCardFriend };
+export { useAccountSecurityEnforcer, deleteAccount, sendBroadcastCampaign, toggleSubscription, processReferralSignup, connectVCardFriend, updateProfileAvatar };
 
 export interface DemoProfiles {
   admin: Member;
@@ -587,16 +587,24 @@ export const AuthProvider: React.FC<{
 
     if (isSupabaseConfigured && currentUser.id) {
       try {
-        await supabase.from('profiles').update({
-          full_name: updates.full_name,
-          company_name: updates.company_name,
-          role_title: updates.role_title,
-          phone: updates.phone,
-          bio: updates.bio,
-          city: updates.city,
-          avatar_url: updates.avatar,
+        // Om profilbilden uppdateras, anropa den dedikerade och strikta RPC-funktionen update_profile_avatar
+        if (updates.avatar !== undefined) {
+          await updateProfileAvatar(updates.avatar);
+        }
+
+        // Övriga profilfält sparas till profiles
+        const profileUpdates: Record<string, any> = {
           updated_at: new Date().toISOString()
-        }).eq('id', currentUser.id);
+        };
+        if (updates.full_name !== undefined) profileUpdates.full_name = updates.full_name;
+        if (updates.company_name !== undefined) profileUpdates.company_name = updates.company_name;
+        if (updates.role_title !== undefined) profileUpdates.role_title = updates.role_title;
+        if (updates.phone !== undefined) profileUpdates.phone = updates.phone;
+        if (updates.bio !== undefined) profileUpdates.bio = updates.bio;
+        if (updates.city !== undefined) profileUpdates.city = updates.city;
+        if (updates.avatar !== undefined) profileUpdates.avatar_url = updates.avatar;
+
+        await supabase.from('profiles').update(profileUpdates).eq('id', currentUser.id);
       } catch (err) {
         console.warn('Supabase update profile error:', err);
       }
