@@ -124,9 +124,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBac
     }
   };
 
-  const handleQuickDemoSwitch = (tierKey: 'bronze' | 'silver' | 'gold') => {
+  const handleQuickDemoSwitch = (tierKey: 'admin' | 'gold' | 'silver' | 'bronze' | 'hub_host' | 'guest') => {
     switchDemoUser(tierKey);
-    setSuccessMsg(`Loggad in som demo-persona: ${demoProfiles[tierKey].full_name}`);
+    setSuccessMsg(`Loggad in som demo-persona: ${demoProfiles[tierKey]?.full_name || tierKey}`);
     setTimeout(onBackToApp, 300);
   };
 
@@ -502,20 +502,36 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBac
                 <span className="text-[9px] font-mono text-gray-400">1-klicks login</span>
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 <button
                   type="button"
-                  onClick={() => handleQuickDemoSwitch('bronze')}
-                  className="p-2 rounded-xl bg-white border border-gray-200 hover:border-orange-400 text-left transition flex items-center gap-1.5"
+                  onClick={() => handleQuickDemoSwitch('admin')}
+                  className="p-2 rounded-xl bg-white border-2 border-red-200 hover:border-red-500 text-left transition flex items-center gap-1.5 shadow-xs"
                 >
                   <img
-                    src={demoProfiles.bronze.avatar}
-                    alt={demoProfiles.bronze.full_name}
-                    className="w-6 h-6 rounded-full object-cover"
+                    src={demoProfiles.admin.avatar}
+                    alt={demoProfiles.admin.full_name}
+                    className="w-7 h-7 rounded-full object-cover ring-1 ring-red-400"
                   />
                   <div className="min-w-0">
-                    <div className="text-[10px] font-bold text-gray-900 truncate">Amanda</div>
-                    <div className="text-[8px] text-orange-700 font-bold uppercase">Brons</div>
+                    <div className="text-[10px] font-black text-gray-900 truncate">Rickard</div>
+                    <div className="text-[8px] text-red-700 font-extrabold uppercase">SUPER_ADMIN</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleQuickDemoSwitch('gold')}
+                  className="p-2 rounded-xl bg-white border border-amber-300 hover:border-amber-500 text-left transition flex items-center gap-1.5 shadow-xs"
+                >
+                  <img
+                    src={demoProfiles.gold.avatar}
+                    alt={demoProfiles.gold.full_name}
+                    className="w-7 h-7 rounded-full object-cover"
+                  />
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-bold text-gray-900 truncate">Johan</div>
+                    <div className="text-[8px] text-amber-700 font-bold uppercase">Guld (Kund)</div>
                   </div>
                 </button>
 
@@ -527,7 +543,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBac
                   <img
                     src={demoProfiles.silver.avatar}
                     alt={demoProfiles.silver.full_name}
-                    className="w-6 h-6 rounded-full object-cover"
+                    className="w-7 h-7 rounded-full object-cover"
                   />
                   <div className="min-w-0">
                     <div className="text-[10px] font-bold text-gray-900 truncate">Elena</div>
@@ -537,17 +553,47 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBac
 
                 <button
                   type="button"
-                  onClick={() => handleQuickDemoSwitch('gold')}
-                  className="p-2 rounded-xl bg-white border border-gray-200 hover:border-amber-400 text-left transition flex items-center gap-1.5"
+                  onClick={() => handleQuickDemoSwitch('bronze')}
+                  className="p-2 rounded-xl bg-white border border-gray-200 hover:border-orange-400 text-left transition flex items-center gap-1.5"
                 >
                   <img
-                    src={demoProfiles.gold.avatar}
-                    alt={demoProfiles.gold.full_name}
-                    className="w-6 h-6 rounded-full object-cover"
+                    src={demoProfiles.bronze.avatar}
+                    alt={demoProfiles.bronze.full_name}
+                    className="w-7 h-7 rounded-full object-cover"
                   />
                   <div className="min-w-0">
-                    <div className="text-[10px] font-bold text-gray-900 truncate">Rickard</div>
-                    <div className="text-[8px] text-amber-800 font-bold uppercase">Guld/VD</div>
+                    <div className="text-[10px] font-bold text-gray-900 truncate">Amanda</div>
+                    <div className="text-[8px] text-orange-700 font-bold uppercase">Brons</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleQuickDemoSwitch('hub_host')}
+                  className="p-2 rounded-xl bg-white border border-purple-200 hover:border-purple-400 text-left transition flex items-center gap-1.5"
+                >
+                  <img
+                    src={demoProfiles.hub_host.avatar}
+                    alt={demoProfiles.hub_host.full_name}
+                    className="w-7 h-7 rounded-full object-cover"
+                  />
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-bold text-gray-900 truncate">Hub Host</div>
+                    <div className="text-[8px] text-purple-700 font-bold uppercase">Host</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleQuickDemoSwitch('guest')}
+                  className="p-2 rounded-xl bg-white border border-gray-200 hover:border-gray-400 text-left transition flex items-center gap-1.5"
+                >
+                  <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-bold text-xs">
+                    G
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-bold text-gray-900 truncate">Besökare</div>
+                    <div className="text-[8px] text-gray-500 font-bold uppercase">Gäst</div>
                   </div>
                 </button>
               </div>

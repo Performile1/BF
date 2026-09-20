@@ -4,9 +4,10 @@ import { Member, MembershipLevel } from '../types';
 import { CURRENT_USER, INITIAL_MEMBERS } from '../data/initialData';
 
 export interface DemoProfiles {
-  bronze: Member;
-  silver: Member;
+  admin: Member;
   gold: Member;
+  silver: Member;
+  bronze: Member;
   hub_host: Member;
   guest: Member;
 }
@@ -43,16 +44,21 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const GUEST_MEMBER: Member = {
+  ...CURRENT_USER,
   id: 'usr_guest_demo',
   full_name: 'Besökare (Gäst)',
   email: 'gast@exempel.se',
+  phone: '+46 00 000 00 00',
   role: 'GUEST',
   is_admin: false,
   primary_hub_id: null,
+  hub_id: 'hub_stockholm',
+  hub_name: 'Hubb Stockholm City',
   company_name: 'Ej anslutet bolag',
   role_title: 'Oinloggad gäst',
   membership_level: 'BRONZE',
   booster_score: 0,
+  deals_closed_sek: 0,
   city: 'Stockholm',
   avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
   bio: 'Oinloggad gäst som utforskar Booster Friends-plattformen.',
@@ -61,18 +67,111 @@ const GUEST_MEMBER: Member = {
   created_at: new Date().toISOString()
 };
 
-const HUB_HOST_MEMBER = INITIAL_MEMBERS.find(m => m.role === 'HUB_HOST') || {
-  ...INITIAL_MEMBERS[1],
+const HUB_HOST_MEMBER: Member = {
+  ...(INITIAL_MEMBERS.find(m => m.role === 'HUB_HOST') || INITIAL_MEMBERS[1]),
   role: 'HUB_HOST',
+  is_admin: false,
   primary_hub_id: 'hub_stockholm',
   role_title: 'Hub Host Stockholm'
 };
 
-// Identified 5 archetypal demo personas for rapid 1-click B2B testing
-const DEMO_PROFILES: DemoProfiles = {
-  gold: CURRENT_USER, // Rickard Wigrund (Super Admin / Gold)
-  silver: INITIAL_MEMBERS.find(m => m.membership_level === 'SILVER') || INITIAL_MEMBERS[3], // Elena Rostova
-  bronze: INITIAL_MEMBERS.find(m => m.membership_level === 'BRONZE') || INITIAL_MEMBERS[5],  // Amanda Berg
+const SUPER_ADMIN_MEMBER: Member = {
+  ...CURRENT_USER,
+  id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+  email: 'rickard@wigrund.se',
+  full_name: 'Rickard Wigrund',
+  role: 'SUPER_ADMIN',
+  is_admin: true,
+  membership_level: 'GOLD',
+  booster_score: 2500,
+};
+
+const GOLD_CUSTOMER_MEMBER: Member = {
+  id: 'demo-gold-customer-id',
+  full_name: 'Johan Bergström',
+  email: 'johan@investment.se',
+  role: 'MEMBER',
+  is_admin: false,
+  membership_level: 'GOLD',
+  booster_score: 1450,
+  phone: '+46 70 889 91 12',
+  company_name: 'Bergström Capital Invest AB',
+  role_title: 'Managing Partner & Ängelinvesterare',
+  city: 'Stockholm',
+  hub_id: 'hub_stockholm',
+  hub_name: 'Hubb Stockholm City',
+  primary_hub_id: 'hub_stockholm',
+  avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+  bio: 'Guldmedlem och betalande kund inom Nordic Tech. Söker skalbara B2B SaaS-bolag och medinvesterare.',
+  seeking_tags: ['SaaS Series A', 'Co-investerare', 'Styrelseuppdrag'],
+  offering_tags: ['Tillväxtkapital', 'Skalningsrådgivning', 'Ängelnätverk'],
+  deals_closed_sek: 8500000,
+  referrals_sent: 28,
+  rating_avg: 4.9,
+  reviews_count: 22,
+  payment_status: 'PAID',
+  created_at: '2023-01-15T10:00:00Z'
+};
+
+const SILVER_MEMBER: Member = {
+  id: 'demo-silver-id',
+  full_name: 'Elena Rostova',
+  email: 'elena@growth.se',
+  role: 'MEMBER',
+  is_admin: false,
+  membership_level: 'SILVER',
+  booster_score: 840,
+  phone: '+46 73 988 77 66',
+  company_name: 'Growth Accelerate Nordic',
+  role_title: 'Senior Growth & Performance Lead',
+  city: 'Göteborg',
+  hub_id: 'hub_gbg',
+  hub_name: 'Hubb Göteborg Central',
+  primary_hub_id: 'hub_gbg',
+  avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+  bio: 'Silvermedlem. Hjälper tillväxtbolag att optimera säljtrattar och digital distribution.',
+  seeking_tags: ['B2B-kunder', 'Partnersamarbeten'],
+  offering_tags: ['Performance Marketing', 'Lead Generation', 'CRO'],
+  deals_closed_sek: 1850000,
+  referrals_sent: 16,
+  rating_avg: 4.8,
+  reviews_count: 15,
+  payment_status: 'PAID',
+  created_at: '2023-08-20T09:00:00Z'
+};
+
+const BRONZE_MEMBER: Member = {
+  id: 'demo-bronze-id',
+  full_name: 'Amanda Lind',
+  email: 'amanda@bolag.se',
+  role: 'MEMBER',
+  is_admin: false,
+  membership_level: 'BRONZE',
+  booster_score: 180,
+  phone: '+46 72 112 23 34',
+  company_name: 'Lind Creative Design',
+  role_title: 'UX/UI Designer & Varumärkesstrateg',
+  city: 'Stockholm',
+  hub_id: 'hub_stockholm',
+  hub_name: 'Hubb Stockholm City',
+  primary_hub_id: 'hub_stockholm',
+  avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
+  bio: 'Bronsmedlem. Passionerad designer med fokus på konvertering och modern digital produktupplevelse.',
+  seeking_tags: ['Designuppdrag', 'E-handlare', 'Startups'],
+  offering_tags: ['UI/UX Design', 'Design Systems', 'Branding'],
+  deals_closed_sek: 320000,
+  referrals_sent: 6,
+  rating_avg: 4.7,
+  reviews_count: 8,
+  payment_status: 'PAID',
+  created_at: '2024-03-10T14:00:00Z'
+};
+
+export const DEMO_PROFILES: DemoProfiles = {
+  admin: SUPER_ADMIN_MEMBER,
+  gold: GOLD_CUSTOMER_MEMBER,
+  silver: SILVER_MEMBER,
+  bronze: BRONZE_MEMBER,
   hub_host: HUB_HOST_MEMBER,
   guest: GUEST_MEMBER
 };
@@ -84,7 +183,7 @@ export const AuthProvider: React.FC<{
 }> = ({ children, initialUser, onUserChange }) => {
   const [session, setSession] = useState<any | null>(null);
   const [user, setUser] = useState<any | null>(null);
-  const [currentUser, setCurrentUserState] = useState<Member>(initialUser || DEMO_PROFILES.gold);
+  const [currentUser, setCurrentUserState] = useState<Member>(initialUser || DEMO_PROFILES.admin);
   const [isGuest, setIsGuest] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [isSupabaseOnline, setIsSupabaseOnline] = useState<boolean>(isSupabaseConfigured);
@@ -335,20 +434,34 @@ export const AuthProvider: React.FC<{
     }
   };
 
-  // 6. Switch Demo User (Bronze / Silver / Gold)
+  // 6. Switch Demo User (Admin / Gold / Silver / Bronze / Hub Host / Guest)
   const switchDemoUser = (memberIdOrTier: string) => {
     const tierLower = memberIdOrTier.toLowerCase();
-    if (tierLower === 'gold' || memberIdOrTier === DEMO_PROFILES.gold.id) {
+    if (tierLower === 'admin' || tierLower === 'super_admin' || memberIdOrTier === DEMO_PROFILES.admin.id) {
+      setCurrentUser(DEMO_PROFILES.admin);
+      setIsGuest(false);
+    } else if (tierLower === 'gold' || memberIdOrTier === DEMO_PROFILES.gold.id) {
       setCurrentUser(DEMO_PROFILES.gold);
+      setIsGuest(false);
     } else if (tierLower === 'silver' || memberIdOrTier === DEMO_PROFILES.silver.id) {
       setCurrentUser(DEMO_PROFILES.silver);
+      setIsGuest(false);
     } else if (tierLower === 'bronze' || memberIdOrTier === DEMO_PROFILES.bronze.id) {
       setCurrentUser(DEMO_PROFILES.bronze);
+      setIsGuest(false);
+    } else if (tierLower === 'hub_host' || memberIdOrTier === DEMO_PROFILES.hub_host.id) {
+      setCurrentUser(DEMO_PROFILES.hub_host);
+      setIsGuest(false);
+    } else if (tierLower === 'guest' || memberIdOrTier === DEMO_PROFILES.guest.id) {
+      setCurrentUser(DEMO_PROFILES.guest);
+      setIsGuest(true);
     } else {
       const found = INITIAL_MEMBERS.find(m => m.id === memberIdOrTier);
-      if (found) setCurrentUser(found);
+      if (found) {
+        setCurrentUser(found);
+      }
+      setIsGuest(false);
     }
-    setIsGuest(false);
   };
 
   // 7. Update profile

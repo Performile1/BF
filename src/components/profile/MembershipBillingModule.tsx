@@ -74,10 +74,11 @@ export const MembershipBillingModule: React.FC<MembershipBillingModuleProps> = (
   const [showPauseModal, setShowPauseModal] = useState(false);
 
   // Invoice modal view state
+  const [localInvoices, setLocalInvoices] = useState<InvoiceRecord[]>(invoices);
   const [viewingInvoice, setViewingInvoice] = useState<InvoiceRecord | null>(null);
   const userInvoices = useMemo(() => {
-    return filterMockInvoices(invoices, currentUser);
-  }, [invoices, currentUser]);
+    return filterMockInvoices(localInvoices, currentUser);
+  }, [localInvoices, currentUser]);
 
   const [notificationNotice, setNotificationNotice] = useState<string | null>(null);
 
@@ -146,7 +147,7 @@ export const MembershipBillingModule: React.FC<MembershipBillingModuleProps> = (
         vat_amount_sek: Math.round(proration.proratedAmount * 0.25),
         pdf_url: '#'
       };
-      setUserInvoices(prev => [newInv, ...prev]);
+      setLocalInvoices(prev => [newInv, ...prev]);
 
     } else {
       // Downgrade takes effect at next billing period

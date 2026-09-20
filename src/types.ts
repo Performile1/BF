@@ -93,7 +93,25 @@ export interface Member {
   };
 }
 
-export type UserRole = 'SUPER_ADMIN' | 'HUB_HOST' | 'MEMBER' | 'GUEST';
+export type UserRole = 'SUPER_ADMIN' | 'HUB_HOST' | 'MEMBER' | 'GUEST' | 'PROSPECT';
+
+export interface ProspectRecord {
+  id: string;
+  full_name: string;
+  email: string;
+  phone?: string;
+  company_name: string;
+  role_title: string;
+  hub_id: string;
+  hub_name: string;
+  trial_days: number;
+  trial_tier: MembershipLevel;
+  trial_ends_at: string;
+  status: 'INVITED' | 'ACTIVE_TRIAL' | 'CONVERTED' | 'EXPIRED';
+  onboarding_token: string;
+  created_at: string;
+  notes?: string;
+}
 
 /**
  * Profile definition matching Supabase `profiles` table and Frontend Member object.

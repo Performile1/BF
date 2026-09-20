@@ -1679,7 +1679,7 @@ export default function App() {
                     { id: 'promos', label: 'Kampanjer', icon: Tag },
                     { id: 'benefits', label: 'Förmåner', icon: Gift },
                     { id: 'profile_settings', label: 'Min Profil', icon: User },
-                    { id: 'admin', label: 'Admin', icon: Shield },
+                    ...(currentUser.role === 'SUPER_ADMIN' ? [{ id: 'admin', label: 'Admin', icon: Shield }] : []),
                     { id: 'architecture', label: 'Arkitektur', icon: ShieldCheck },
                   ].map(item => {
                     const IconComponent = item.icon;
@@ -1789,6 +1789,7 @@ export default function App() {
               activeTab={activeTab}
               setActiveTab={setActiveTab}
               unreadChatCount={unreadChatCount}
+              isAdmin={currentUser.role === 'SUPER_ADMIN'}
             />
 
             <main>

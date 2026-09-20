@@ -52,6 +52,7 @@ import { SAMPLE_QUIZ_QUESTIONS } from '../../data/initialData';
 import { AdZonesVisualGuide } from '../ads/AdZonesVisualGuide';
 import { AdminBillingAndRulesModule } from './AdminBillingAndRulesModule';
 import { AdminTrialSettings } from './AdminTrialSettings';
+import { AdminProspectImporter } from './AdminProspectImporter';
 
 interface AdminPortalModuleProps {
   currentUser: Member;
@@ -76,7 +77,38 @@ export const AdminPortalModule: React.FC<AdminPortalModuleProps> = ({
   quizQuestions = SAMPLE_QUIZ_QUESTIONS,
   onCreateQuizQuestion
 }) => {
-  const [activeAdminTab, setActiveAdminTab] = useState<'KPIS' | 'BILLING' | 'RULES' | 'APPLICATIONS' | 'BANNERS' | 'HUBS' | 'MEMBERS' | 'QUIZ' | 'TRIAL'>('KPIS');
+  // Strict RBAC Guard: Only SUPER_ADMIN can view or interact with the Admin Portal
+  if (currentUser.role !== 'SUPER_ADMIN') {
+    return (
+      <div className="max-w-2xl mx-auto my-12 bg-white rounded-3xl p-8 sm:p-10 border border-red-200 shadow-xl text-center space-y-6" id="admin-access-denied-screen">
+        <div className="w-16 h-16 rounded-2xl bg-red-50 text-red-700 border border-red-200 flex items-center justify-center mx-auto shadow-inner">
+          <Shield className="w-8 h-8" />
+        </div>
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-100 text-red-800 text-xs font-black">
+            Åtkomst Nekad • Endast Super Admin
+          </div>
+          <h2 className="text-2xl font-black text-gray-900 font-display">
+            Behörighetskontroll: Adminpanelen är låst
+          </h2>
+          <p className="text-xs sm:text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
+            Du är inloggad som <strong className="text-gray-900">{currentUser.full_name}</strong> med rollen <strong className="text-red-700">{currentUser.role}</strong> ({currentUser.membership_level} Member). Denna panel är uteslutande reserverad för användare med rollen <strong>SUPER_ADMIN</strong>.
+          </p>
+        </div>
+        <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200 text-left text-xs text-amber-900 space-y-1">
+          <div className="font-bold flex items-center gap-1.5 text-amber-950">
+            <Sparkles className="w-4 h-4 text-amber-600" />
+            Snabbtest i Demo-läge:
+          </div>
+          <p className="text-[11px] leading-relaxed">
+            För att komma åt och testa adminverktygen, använd demo-profilväljaren i sidhuvudet och växla till <strong>Rickard Wigrund (SUPER_ADMIN)</strong>.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const [activeAdminTab, setActiveAdminTab] = useState<'KPIS' | 'PROSPECTS' | 'BILLING' | 'RULES' | 'APPLICATIONS' | 'BANNERS' | 'HUBS' | 'MEMBERS' | 'QUIZ' | 'TRIAL'>('KPIS');
   const [applications, setApplications] = useState<AdminMemberApplication[]>(INITIAL_ADMIN_APPLICATIONS);
   const [bannerAds, setBannerAds] = useState<BannerAd[]>(INITIAL_BANNER_ADS);
   const [feedbackNotice, setFeedbackNotice] = useState<string | null>(null);
@@ -356,6 +388,21 @@ export const AdminPortalModule: React.FC<AdminPortalModuleProps> = ({
         </button>
 
         <button
+          onClick={() => setActiveAdminTab('PROSPECTS')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 shrink-0 ${
+            activeAdminTab === 'PROSPECTS'
+              ? 'bg-[#800020] text-white shadow-xs'
+              : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <UserPlus className="w-4 h-4" />
+          <span>Prospekts & Bulkimport</span>
+          <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-emerald-100 text-emerald-800 font-black">
+            Ny
+          </span>
+        </button>
+
+        <button
           onClick={() => setActiveAdminTab('BILLING')}
           className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 shrink-0 ${
             activeAdminTab === 'BILLING'
@@ -562,6 +609,16 @@ export const AdminPortalModule: React.FC<AdminPortalModuleProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* TAB: Prospekts & Bulkimport */}
+      {activeAdminTab === 'PROSPECTS' && (
+        <AdminProspectImporter
+          currentUser={currentUser}
+          hubs={hubs}
+          existingMembers={allMembers}
+          onCreateMember={onCreateMember}
+        />
       )}
 
       {/* TAB: Fakturering & Betalningsstatus (/admin/billing) & Booster Rules */}

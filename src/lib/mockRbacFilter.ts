@@ -4,7 +4,7 @@ import { MemberProfile } from '../types';
 export interface AuthContextUser {
   id: string;
   email: string;
-  role: 'SUPER_ADMIN' | 'HUB_HOST' | 'MEMBER' | 'GUEST';
+  role: 'SUPER_ADMIN' | 'HUB_HOST' | 'MEMBER' | 'GUEST' | 'PROSPECT';
   primary_hub_id?: string | null;
   membership_level: 'BRONZE' | 'SILVER' | 'GOLD';
 }
@@ -25,7 +25,7 @@ export function toAuthContextUser(user: any, isGuest?: boolean): AuthContextUser
   }
 
   // Derive role if not explicitly defined
-  let derivedRole: 'SUPER_ADMIN' | 'HUB_HOST' | 'MEMBER' | 'GUEST' = 'MEMBER';
+  let derivedRole: 'SUPER_ADMIN' | 'HUB_HOST' | 'MEMBER' | 'GUEST' | 'PROSPECT' = 'MEMBER';
   if (user.role) {
     derivedRole = user.role;
   } else if (user.is_admin || user.id === 'usr_rickard_wigrund') {
@@ -183,5 +183,5 @@ export function canManageSystemRules(currentUser: AuthContextUser | any | null):
 
 export function canAccessAdminPortal(currentUser: AuthContextUser | any | null): boolean {
   const user = currentUser?.role ? (currentUser as AuthContextUser) : toAuthContextUser(currentUser);
-  return user?.role === 'SUPER_ADMIN' || user?.role === 'HUB_HOST';
+  return user?.role === 'SUPER_ADMIN';
 }
