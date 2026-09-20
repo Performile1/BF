@@ -2,6 +2,9 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import { Member, MembershipLevel } from '../types';
 import { CURRENT_USER, INITIAL_MEMBERS } from '../data/initialData';
+import { useAccountSecurityEnforcer } from '../hooks/useAccountSecurityEnforcer';
+
+export { useAccountSecurityEnforcer };
 
 export interface DemoProfiles {
   admin: Member;
@@ -513,6 +516,9 @@ export const AuthProvider: React.FC<{
   };
 
   const signOut = logout;
+
+  // Real-time account security enforcement (listens to profiles table for status FROZEN / deletion)
+  useAccountSecurityEnforcer(currentUser, logout);
 
   // 6. Switch Demo User (Admin / Gold / Silver / Bronze / Hub Host / Guest)
   const switchDemoUser = (memberIdOrTier: string) => {

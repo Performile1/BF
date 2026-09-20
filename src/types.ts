@@ -79,6 +79,7 @@ export interface Member {
     url: string;
   }[];
   payment_status?: PaymentStatus;
+  account_status?: 'ACTIVE' | 'FROZEN' | 'DELETED' | string;
   billing_cycle?: 'MONTHLY' | 'ANNUAL';
   next_billing_date?: string;
   trial_ends_at?: string;
