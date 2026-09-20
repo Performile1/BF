@@ -1,6 +1,23 @@
 import { Member } from '../types';
 
-export function generateVCardString(member: Member): string {
+/**
+ * Returns the smart connect URL for a given member.
+ * When scanned by a mobile camera, this URL opens the web browser directly,
+ * evaluates whether the scanner is logged in or new, triggers the friend connection,
+ * and awards Booster Points.
+ */
+export function getConnectUrl(memberId: string): string {
+  if (typeof window !== 'undefined' && window.location.origin) {
+    return `${window.location.origin}/connect?ref=${encodeURIComponent(memberId)}`;
+  }
+  return `https://booster-friends.vercel.app/connect?ref=${encodeURIComponent(memberId)}`;
+}
+
+export type VCardMemberInput = Pick<Member, 'id' | 'full_name' | 'company_name' | 'role_title'> & Partial<Member>;
+
+export function generateVCardString(member: VCardMemberInput): string {
+  const connectUrl = getConnectUrl(member.id);
+
   const lines = [
     'BEGIN:VCARD',
     'VERSION:3.0',
@@ -9,13 +26,12 @@ export function generateVCardString(member: Member): string {
     `ORG:${member.company_name}`,
     `TITLE:${member.role_title}`,
     `TEL;TYPE=CELL,VOICE:${member.phone || '+46 70 000 00 00'}`,
-    `EMAIL;TYPE=INTERNET,WORK:${member.email}`,
+    `EMAIL;TYPE=INTERNET,WORK:${member.email || 'kontakt@boosterfriends.se'}`,
+    `URL:${connectUrl}`,
   ];
 
   if (member.linkedin_url && member.linkedin_url.trim() !== '') {
     lines.push(`URL;TYPE=LinkedIn:${member.linkedin_url.trim()}`);
-  } else {
-    lines.push('URL;TYPE=LinkedIn:https://boosterfriends.se');
   }
 
   if (member.website_url && member.website_url.trim() !== '') {
@@ -24,14 +40,14 @@ export function generateVCardString(member: Member): string {
 
   lines.push(
     `ADR;TYPE=WORK:;;${member.city || 'Stockholm'};;;;Sweden`,
-    `NOTE:Booster Friends B2B Nätverk - ${member.membership_level} Medlem (Booster Score: ${member.booster_score} BP)`,
+    `NOTE:Booster Friends B2B Nätverk - ${member.membership_level || 'GOLD'} Medlem (Booster Score: ${member.booster_score || 100} BP) • Connect: ${connectUrl}`,
     'END:VCARD'
   );
 
   return lines.join('\r\n');
 }
 
-export function downloadVCard(member: Member): void {
+export function downloadVCard(member: VCardMemberInput): void {
   if (typeof window === 'undefined') return;
   const vcard = generateVCardString(member);
   const blob = new Blob([vcard], { type: 'text/vcard;charset=utf-8' });

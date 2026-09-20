@@ -16,6 +16,9 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
+import { connectVCardFriend } from '../lib/apiServices';
+import { generateVCardString, downloadVCard } from '../utils/vcard';
+import { Member } from '../types';
 
 interface InviteLandingPageProps {
   onGoToAuth: (mode: 'login' | 'register') => void;
@@ -23,6 +26,7 @@ interface InviteLandingPageProps {
 }
 
 export const InviteLandingPage: React.FC<InviteLandingPageProps> = ({ onGoToAuth, onBackToApp }) => {
+  const { currentUser } = useAuth();
   const [inviter, setInviter] = useState<{
     id: string;
     fullName: string;
@@ -35,19 +39,20 @@ export const InviteLandingPage: React.FC<InviteLandingPageProps> = ({ onGoToAuth
     linkedinUrl?: string;
     membershipLevel: string;
   }>({
-    id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    id: 'usr_rickard_wigrund',
     fullName: 'Rickard Wigrund',
-    roleTitle: 'Grundare & Super Admin',
-    companyName: 'Booster Friends',
+    roleTitle: 'Key Account Manager / Co-Founder',
+    companyName: 'Performile',
     city: 'Göteborg',
     avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-    email: 'rickard@wigrund.se',
+    email: 'admin@performile.com',
     phone: '+46 70 123 45 67',
     linkedinUrl: 'https://linkedin.com/in/rickardwigrund',
     membershipLevel: 'GOLD'
   });
 
   const [loading, setLoading] = useState(true);
+  const [connectedFriendNotice, setConnectedFriendNotice] = useState<string | null>(null);
 
   useEffect(() => {
     // 1. Fånga parametrar från URL: t.ex. ?ref=UUID&name=Rickard+Wigrund
@@ -56,10 +61,15 @@ export const InviteLandingPage: React.FC<InviteLandingPageProps> = ({ onGoToAuth
     const paramName = params.get('name');
 
     if (refId) {
+      // Spara referrer_id i localStorage så det finns kvar även efter registrering/navigering
       localStorage.setItem('booster_referral_id', refId);
+      localStorage.setItem('booster_invite_ref', refId);
     }
 
-    async function loadInviter() {
+    async function evaluateUser() {
+      let resolvedInviterName = 'Rickard Wigrund';
+
+      // Hämta info om vem som delat kortet för trevlig UI-feedback från public.profiles
       if (refId && isSupabaseConfigured) {
         try {
           const { data, error } = await supabase
@@ -69,6 +79,7 @@ export const InviteLandingPage: React.FC<InviteLandingPageProps> = ({ onGoToAuth
             .single();
 
           if (data && !error) {
+            resolvedInviterName = data.full_name;
             setInviter({
               id: data.id,
               fullName: data.full_name,
@@ -79,45 +90,68 @@ export const InviteLandingPage: React.FC<InviteLandingPageProps> = ({ onGoToAuth
               email: data.email,
               phone: data.phone,
               linkedinUrl: data.linkedin_url,
-              membershipLevel: data.membership_level
+              membershipLevel: data.membership_level || 'GOLD'
             });
           }
         } catch (err) {
           console.warn('Kunde inte läsa inbjudare, använder URL/mock data', err);
         }
       } else if (paramName) {
-        setInviter(prev => ({ ...prev, fullName: decodeURIComponent(paramName) }));
+        resolvedInviterName = decodeURIComponent(paramName);
+        setInviter(prev => ({ ...prev, fullName: resolvedInviterName }));
       }
+
+      // 2. Kontrollera om den som skannar redan är inloggad
+      if (isSupabaseConfigured) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+
+          if (session?.user && refId && session.user.id !== refId) {
+            // Redan medlem och inloggad -> Lägg till som vän direkt via RPC connect_vcard_friend
+            const { error } = await connectVCardFriend(refId);
+
+            if (!error) {
+              localStorage.removeItem('booster_referral_id');
+              setConnectedFriendNotice(`🎉 Du har anslutit med ${resolvedInviterName} som vän via vCard! +20 Booster Points tilldelat.`);
+              setTimeout(() => {
+                onBackToApp();
+              }, 2500);
+            }
+          }
+        } catch (sessionErr) {
+          console.warn('Sessionskoll fel:', sessionErr);
+        }
+      } else if (currentUser && refId && currentUser.id !== refId) {
+        // Demoläge inloggad
+        localStorage.removeItem('booster_referral_id');
+        setConnectedFriendNotice(`🎉 (Demoläge) Du anslöt med ${resolvedInviterName}!`);
+        setTimeout(() => {
+          onBackToApp();
+        }, 2200);
+      }
+
       setLoading(false);
     }
 
-    loadInviter();
-  }, []);
+    evaluateUser();
+  }, [currentUser, onBackToApp]);
 
   // Ladda ner digitalt vCard direkt till mobilen/datorn
   const handleDownloadVCard = () => {
-    const vcard = [
-      'BEGIN:VCARD',
-      'VERSION:3.0',
-      `FN:${inviter.fullName}`,
-      `ORG:${inviter.companyName}`,
-      `TITLE:${inviter.roleTitle}`,
-      inviter.email ? `EMAIL;TYPE=INTERNET,WORK:${inviter.email}` : '',
-      inviter.phone ? `TEL;TYPE=CELL:${inviter.phone}` : '',
-      inviter.linkedinUrl ? `URL;TYPE=LinkedIn:${inviter.linkedinUrl}` : '',
-      inviter.city ? `ADR;TYPE=WORK:;;;${inviter.city};;Sweden` : '',
-      'NOTE:Ansluten via Booster Friends V12 B2B Community',
-      'END:VCARD'
-    ].filter(Boolean).join('\r\n');
-
-    const blob = new Blob([vcard], { type: 'text/vcard;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `${inviter.fullName.replace(/\s+/g, '_')}_kontakt.vcf`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    downloadVCard({
+      id: inviter.id,
+      full_name: inviter.fullName,
+      company_name: inviter.companyName,
+      role_title: inviter.roleTitle,
+      email: inviter.email || 'kontakt@boosterfriends.se',
+      phone: inviter.phone || '+46 70 000 00 00',
+      city: inviter.city,
+      linkedin_url: inviter.linkedinUrl,
+      membership_level: (inviter.membershipLevel as any) || 'GOLD',
+      booster_score: 500,
+      avatar: inviter.avatarUrl || '',
+      created_at: new Date().toISOString()
+    });
   };
 
   return (
@@ -144,6 +178,14 @@ export const InviteLandingPage: React.FC<InviteLandingPageProps> = ({ onGoToAuth
       <main className="max-w-4xl mx-auto px-4 py-8 sm:py-12 w-full flex-1 flex items-center justify-center">
         <div className="w-full bg-white rounded-3xl border border-gray-200 shadow-xl overflow-hidden">
           
+          {/* Notification banner if connected friend via RPC */}
+          {connectedFriendNotice && (
+            <div className="bg-emerald-600 text-white p-4 text-center text-xs font-bold flex items-center justify-center gap-2 animate-bounce">
+              <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+              <span>{connectedFriendNotice}</span>
+            </div>
+          )}
+
           {/* Hero Banner */}
           <div className="bg-gradient-to-br from-[#800020] via-[#70001c] to-[#4d0013] text-white p-8 text-center relative">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-amber-300 text-xs font-bold mb-4">

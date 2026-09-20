@@ -115,3 +115,52 @@ export async function deleteAccount(userId: string) {
     window.location.href = '/';
   }
 }
+
+/**
+ * Koppla samman vCard-vänskap direkt via RPC 'connect_vcard_friend'
+ * när en inloggad medlem skannar en annans vCard/QR-kod.
+ *
+ * @param referrerId ID för medlemmen som delade QR-koden / vCard
+ */
+export async function connectVCardFriend(referrerId: string) {
+  if (!isSupabaseConfigured) {
+    console.info('[connectVCardFriend] Demoläge - simulerar vänkoppling med:', referrerId);
+    return { error: null };
+  }
+
+  const { data, error } = await supabase.rpc('connect_vcard_friend', {
+    p_referrer_id: referrerId,
+  });
+
+  if (error) {
+    console.error('Kunde inte koppla vCard-vän:', error);
+  }
+  return { data, error };
+}
+
+/**
+ * Behandla referral-belöningar och kopplingar när en ny användare slutför registrering.
+ * Anropar databasens RPC 'process_referral_signup'.
+ *
+ * @param newUserId Nyregistrerade användarens ID
+ * @param referrerId Inbjudarens ID från localStorage ('booster_referral_id')
+ */
+export async function processReferralSignup(newUserId: string, referrerId: string) {
+  if (!isSupabaseConfigured) {
+    console.info('[processReferralSignup] Demoläge - simulerar referral-signup för:', {
+      newUserId,
+      referrerId
+    });
+    return { error: null };
+  }
+
+  const { data, error } = await supabase.rpc('process_referral_signup', {
+    p_new_user_id: newUserId,
+    p_referrer_id: referrerId,
+  });
+
+  if (error) {
+    console.error('Kunde inte processa referral signup:', error);
+  }
+  return { data, error };
+}

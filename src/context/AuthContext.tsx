@@ -3,9 +3,9 @@ import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import { Member, MembershipLevel } from '../types';
 import { CURRENT_USER, INITIAL_MEMBERS } from '../data/initialData';
 import { useAccountSecurityEnforcer } from '../hooks/useAccountSecurityEnforcer';
-import { deleteAccount, sendBroadcastCampaign, toggleSubscription } from '../lib/apiServices';
+import { deleteAccount, sendBroadcastCampaign, toggleSubscription, processReferralSignup, connectVCardFriend } from '../lib/apiServices';
 
-export { useAccountSecurityEnforcer, deleteAccount, sendBroadcastCampaign, toggleSubscription };
+export { useAccountSecurityEnforcer, deleteAccount, sendBroadcastCampaign, toggleSubscription, processReferralSignup, connectVCardFriend };
 
 export interface DemoProfiles {
   admin: Member;
@@ -462,6 +462,19 @@ export const AuthProvider: React.FC<{
           setCurrentUser(newMember);
           localStorage.setItem('booster_active_persona', newMember.id);
           setIsGuest(false);
+
+          // Bearbeta referral från vCard / inbjudningslänk om sådan sparades
+          const storedReferrerId = localStorage.getItem('booster_referral_id') || localStorage.getItem('booster_invite_ref');
+          if (storedReferrerId) {
+            try {
+              await processReferralSignup(data.user.id, storedReferrerId);
+            } catch (refErr) {
+              console.warn('Referral signup RPC notice:', refErr);
+            } finally {
+              localStorage.removeItem('booster_referral_id');
+              localStorage.removeItem('booster_invite_ref');
+            }
+          }
         }
         return { error: null };
       }
@@ -486,6 +499,15 @@ export const AuthProvider: React.FC<{
       setCurrentUser(newDemoMember);
       localStorage.setItem('booster_active_persona', 'bronze');
       setIsGuest(false);
+
+      // Rensa referral i demoläge
+      const storedDemoRef = localStorage.getItem('booster_referral_id') || localStorage.getItem('booster_invite_ref');
+      if (storedDemoRef) {
+        processReferralSignup(newDemoMember.id, storedDemoRef).catch(() => {});
+        localStorage.removeItem('booster_referral_id');
+        localStorage.removeItem('booster_invite_ref');
+      }
+
       return { error: null };
     } catch (err: any) {
       return { error: err };

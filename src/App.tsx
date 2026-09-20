@@ -134,7 +134,7 @@ import { InviteLandingPage } from './pages/InviteLandingPage';
 import { AuthPage } from './pages/AuthPage';
 import { useAuthRedirect } from './hooks/useAuthRedirect';
 import { useAuth } from './context/AuthContext';
-import { generateVCardString, downloadVCard } from './utils/vcard';
+import { generateVCardString, downloadVCard, getConnectUrl } from './utils/vcard';
 
 export default function App() {
   // Auth Context (Supabase Auth & Session State + Mock Fallback)
@@ -209,6 +209,7 @@ export default function App() {
   const [showMobileNotifications, setShowMobileNotifications] = useState(false);
   const [activeFabAction, setActiveFabAction] = useState<'MEETING' | 'INTRO' | 'FLEX' | 'DEAL' | null>(null);
   const [qrModalMember, setQrModalMember] = useState<Member | null>(null);
+  const [qrMode, setQrMode] = useState<'CONNECT_URL' | 'RAW_VCARD'>('CONNECT_URL');
   const [showScannerModal, setShowScannerModal] = useState(false);
 
   // V12 Lunch Requests & Follow State
@@ -2268,15 +2269,42 @@ export default function App() {
 
               {/* High-res styled QR code display */}
               <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 inline-block mx-auto">
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  <button
+                    onClick={() => setQrMode('CONNECT_URL')}
+                    className={`px-3 py-1 rounded-full text-[10px] font-black transition ${
+                      qrMode === 'CONNECT_URL'
+                        ? 'bg-[#800020] text-white shadow-xs'
+                        : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                    }`}
+                  >
+                    Smart Connect URL
+                  </button>
+                  <button
+                    onClick={() => setQrMode('RAW_VCARD')}
+                    className={`px-3 py-1 rounded-full text-[10px] font-black transition ${
+                      qrMode === 'RAW_VCARD'
+                        ? 'bg-[#800020] text-white shadow-xs'
+                        : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                    }`}
+                  >
+                    Rå vCard (.vcf)
+                  </button>
+                </div>
+
                 <img
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
-                    generateVCardString(qrModalMember)
+                    qrMode === 'CONNECT_URL'
+                      ? getConnectUrl(qrModalMember.id)
+                      : generateVCardString(qrModalMember)
                   )}`}
                   alt="QR Visitkort"
                   className="w-40 h-40 mx-auto rounded-xl mix-blend-multiply"
                 />
                 <p className="text-[10px] text-gray-500 mt-2 font-mono">
-                  Skanna för att spara kontakt direkt i mobilen
+                  {qrMode === 'CONNECT_URL'
+                    ? 'Mobilkameran öppnar /connect för direkt inloggning & vänner'
+                    : 'Mobilkameran sparar kontakt direkt i adressboken'}
                 </p>
               </div>
 
