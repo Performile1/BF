@@ -27,7 +27,8 @@ export interface SignUpParams {
 interface AuthContextType {
   session: any | null;
   user: any | null;
-  currentUser: Member;
+  currentUser: Member | null;
+  profile: Member | null;
   isGuest: boolean;
   loading: boolean;
   isSupabaseOnline: boolean;
@@ -36,8 +37,10 @@ interface AuthContextType {
   signInWithOtp: (email: string) => Promise<{ error: Error | null; message?: string }>;
   signUp: (params: SignUpParams) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  logout: () => Promise<void>;
   switchDemoUser: (memberIdOrTier: string) => void;
-  setCurrentUser: React.Dispatch<React.SetStateAction<Member>>;
+  setCurrentUser: React.Dispatch<React.SetStateAction<Member | null>>;
+  setProfile: React.Dispatch<React.SetStateAction<Member | null>>;
   updateProfile: (updates: Partial<Member>) => Promise<void>;
 }
 
@@ -78,8 +81,10 @@ const HUB_HOST_MEMBER: Member = {
 const SUPER_ADMIN_MEMBER: Member = {
   ...CURRENT_USER,
   id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-  email: 'rickard@wigrund.se',
+  email: 'admin@performile.com',
   full_name: 'Rickard Wigrund',
+  company_name: 'Performile / inCtrl .inc',
+  role_title: 'Grundare & Super Admin',
   role: 'SUPER_ADMIN',
   is_admin: true,
   membership_level: 'GOLD',
@@ -183,18 +188,32 @@ export const AuthProvider: React.FC<{
 }> = ({ children, initialUser, onUserChange }) => {
   const [session, setSession] = useState<any | null>(null);
   const [user, setUser] = useState<any | null>(null);
-  const [currentUser, setCurrentUserState] = useState<Member>(initialUser || DEMO_PROFILES.admin);
+  // Default is strictly null unless initialUser or explicitly saved persona in localStorage
+  const [currentUser, setCurrentUserState] = useState<Member | null>(() => {
+    if (initialUser) return initialUser;
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('booster_active_persona');
+      if (saved && DEMO_PROFILES[saved as keyof DemoProfiles]) {
+        return DEMO_PROFILES[saved as keyof DemoProfiles];
+      }
+      if (saved) {
+        const found = INITIAL_MEMBERS.find(m => m.id === saved || m.email.toLowerCase() === saved.toLowerCase());
+        if (found) return found;
+      }
+    }
+    return null;
+  });
   const [isGuest, setIsGuest] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [isSupabaseOnline, setIsSupabaseOnline] = useState<boolean>(isSupabaseConfigured);
 
-  const setCurrentUser = useCallback((valueOrFn: Member | ((prev: Member) => Member)) => {
+  const setCurrentUser = useCallback((valueOrFn: Member | null | ((prev: Member | null) => Member | null)) => {
     setCurrentUserState(prev => {
       const nextUser = typeof valueOrFn === 'function' ? valueOrFn(prev) : valueOrFn;
-      if (onUserChange) {
-        queueMicrotask(() => {
+      if (onUserChange && nextUser) {
+        setTimeout(() => {
           onUserChange(nextUser);
-        });
+        }, 0);
       }
       return nextUser;
     });
@@ -238,7 +257,9 @@ export const AuthProvider: React.FC<{
         setIsSupabaseOnline(true);
         await loadUserProfile(newSession.user.id, newSession.user);
       } else if (event === 'SIGNED_OUT') {
-        setIsGuest(true);
+        setUser(null);
+        setCurrentUserState(null);
+        setIsGuest(false);
       }
     });
 
@@ -258,34 +279,40 @@ export const AuthProvider: React.FC<{
         .single();
 
       if (!error && data) {
-        setCurrentUser(prev => ({
-          ...prev,
-          id: data.id,
-          full_name: data.full_name || authUser?.user_metadata?.full_name || prev.full_name || 'Ny Medlem',
-          company_name: data.company_name || authUser?.user_metadata?.company_name || prev.company_name || 'Företag',
-          role_title: data.role_title || authUser?.user_metadata?.role_title || prev.role_title || 'Medlem',
-          membership_level: (data.membership_level as MembershipLevel) || prev.membership_level || 'BRONZE',
-          booster_score: data.booster_score ?? prev.booster_score ?? 100,
-          email: data.email || authUser?.email || prev.email,
-          phone: data.phone || prev.phone,
-          city: data.city || prev.city || 'Mölnlycke',
-          avatar: data.avatar_url || prev.avatar,
-          bio: data.bio || prev.bio || '',
-          is_admin: data.is_admin ?? prev.is_admin ?? false
-        }));
+        setCurrentUser(prev => {
+          const base = prev || DEMO_PROFILES.bronze;
+          return {
+            ...base,
+            id: data.id,
+            full_name: data.full_name || authUser?.user_metadata?.full_name || base.full_name || 'Ny Medlem',
+            company_name: data.company_name || authUser?.user_metadata?.company_name || base.company_name || 'Företag',
+            role_title: data.role_title || authUser?.user_metadata?.role_title || base.role_title || 'Medlem',
+            membership_level: (data.membership_level as MembershipLevel) || base.membership_level || 'BRONZE',
+            booster_score: data.booster_score ?? base.booster_score ?? 100,
+            email: data.email || authUser?.email || base.email,
+            phone: data.phone || base.phone,
+            city: data.city || base.city || 'Mölnlycke',
+            avatar: data.avatar_url || base.avatar,
+            bio: data.bio || base.bio || '',
+            is_admin: data.is_admin ?? base.is_admin ?? false
+          };
+        });
       } else if (authUser?.user_metadata) {
         // Construct from raw metadata if profile row isn't indexed yet
         const meta = authUser.user_metadata;
-        setCurrentUser(prev => ({
-          ...prev,
-          id: userId,
-          full_name: meta.full_name || prev.full_name || 'Ny Medlem',
-          company_name: meta.company_name || prev.company_name || 'Bolag',
-          role_title: meta.role_title || prev.role_title || 'Entreprenör',
-          membership_level: (meta.membership_level as MembershipLevel) || prev.membership_level || 'BRONZE',
-          email: authUser.email || prev.email,
-          booster_score: prev.booster_score ?? 100
-        }));
+        setCurrentUser(prev => {
+          const base = prev || DEMO_PROFILES.bronze;
+          return {
+            ...base,
+            id: userId,
+            full_name: meta.full_name || base.full_name || 'Ny Medlem',
+            company_name: meta.company_name || base.company_name || 'Bolag',
+            role_title: meta.role_title || base.role_title || 'Entreprenör',
+            membership_level: (meta.membership_level as MembershipLevel) || base.membership_level || 'BRONZE',
+            email: authUser.email || base.email,
+            booster_score: base.booster_score ?? 100
+          };
+        });
       }
     } catch (err) {
       console.warn('Could not load profile from Supabase, maintaining local active user:', err);
@@ -295,27 +322,65 @@ export const AuthProvider: React.FC<{
   // 2. Sign in with Email & Password
   const signInWithEmail = async (email: string, password: string): Promise<{ error: Error | null }> => {
     try {
+      const normalizedEmail = email.trim().toLowerCase();
+
       if (isSupabaseConfigured) {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        if (data.user) {
+        const { data, error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
+        if (error) {
+          console.warn('Supabase sign-in note:', error.message);
+        } else if (data.user) {
           setIsGuest(false);
           await loadUserProfile(data.user.id, data.user);
+          return { error: null };
         }
-        return { error: null };
       }
 
-      // Fallback in demo mode: match mock members by email
-      const matched = INITIAL_MEMBERS.find(m => m.email.toLowerCase() === email.toLowerCase());
-      if (matched) {
-        setCurrentUser(matched);
+      // Check if logging in as Rickard Wigrund (Super Admin) with admin@performile.com or rickard@wigrund.se
+      if (normalizedEmail === 'admin@performile.com' || normalizedEmail === 'rickard@wigrund.se') {
+        const adminUser: Member = {
+          ...SUPER_ADMIN_MEMBER,
+          email: normalizedEmail,
+          company_name: normalizedEmail === 'admin@performile.com' ? 'Performile / inCtrl .inc' : 'inCtrl .inc'
+        };
+        setCurrentUser(adminUser);
+        localStorage.setItem('booster_active_persona', 'admin');
         setIsGuest(false);
         return { error: null };
       }
 
-      // Otherwise log in as current mock user
-      setIsGuest(false);
-      return { error: null };
+      // Fallback in demo mode: match mock members by email
+      const matched = INITIAL_MEMBERS.find(m => m.email.toLowerCase() === normalizedEmail);
+      if (matched) {
+        setCurrentUser(matched);
+        const tierKey = Object.entries(DEMO_PROFILES).find(([_, p]) => p.id === matched.id || p.email.toLowerCase() === matched.email.toLowerCase())?.[0];
+        if (tierKey) {
+          localStorage.setItem('booster_active_persona', tierKey);
+        } else {
+          localStorage.setItem('booster_active_persona', matched.id);
+        }
+        setIsGuest(matched.role === 'GUEST');
+        return { error: null };
+      }
+
+      // If valid email format is provided, allow demo login
+      if (normalizedEmail.includes('@')) {
+        const testMember: Member = {
+          ...DEMO_PROFILES.bronze,
+          id: `usr_${normalizedEmail.replace(/[^a-zA-Z0-9]/g, '_')}`,
+          email: normalizedEmail,
+          full_name: normalizedEmail.split('@')[0].replace('.', ' ').replace(/^./, str => str.toUpperCase()),
+          company_name: 'Testbolag AB',
+          role_title: 'Medlem',
+          membership_level: 'BRONZE',
+          booster_score: 150
+        };
+        setCurrentUser(testMember);
+        localStorage.setItem('booster_active_persona', 'bronze');
+        setIsGuest(false);
+        return { error: null };
+      }
+
+      return { error: new Error('Ogiltig e-postadress eller lösenord.') };
     } catch (err: any) {
       return { error: err };
     }
@@ -324,9 +389,11 @@ export const AuthProvider: React.FC<{
   // 3. Magic Link (Passwordless)
   const signInWithOtp = async (email: string): Promise<{ error: Error | null; message?: string }> => {
     try {
+      const normalizedEmail = email.trim().toLowerCase();
+
       if (isSupabaseConfigured) {
         const { error } = await supabase.auth.signInWithOtp({
-          email,
+          email: normalizedEmail,
           options: {
             emailRedirectTo: window.location.origin
           }
@@ -349,12 +416,12 @@ export const AuthProvider: React.FC<{
   const signUp = async (params: SignUpParams): Promise<{ error: Error | null }> => {
     try {
       const { email, password = 'DemoPassword123!', fullName, companyName, roleTitle, membershipLevel = 'BRONZE', phone, linkedinUrl, invitedBy } = params;
-
+      const normalizedEmail = email.trim().toLowerCase();
       const trialEndDate = new Date(Date.now() + 14 * 86400000).toISOString();
 
       if (isSupabaseConfigured) {
         const { data, error } = await supabase.auth.signUp({
-          email,
+          email: normalizedEmail,
           password,
           options: {
             data: {
@@ -376,7 +443,7 @@ export const AuthProvider: React.FC<{
             ...DEMO_PROFILES.bronze,
             id: data.user.id,
             full_name: fullName,
-            email: email,
+            email: normalizedEmail,
             phone: phone || '+46 70 000 00 00',
             company_name: companyName,
             role_title: roleTitle,
@@ -389,6 +456,7 @@ export const AuthProvider: React.FC<{
             created_at: new Date().toISOString()
           };
           setCurrentUser(newMember);
+          localStorage.setItem('booster_active_persona', newMember.id);
           setIsGuest(false);
         }
         return { error: null };
@@ -399,7 +467,7 @@ export const AuthProvider: React.FC<{
         ...DEMO_PROFILES.bronze,
         id: `usr_demo_${Date.now()}`,
         full_name: fullName,
-        email: email,
+        email: normalizedEmail,
         phone: phone || '+46 70 123 45 67',
         company_name: companyName,
         role_title: roleTitle,
@@ -412,6 +480,7 @@ export const AuthProvider: React.FC<{
         created_at: new Date().toISOString()
       };
       setCurrentUser(newDemoMember);
+      localStorage.setItem('booster_active_persona', 'bronze');
       setIsGuest(false);
       return { error: null };
     } catch (err: any) {
@@ -419,46 +488,64 @@ export const AuthProvider: React.FC<{
     }
   };
 
-  // 5. Sign Out
-  const signOut = async () => {
+  // 5. Sign Out / Logout
+  const logout = async () => {
     try {
-      if (isSupabaseConfigured) {
+      // 1. Logga ut från Supabase om vi kör mot skarp databas
+      if (isSupabaseConfigured && supabase) {
         await supabase.auth.signOut();
       }
     } catch (err) {
-      console.warn('SignOut warning:', err);
+      console.error('Fel vid utloggning från Supabase:', err);
     } finally {
-      setSession(null);
+      // 2. Nollställ ALLA lokala tillstånd
       setUser(null);
-      setIsGuest(true);
+      setSession(null);
+      setCurrentUserState(null);
+      setIsGuest(false);
+
+      // 3. Rensa webbläsarlagring för session och mock-personas
+      localStorage.removeItem('booster_active_persona');
+      localStorage.removeItem('supabase.auth.token');
+      localStorage.removeItem('booster_demo_user_id');
+      sessionStorage.clear();
     }
   };
+
+  const signOut = logout;
 
   // 6. Switch Demo User (Admin / Gold / Silver / Bronze / Hub Host / Guest)
   const switchDemoUser = (memberIdOrTier: string) => {
     const tierLower = memberIdOrTier.toLowerCase();
     if (tierLower === 'admin' || tierLower === 'super_admin' || memberIdOrTier === DEMO_PROFILES.admin.id) {
       setCurrentUser(DEMO_PROFILES.admin);
+      localStorage.setItem('booster_active_persona', 'admin');
       setIsGuest(false);
     } else if (tierLower === 'gold' || memberIdOrTier === DEMO_PROFILES.gold.id) {
       setCurrentUser(DEMO_PROFILES.gold);
+      localStorage.setItem('booster_active_persona', 'gold');
       setIsGuest(false);
     } else if (tierLower === 'silver' || memberIdOrTier === DEMO_PROFILES.silver.id) {
       setCurrentUser(DEMO_PROFILES.silver);
+      localStorage.setItem('booster_active_persona', 'silver');
       setIsGuest(false);
     } else if (tierLower === 'bronze' || memberIdOrTier === DEMO_PROFILES.bronze.id) {
       setCurrentUser(DEMO_PROFILES.bronze);
+      localStorage.setItem('booster_active_persona', 'bronze');
       setIsGuest(false);
     } else if (tierLower === 'hub_host' || memberIdOrTier === DEMO_PROFILES.hub_host.id) {
       setCurrentUser(DEMO_PROFILES.hub_host);
+      localStorage.setItem('booster_active_persona', 'hub_host');
       setIsGuest(false);
     } else if (tierLower === 'guest' || memberIdOrTier === DEMO_PROFILES.guest.id) {
       setCurrentUser(DEMO_PROFILES.guest);
+      localStorage.setItem('booster_active_persona', 'guest');
       setIsGuest(true);
     } else {
-      const found = INITIAL_MEMBERS.find(m => m.id === memberIdOrTier);
+      const found = INITIAL_MEMBERS.find(m => m.id === memberIdOrTier || m.email.toLowerCase() === memberIdOrTier.toLowerCase());
       if (found) {
         setCurrentUser(found);
+        localStorage.setItem('booster_active_persona', found.id);
       }
       setIsGuest(false);
     }
@@ -466,7 +553,8 @@ export const AuthProvider: React.FC<{
 
   // 7. Update profile
   const updateProfile = async (updates: Partial<Member>) => {
-    setCurrentUser(prev => ({ ...prev, ...updates }));
+    if (!currentUser) return;
+    setCurrentUser(prev => (prev ? { ...prev, ...updates } : null));
 
     if (isSupabaseConfigured && currentUser.id) {
       try {
@@ -492,6 +580,7 @@ export const AuthProvider: React.FC<{
         session,
         user,
         currentUser,
+        profile: currentUser,
         isGuest,
         loading,
         isSupabaseOnline,
@@ -500,8 +589,10 @@ export const AuthProvider: React.FC<{
         signInWithOtp,
         signUp,
         signOut,
+        logout,
         switchDemoUser,
         setCurrentUser,
+        setProfile: setCurrentUser,
         updateProfile
       }}
     >

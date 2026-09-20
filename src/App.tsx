@@ -143,11 +143,9 @@ export default function App() {
     setCurrentUser, 
     isGuest, 
     signOut, 
-    isSupabaseOnline: authSupabaseOnline 
+    isSupabaseOnline 
   } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
-  const [supabaseSession, setSupabaseSession] = useState<any>(null);
-  const [isSupabaseOnline, setIsSupabaseOnline] = useState<boolean>(isSupabaseConfigured);
 
   // Application State
   const [hubs, setHubs] = useState<Hub[]>(INITIAL_HUBS);
@@ -180,25 +178,25 @@ export default function App() {
   const [showExpiredTrialModal, setShowExpiredTrialModal] = useState(false);
 
   useEffect(() => {
-    if (currentUser.payment_status === 'TRIAL' && currentUser.trial_ends_at) {
+    if (currentUser?.payment_status === 'TRIAL' && currentUser?.trial_ends_at) {
       const isPast = new Date(currentUser.trial_ends_at).getTime() < Date.now();
       if (isPast) {
         // Schedule state update safely outside the render cycle
         const timer = setTimeout(() => {
-          setCurrentUser(prev => ({ ...prev, payment_status: 'DUE' }));
+          setCurrentUser(prev => (prev ? { ...prev, payment_status: 'DUE' } : null));
           setShowExpiredTrialModal(true);
         }, 0);
         return () => clearTimeout(timer);
       }
-    } else if (currentUser.payment_status === 'DUE' && !showExpiredTrialModal) {
+    } else if (currentUser?.payment_status === 'DUE' && !showExpiredTrialModal) {
       const timer = setTimeout(() => {
         setShowExpiredTrialModal(true);
       }, 0);
       return () => clearTimeout(timer);
     }
-  }, [currentUser.payment_status, currentUser.trial_ends_at, setCurrentUser, showExpiredTrialModal]);
+  }, [currentUser?.payment_status, currentUser?.trial_ends_at, setCurrentUser, showExpiredTrialModal]);
 
-  const trialDaysRemaining = currentUser.trial_ends_at
+  const trialDaysRemaining = currentUser?.trial_ends_at
     ? Math.max(0, Math.ceil((new Date(currentUser.trial_ends_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
     : 14;
 
@@ -233,16 +231,17 @@ export default function App() {
   ]);
 
   const handleFollowToggle = (targetMemberId: string) => {
+    if (!currentUser) return;
     const currentFollowing = currentUser.following_member_ids || [];
     const isFollowing = currentFollowing.includes(targetMemberId);
     const updatedFollowing = isFollowing
       ? currentFollowing.filter(id => id !== targetMemberId)
       : [...currentFollowing, targetMemberId];
 
-    setCurrentUser(prev => ({
+    setCurrentUser(prev => (prev ? {
       ...prev,
       following_member_ids: updatedFollowing
-    }));
+    } : null));
     setMembers(prev => prev.map(m => m.id === currentUser.id ? { ...m, following_member_ids: updatedFollowing } : m));
 
     if (!isFollowing) {
@@ -251,12 +250,14 @@ export default function App() {
   };
 
   const handleUpdateProfile = (updatedData: Partial<Member>) => {
-    setCurrentUser(prev => ({ ...prev, ...updatedData }));
+    if (!currentUser) return;
+    setCurrentUser(prev => (prev ? { ...prev, ...updatedData } : null));
     setMembers(prev => prev.map(m => m.id === currentUser.id ? { ...m, ...updatedData } : m));
     handleAwardPoints(15, 'Uppdaterat profil och kompetenser', 'PROFILE_UPDATE');
   };
 
   const handleSendLunchRequest = (request: Partial<LunchRequest>) => {
+    if (!currentUser) return;
     const fullRequest: LunchRequest = {
       id: `lunch_${Date.now()}`,
       sender_id: currentUser.id,
@@ -282,27 +283,10 @@ export default function App() {
   const [isLocationPingModalOpen, setIsLocationPingModalOpen] = useState(false);
 
   // =========================================================================
-  // SUPABASE INTEGRATION: Auth, Session & Realtime Subscriptions
+  // SUPABASE INTEGRATION: Realtime Subscriptions & Initial Fetch
   // =========================================================================
   useEffect(() => {
-    // 1. Initialize Supabase Auth Session & Listener
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (!error && session) {
-        setSupabaseSession(session);
-        setIsSupabaseOnline(true);
-      }
-    }).catch(err => {
-      console.warn('Supabase auth getSession warning:', err);
-    });
-
-    const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSupabaseSession(session);
-        setIsSupabaseOnline(true);
-      }
-    );
-
-    // 2. Fetch initial ticker events from Supabase if configured
+    // 1. Fetch initial ticker events from Supabase if configured
     const fetchInitialData = async () => {
       try {
         const { data: tickerData, error: tickerErr } = await supabase
@@ -418,19 +402,15 @@ export default function App() {
           }
         }
       )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          setIsSupabaseOnline(true);
-        }
-      });
+      .subscribe();
 
     return () => {
-      authSubscription.unsubscribe();
       supabase.removeChannel(realtimeChannel);
     };
   }, []);
 
   const handleUpdateLocationStatus = (status: Partial<MemberActiveLocation>) => {
+    if (!currentUser) return;
     setMemberLocations(prev => {
       const existingIdx = prev.findIndex(l => l.member_id === currentUser.id);
       if (existingIdx >= 0) {
@@ -478,6 +458,7 @@ export default function App() {
     suggested_location: string;
     custom_message?: string;
   }) => {
+    if (!currentUser) return;
     const newPing: ProximityPing = {
       id: `ping_${Date.now()}`,
       sender_member_id: currentUser.id,
@@ -580,8 +561,8 @@ export default function App() {
   const [promoCodes, setPromoCodes] = useState<PromoCode[]>(INITIAL_PROMO_CODES);
   const [trialPasses, setTrialPasses] = useState<FreeTrialPass[]>(INITIAL_TRIAL_PASSES);
   const [memberCredits, setMemberCredits] = useState<MemberCoworkingCredits>(
-    INITIAL_COWORKING_CREDITS[currentUser.id] || {
-      member_id: currentUser.id,
+    (currentUser?.id && INITIAL_COWORKING_CREDITS[currentUser.id]) || {
+      member_id: currentUser?.id || 'usr_default',
       included_monthly_quota: 5,
       used_monthly_quota: 1,
       purchased_extra_credits: 3,
@@ -851,17 +832,17 @@ export default function App() {
       return ev;
     }));
 
-    setCurrentUser(prev => ({
+    setCurrentUser(prev => (prev ? {
       ...prev,
-      booster_score: prev.booster_score + 35
-    }));
+      booster_score: (prev.booster_score || 0) + 35
+    } : null));
   };
 
   const handleCheckInEvent = (eventId: string) => {
-    setCurrentUser(prev => ({
+    setCurrentUser(prev => (prev ? {
       ...prev,
-      booster_score: prev.booster_score + 50
-    }));
+      booster_score: (prev.booster_score || 0) + 50
+    } : null));
   };
 
   const handleCreateGuestPass = (guestData: { guest_name: string; guest_email: string; guest_company: string; target_hub: string; target_date: string }) => {
@@ -900,8 +881,8 @@ export default function App() {
 
   const handleUpdateMemberLevel = (memberId: string, level: 'BRONZE' | 'SILVER' | 'GOLD') => {
     setMembers(prev => prev.map(m => m.id === memberId ? { ...m, membership_level: level } : m));
-    if (currentUser.id === memberId) {
-      setCurrentUser(prev => ({ ...prev, membership_level: level }));
+    if (currentUser?.id === memberId) {
+      setCurrentUser(prev => (prev ? { ...prev, membership_level: level } : null));
     }
   };
 
@@ -984,12 +965,10 @@ export default function App() {
 
   // V4 Gamification Actions
   const handleAwardPoints = (points: number, title: string, activityType: ActivityType) => {
-    setCurrentUser(prev => {
-      const updatedScore = prev.booster_score + points;
-      const updatedUser = { ...prev, booster_score: updatedScore };
-      setMembers(mList => mList.map(m => m.id === prev.id ? { ...m, booster_score: updatedScore } : m));
-      return updatedUser;
-    });
+    if (!currentUser) return;
+    const updatedScore = (currentUser.booster_score || 0) + points;
+    setCurrentUser(prev => (prev ? { ...prev, booster_score: updatedScore } : null));
+    setMembers(mList => mList.map(m => m.id === currentUser.id ? { ...m, booster_score: updatedScore } : m));
 
     const newLog: BoosterScoreLog = {
       id: 'log_' + Date.now(),
@@ -1003,11 +982,9 @@ export default function App() {
   };
 
   const handleSimulateScore = (targetScore: number) => {
-    setCurrentUser(prev => {
-      const updatedUser = { ...prev, booster_score: targetScore };
-      setMembers(mList => mList.map(m => m.id === prev.id ? { ...m, booster_score: targetScore } : m));
-      return updatedUser;
-    });
+    if (!currentUser) return;
+    setCurrentUser(prev => (prev ? { ...prev, booster_score: targetScore } : null));
+    setMembers(mList => mList.map(m => m.id === currentUser.id ? { ...m, booster_score: targetScore } : m));
   };
 
   // V5 Academy Actions
@@ -1447,7 +1424,8 @@ export default function App() {
     );
   }
 
-  if (activeTab === 'auth') {
+  // Om ingen profil finns eller om användaren loggat ut, visa inloggning/demo-väljaren
+  if (activeTab === 'auth' || !currentUser) {
     return (
       <AuthPage
         initialMode={authMode}

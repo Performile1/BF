@@ -102,8 +102,22 @@ export const CURRENT_USER: Member = {
   ]
 };
 
+export const PERFORMILE_ADMIN_MEMBER: Member = {
+  ...CURRENT_USER,
+  id: 'usr_rickard_performile',
+  email: 'admin@performile.com',
+  full_name: 'Rickard Wigrund',
+  role: 'SUPER_ADMIN',
+  is_admin: true,
+  company_name: 'Performile / inCtrl .inc',
+  role_title: 'Grundare & Super Admin',
+  membership_level: 'GOLD',
+  booster_score: 2500,
+};
+
 export const INITIAL_MEMBERS: Member[] = [
   CURRENT_USER,
+  PERFORMILE_ADMIN_MEMBER,
   {
     id: 'usr_sofia_eklund',
     full_name: 'Sofia Eklund',

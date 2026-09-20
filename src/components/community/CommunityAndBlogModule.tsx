@@ -190,18 +190,15 @@ export const CommunityAndBlogModule: React.FC<CommunityAndBlogModuleProps> = ({
 
   // Toggle Follow Handler
   const handleToggleFollow = (memberId: string, memberName: string) => {
-    setFollowingMemberIds(prev => {
-      const isFollowing = prev.includes(memberId);
-      if (isFollowing) {
-        setFeedbackNotice(`Avföljer ${memberName}.`);
-        setTimeout(() => setFeedbackNotice(null), 2500);
-        return prev.filter(id => id !== memberId);
-      } else {
-        setFeedbackNotice(`🔔 Du följer nu ${memberName}! Du får notiser när personen publicerar artiklar eller bokar flexplatser.`);
-        setTimeout(() => setFeedbackNotice(null), 4000);
-        return [...prev, memberId];
-      }
-    });
+    const isFollowing = followingMemberIds.includes(memberId);
+    if (isFollowing) {
+      setFeedbackNotice(`Avföljer ${memberName}.`);
+      setFollowingMemberIds(prev => prev.filter(id => id !== memberId));
+    } else {
+      setFeedbackNotice(`🔔 Du följer nu ${memberName}! Du får notiser när personen publicerar artiklar eller bokar flexplatser.`);
+      setFollowingMemberIds(prev => [...prev, memberId]);
+    }
+    setTimeout(() => setFeedbackNotice(null), 3000);
   };
 
   // Filter posts

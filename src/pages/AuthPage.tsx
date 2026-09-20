@@ -29,6 +29,7 @@ interface AuthPageProps {
 
 export const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBackToApp }) => {
   const { 
+    currentUser,
     signInWithEmail, 
     signInWithOtp, 
     signUp, 
@@ -136,11 +137,18 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBac
       <header className="bg-white border-b border-gray-200 py-4 px-6 sticky top-0 z-30 shadow-xs">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <button
-            onClick={onBackToApp}
+            onClick={() => {
+              if (currentUser) {
+                onBackToApp();
+              } else {
+                switchDemoUser('guest');
+                onBackToApp();
+              }
+            }}
             className="flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#800020] transition"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Tillbaka till översikten</span>
+            <span>{currentUser ? 'Tillbaka till översikten' : 'Utforska som gäst'}</span>
           </button>
 
           <div className="flex items-center gap-2">
@@ -342,6 +350,13 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBac
                       </>
                     )}
                   </button>
+
+                  <div className="text-[11px] text-gray-500 bg-gray-50 p-2.5 rounded-xl border border-gray-100 flex flex-col gap-1">
+                    <span className="font-semibold text-gray-700">Testkonton:</span>
+                    <div>👑 Super Admin: <span className="font-mono text-gray-900 font-bold">admin@performile.com</span></div>
+                    <div>🥇 Guldmedlem: <span className="font-mono text-gray-900">johan@investment.se</span></div>
+                    <span className="text-[10px] text-gray-400">Valfritt lösenord fungerar i demoläge.</span>
+                  </div>
                 </form>
               )}
 
@@ -514,7 +529,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBac
                     className="w-7 h-7 rounded-full object-cover ring-1 ring-red-400"
                   />
                   <div className="min-w-0">
-                    <div className="text-[10px] font-black text-gray-900 truncate">Rickard</div>
+                    <div className="text-[10px] font-black text-gray-900 truncate">Rickard W.</div>
                     <div className="text-[8px] text-red-700 font-extrabold uppercase">SUPER_ADMIN</div>
                   </div>
                 </button>
