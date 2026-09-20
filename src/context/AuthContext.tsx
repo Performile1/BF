@@ -3,8 +3,9 @@ import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import { Member, MembershipLevel } from '../types';
 import { CURRENT_USER, INITIAL_MEMBERS } from '../data/initialData';
 import { useAccountSecurityEnforcer } from '../hooks/useAccountSecurityEnforcer';
+import { deleteAccount, sendBroadcastCampaign, toggleSubscription } from '../lib/apiServices';
 
-export { useAccountSecurityEnforcer };
+export { useAccountSecurityEnforcer, deleteAccount, sendBroadcastCampaign, toggleSubscription };
 
 export interface DemoProfiles {
   admin: Member;

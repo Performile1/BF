@@ -22,13 +22,15 @@ import {
   MessageCircle,
   ExternalLink,
   Zap,
-  Info
+  Info,
+  Bell
 } from 'lucide-react';
 import { Member, CommunityPost, PostComment, CommunityPollOption } from '../../types';
 import { INITIAL_COMMUNITY_POSTS } from '../../data/communityAndMatchmakingData';
 import { CreatePostModal } from './CreatePostModal';
 import { AdBannerEngine } from '../ads/AdBannerEngine';
 import { LinkedInShareButton } from '../common/LinkedInShareButton';
+import { toggleSubscription } from '../../lib/apiServices';
 
 interface CommunityAndBlogModuleProps {
   currentUser: Member;
@@ -60,6 +62,8 @@ export const CommunityAndBlogModule: React.FC<CommunityAndBlogModuleProps> = ({
   
   // Following list state (member IDs)
   const [followingMemberIds, setFollowingMemberIds] = useState<string[]>(['usr_2', 'usr_3']);
+  // Subscribed tags state (tag names)
+  const [subscribedTags, setSubscribedTags] = useState<string[]>(['Fintech', 'SaaS']);
 
   // Calculate Voter Upvote Multiplier based on current user tier and relationship
   const getVoterWeight = (authorId: string) => {
@@ -188,9 +192,11 @@ export const CommunityAndBlogModule: React.FC<CommunityAndBlogModuleProps> = ({
     setTimeout(() => setFeedbackNotice(null), 5000);
   };
 
-  // Toggle Follow Handler
-  const handleToggleFollow = (memberId: string, memberName: string) => {
+  // Toggle Follow Handler (B. Sätt en bevakning på person)
+  const handleToggleFollow = async (memberId: string, memberName: string) => {
     const isFollowing = followingMemberIds.includes(memberId);
+    const nextActive = !isFollowing;
+
     if (isFollowing) {
       setFeedbackNotice(`Avföljer ${memberName}.`);
       setFollowingMemberIds(prev => prev.filter(id => id !== memberId));
@@ -198,7 +204,36 @@ export const CommunityAndBlogModule: React.FC<CommunityAndBlogModuleProps> = ({
       setFeedbackNotice(`🔔 Du följer nu ${memberName}! Du får notiser när personen publicerar artiklar eller bokar flexplatser.`);
       setFollowingMemberIds(prev => [...prev, memberId]);
     }
+
+    try {
+      await toggleSubscription(currentUser.id, 'PERSON', memberId, nextActive);
+    } catch (err) {
+      console.warn('Notification subscription error:', err);
+    }
+
     setTimeout(() => setFeedbackNotice(null), 3000);
+  };
+
+  // Toggle Tag Subscription Handler (B. Sätt en bevakning på en tagg)
+  const handleToggleTagSubscription = async (tag: string) => {
+    const isSubscribed = subscribedTags.includes(tag);
+    const nextActive = !isSubscribed;
+
+    if (isSubscribed) {
+      setFeedbackNotice(`Tog bort bevakning på taggen #${tag}.`);
+      setSubscribedTags(prev => prev.filter(t => t !== tag));
+    } else {
+      setFeedbackNotice(`🔔 Du bevakar nu taggen #${tag}! Du notifieras vid nya diskussioner och artiklar.`);
+      setSubscribedTags(prev => [...prev, tag]);
+    }
+
+    try {
+      await toggleSubscription(currentUser.id, 'TAG', tag, nextActive);
+    } catch (err) {
+      console.warn('Tag subscription error:', err);
+    }
+
+    setTimeout(() => setFeedbackNotice(null), 3500);
   };
 
   // Filter posts
@@ -570,12 +605,27 @@ export const CommunityAndBlogModule: React.FC<CommunityAndBlogModuleProps> = ({
                 )}
 
                 {/* Tags */}
-                <div className="flex flex-wrap gap-1.5">
-                  {post.tags.map((t, idx) => (
-                    <span key={idx} className="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-700 text-[11px] font-medium">
-                      #{t}
-                    </span>
-                  ))}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {post.tags.map((t, idx) => {
+                    const isSubscribed = subscribedTags.includes(t);
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => handleToggleTagSubscription(t)}
+                        title={isSubscribed ? `Avsluta bevakning av #${t}` : `Bevaka tagg #${t} (få notiser)`}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition flex items-center gap-1 group ${
+                          isSubscribed
+                            ? 'bg-amber-100 text-amber-900 border border-amber-300 font-bold'
+                            : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                        }`}
+                      >
+                        <Tag className="w-2.5 h-2.5 opacity-70" />
+                        <span>#{t}</span>
+                        <Bell className={`w-2.5 h-2.5 transition ${isSubscribed ? 'text-amber-800 fill-current' : 'opacity-0 group-hover:opacity-100 text-gray-500'}`} />
+                      </button>
+                    );
+                  })}
                 </div>
 
                 {/* Reactions & Action Bar with Weighted Voting Engine */}

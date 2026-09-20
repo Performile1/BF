@@ -1,0 +1,117 @@
+import { supabase, isSupabaseConfigured } from './supabaseClient';
+
+/**
+ * A. Gör ett utskick till Prospects eller Alla
+ * Anropar databasens RPC 'send_broadcast'
+ *
+ * @param title Kampanjrubrik
+ * @param body Kampanjtext
+ * @param audience Målgrupp: 'ALL' | 'PROSPECTS' | 'MEMBERS'
+ * @returns campaign_id från databasen
+ */
+export async function sendBroadcastCampaign(
+  title: string, 
+  body: string, 
+  audience: 'ALL' | 'PROSPECTS' | 'MEMBERS'
+) {
+  if (!isSupabaseConfigured) {
+    console.info('[sendBroadcastCampaign] Supabase ej konfigurerad i produktionsläge. Returnerar simulerad ID:', {
+      title,
+      body,
+      audience
+    });
+    return 'sim_broadcast_' + Date.now();
+  }
+
+  const { data, error } = await supabase.rpc('send_broadcast', {
+    p_title: title,
+    p_body: body,
+    p_target_audience: audience,
+    p_channel: 'IN_APP',
+  });
+
+  if (error) {
+    console.error('Kunde inte skicka broadcast:', error);
+    throw error;
+  }
+  return data; // Returnerar campaign_id
+}
+
+/**
+ * B. Sätt en bevakning på en tagg eller person
+ * Lägger till eller tar bort rad i notification_subscriptions
+ *
+ * @param userId Användarens ID
+ * @param type Prenumerationstyp ('TAG' | 'TOPIC' | 'PERSON')
+ * @param targetId Målets ID (t.ex. tagg-namn eller användar-id)
+ * @param active true för att aktivera bevakning, false för att ta bort den
+ */
+export async function toggleSubscription(
+  userId: string, 
+  type: 'TAG' | 'TOPIC' | 'PERSON', 
+  targetId: string, 
+  active: boolean
+) {
+  if (!isSupabaseConfigured) {
+    console.info('[toggleSubscription] Demoläge - sparar bevakning lokalt:', {
+      userId,
+      type,
+      targetId,
+      active
+    });
+    return { data: null, error: null };
+  }
+
+  if (active) {
+    return await supabase.from('notification_subscriptions').insert({
+      user_id: userId,
+      subscription_type: type,
+      target_id: targetId,
+    });
+  } else {
+    return await supabase
+      .from('notification_subscriptions')
+      .delete()
+      .eq('user_id', userId)
+      .eq('subscription_type', type)
+      .eq('target_id', targetId);
+  }
+}
+
+/**
+ * C. Radera konto helt (GDPR)
+ * Anropar RPC 'delete_user_account', loggar ut, rensar browser storage och redirectar
+ *
+ * @param userId Mål-användarens ID som ska raderas
+ */
+export async function deleteAccount(userId: string) {
+  if (isSupabaseConfigured && !userId.startsWith('demo-') && !userId.startsWith('usr_')) {
+    const { error } = await supabase.rpc('delete_user_account', {
+      p_target_user_id: userId
+    });
+    
+    if (error) {
+      console.error('Fel vid radering av användarkonto:', error);
+      throw error;
+    }
+  } else {
+    console.info('[deleteAccount] Demo- eller lokalprofil raderas:', userId);
+  }
+  
+  try {
+    await supabase.auth.signOut();
+  } catch (e) {
+    console.warn('Utloggningsnotis vid radering:', e);
+  }
+
+  try {
+    localStorage.clear();
+    sessionStorage.clear();
+  } catch (e) {
+    console.warn('Storage clear fel:', e);
+  }
+
+  if (typeof window !== 'undefined') {
+    window.location.href = '/';
+  }
+}

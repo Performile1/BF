@@ -24,8 +24,10 @@ import {
   Building2,
   ChevronRight,
   Info,
-  AlertCircle
+  AlertCircle,
+  Trash2
 } from 'lucide-react';
+import { deleteAccount } from '../../lib/apiServices';
 import { 
   Member, 
   MembershipLevel, 
@@ -81,6 +83,18 @@ export const MembershipBillingModule: React.FC<MembershipBillingModuleProps> = (
   }, [localInvoices, currentUser]);
 
   const [notificationNotice, setNotificationNotice] = useState<string | null>(null);
+  const [showGdprDeleteModal, setShowGdprDeleteModal] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+
+  const handleExecuteGdprDelete = async () => {
+    setIsDeletingAccount(true);
+    try {
+      await deleteAccount(currentUser.id);
+    } catch (err: any) {
+      alert('Kunde inte radera konto: ' + (err?.message || 'Ett oväntat fel inträffade.'));
+      setIsDeletingAccount(false);
+    }
+  };
 
   // Current active package definition
   const currentPkg = packages.find(p => p.level === currentUser.membership_level) || packages[2];
@@ -626,6 +640,89 @@ export const MembershipBillingModule: React.FC<MembershipBillingModuleProps> = (
           </div>
         )}
       </div>
+
+      {/* GDPR INTEGRITET & KONTONEDLÄGGNING */}
+      <div className="bg-white rounded-3xl p-6 border border-rose-100 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Trash2 className="w-4 h-4 text-rose-600" />
+              <h3 className="text-sm font-bold text-gray-900">Integritet & Radering av konto (GDPR)</h3>
+            </div>
+            <p className="text-xs text-gray-500 max-w-xl">
+              Enligt GDPR kan du när som helst radera ditt konto och samtliga tillhörande profiluppgifter permanent från Booster Friends plattform.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowGdprDeleteModal(true)}
+            className="px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-xs font-bold transition flex items-center justify-center gap-2 flex-shrink-0"
+          >
+            <Trash2 className="w-4 h-4 text-rose-600" />
+            <span>Radera konto permanent (GDPR)</span>
+          </button>
+        </div>
+      </div>
+
+      {/* GDPR CONFIRMATION MODAL */}
+      {showGdprDeleteModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl border border-gray-200">
+            <div className="flex items-center gap-3 text-rose-600">
+              <div className="w-10 h-10 rounded-2xl bg-rose-50 flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-rose-600" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-gray-900">Radera ditt konto helt?</h3>
+                <p className="text-xs text-rose-600 font-semibold">Oåterkallelig åtgärd (GDPR)</p>
+              </div>
+            </div>
+
+            <div className="p-4 bg-rose-50/70 rounded-2xl border border-rose-100 space-y-2 text-xs text-rose-900">
+              <p className="font-semibold">Detta kommer att genomföra följande:</p>
+              <ul className="list-disc pl-4 space-y-1 text-rose-800 text-[11px]">
+                <li>Ditt konto och din profil tas permanent bort från databasen.</li>
+                <li>Alla aktiva sessioner och lokal webbläsarlagring rensas.</li>
+                <li>Eventuella aktiva medlemskap och notifieringsbevakningar avslutas.</li>
+              </ul>
+            </div>
+
+            <p className="text-xs text-gray-600">
+              Är du säker på att du vill radera kontot för <strong>{currentUser.email}</strong>?
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                disabled={isDeletingAccount}
+                onClick={() => setShowGdprDeleteModal(false)}
+                className="px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold transition disabled:opacity-50"
+              >
+                Avbryt
+              </button>
+              <button
+                type="button"
+                disabled={isDeletingAccount}
+                onClick={handleExecuteGdprDelete}
+                className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition flex items-center gap-2 disabled:opacity-50 shadow-sm"
+              >
+                {isDeletingAccount ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Raderar...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Ja, radera mitt konto</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* STRIPE CHECKOUT / PRORATION MODAL */}
       {showStripeModal && (

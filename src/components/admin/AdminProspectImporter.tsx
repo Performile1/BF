@@ -23,6 +23,7 @@ import {
   UserCheck
 } from 'lucide-react';
 import { Member, Hub, MembershipLevel, ProspectRecord } from '../../types';
+import { sendBroadcastCampaign } from '../../lib/apiServices';
 
 interface AdminProspectImporterProps {
   currentUser: Member;
@@ -99,8 +100,14 @@ export const AdminProspectImporter: React.FC<AdminProspectImporterProps> = ({
   onImportProspects,
   onCreateMember
 }) => {
-  // Mode: list vs bulk import form vs single add
-  const [activeSubView, setActiveSubView] = useState<'list' | 'bulk_import' | 'manual_add'>('bulk_import');
+  // Mode: list vs bulk import form vs single add vs broadcast
+  const [activeSubView, setActiveSubView] = useState<'list' | 'bulk_import' | 'manual_add' | 'broadcast'>('bulk_import');
+
+  // Broadcast state
+  const [broadcastTitle, setBroadcastTitle] = useState('');
+  const [broadcastBody, setBroadcastBody] = useState('');
+  const [broadcastAudience, setBroadcastAudience] = useState<'ALL' | 'PROSPECTS' | 'MEMBERS'>('PROSPECTS');
+  const [isSendingBroadcast, setIsSendingBroadcast] = useState(false);
 
   // Prospect list state
   const [prospects, setProspects] = useState<ProspectRecord[]>(INITIAL_PROSPECTS);
@@ -192,6 +199,34 @@ export const AdminProspectImporter: React.FC<AdminProspectImporterProps> = ({
     setTimeout(() => {
       setNotificationMsg(null);
     }, 4500);
+  };
+
+  // Send Broadcast Campaign handler (RPC send_broadcast)
+  const handleSendBroadcast = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!broadcastTitle.trim() || !broadcastBody.trim()) {
+      showNotification('Vänligen fyll i både rubrik och meddelandetext.', 'error');
+      return;
+    }
+
+    setIsSendingBroadcast(true);
+    try {
+      const campaignId = await sendBroadcastCampaign(
+        broadcastTitle.trim(),
+        broadcastBody.trim(),
+        broadcastAudience
+      );
+      showNotification(
+        `Utskick skickat till målgrupp ${broadcastAudience === 'ALL' ? 'Alla' : broadcastAudience === 'PROSPECTS' ? 'Prospekts' : 'Medlemmar'}! (ID: ${campaignId || 'Kampanj sparad'})`,
+        'success'
+      );
+      setBroadcastTitle('');
+      setBroadcastBody('');
+    } catch (err: any) {
+      showNotification('Kunde inte skicka utskick: ' + (err?.message || 'Ett fel uppstod.'), 'error');
+    } finally {
+      setIsSendingBroadcast(false);
+    }
   };
 
   // Copy onboarding magic link
@@ -511,6 +546,18 @@ export const AdminProspectImporter: React.FC<AdminProspectImporterProps> = ({
           >
             <Plus className="w-4 h-4" />
             <span>Lägg till enskild</span>
+          </button>
+
+          <button
+            onClick={() => setActiveSubView('broadcast')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+              activeSubView === 'broadcast'
+                ? 'bg-[#800020] text-white shadow-xs'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <Send className="w-4 h-4" />
+            <span>Skicka utskick (RPC)</span>
           </button>
 
           <button
@@ -1057,6 +1104,109 @@ export const AdminProspectImporter: React.FC<AdminProspectImporterProps> = ({
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {/* VIEW 4: BROADCAST CAMPAIGN (RPC send_broadcast) */}
+      {activeSubView === 'broadcast' && (
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-200 shadow-sm space-y-6 max-w-3xl">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-50 text-[#800020] text-xs font-bold">
+              <Send className="w-3.5 h-3.5" />
+              <span>Broadcast Engine • RPC send_broadcast</span>
+            </div>
+            <h3 className="text-lg font-black text-gray-900 font-display">
+              Skicka In-App utskick till Prospekts, Medlemmar eller Alla
+            </h3>
+            <p className="text-xs text-gray-500">
+              Utskicket skickas och distribueras i realtid via Supabase Database Function (<code className="bg-gray-100 px-1 py-0.5 rounded text-[11px]">send_broadcast</code>).
+            </p>
+          </div>
+
+          <form onSubmit={handleSendBroadcast} className="space-y-4">
+            {/* Audience selection */}
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                Målgrupp för utskick
+              </label>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { key: 'PROSPECTS', label: 'Prospekts & Trials', desc: 'Bara potentiella medlemmar' },
+                  { key: 'MEMBERS', label: 'Aktiva Medlemmar', desc: 'Brons, Silver & Guld' },
+                  { key: 'ALL', label: 'Alla Användare', desc: 'Hela nätverket' }
+                ].map(item => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => setBroadcastAudience(item.key as any)}
+                    className={`p-3 rounded-2xl border text-left transition flex flex-col justify-between ${
+                      broadcastAudience === item.key
+                        ? 'border-[#800020] bg-rose-50/50 text-[#800020] shadow-xs'
+                        : 'border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    <span className="text-xs font-black">{item.label}</span>
+                    <span className="text-[10px] text-gray-500 mt-1">{item.desc}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Campaign title */}
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">
+                Rubrik på meddelandet
+              </label>
+              <input
+                type="text"
+                required
+                value={broadcastTitle}
+                onChange={e => setBroadcastTitle(e.target.value)}
+                placeholder="T.ex. Exklusiv inbjudan till nästa veckas Founder Afterwork!"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-900 focus:ring-2 focus:ring-[#800020] outline-hidden"
+              />
+            </div>
+
+            {/* Campaign body */}
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">
+                Meddelandetext (Brödtext)
+              </label>
+              <textarea
+                rows={5}
+                required
+                value={broadcastBody}
+                onChange={e => setBroadcastBody(e.target.value)}
+                placeholder="Skriv informationen som ska visas som en in-app push och notifiering..."
+                className="w-full p-3 rounded-xl border border-gray-200 text-xs text-gray-900 focus:ring-2 focus:ring-[#800020] outline-hidden"
+              />
+            </div>
+
+            <div className="pt-2 flex items-center justify-between">
+              <div className="text-[11px] text-gray-400 flex items-center gap-1">
+                <Sparkles className="w-3.5 h-3.5 text-[#800020]" />
+                <span>Kanal: IN_APP notifiering & feed banner</span>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSendingBroadcast}
+                className="px-6 py-2.5 rounded-xl bg-[#800020] hover:bg-[#600018] text-white text-xs font-bold transition flex items-center gap-2 shadow-sm disabled:opacity-50"
+              >
+                {isSendingBroadcast ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Skickar via RPC...</span>
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-3.5 h-3.5" />
+                    <span>Skicka Utskick Direkt</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>
