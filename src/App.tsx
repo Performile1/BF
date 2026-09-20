@@ -58,6 +58,7 @@ import { CommunityAndBlogModule } from './components/community/CommunityAndBlogM
 import { AdminPortalModule } from './components/admin/AdminPortalModule';
 import { ProfileSettingsAndDirectoryModule } from './components/profile/ProfileSettingsAndDirectoryModule';
 import { CustomizableBentoDashboard } from './components/dashboard/CustomizableBentoDashboard';
+import { MaintenanceGate } from './components/dashboard/MaintenanceGate';
 import { WebMeetingModal } from './components/calendar/WebMeetingModal';
 import { AdBannerEngine } from './components/ads/AdBannerEngine';
 import { QrScannerModal } from './components/common/QrScannerModal';
@@ -1440,7 +1441,11 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F4F5F7] text-[#1F2937] font-sans antialiased">
+    <MaintenanceGate 
+      currentUser={currentUser}
+      onOpenAuth={() => setActiveTab('auth')}
+    >
+      <div className="min-h-screen bg-[#F4F5F7] text-[#1F2937] font-sans antialiased">
       
       {/* Top Main Navigation & Hub Header */}
       <Header
@@ -2474,8 +2479,8 @@ export default function App() {
         )}
 
       </div>
-
     </div>
+    </MaintenanceGate>
   );
 
   // Helper to render the active module
