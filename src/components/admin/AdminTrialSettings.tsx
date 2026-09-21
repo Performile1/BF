@@ -10,6 +10,7 @@ import {
   Plus
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../../lib/supabaseClient';
+import { AdminInspect } from '../dev/AdminInspect';
 
 export interface AdminTrialSettingsProps {
   onExtendTrialMember?: (memberId: string, newEndDate: string) => void;
@@ -161,7 +162,13 @@ export const AdminTrialSettings: React.FC<AdminTrialSettingsProps> = ({ onExtend
   };
 
   return (
-    <div className="space-y-6">
+    <AdminInspect
+      component="AdminTrialSettings.tsx"
+      sourceTable="public.system_settings / profiles"
+      columns={['default_trial_days', 'trial_ends_at', 'payment_status']}
+      notes="Konfiguration av provperiodslängd och förlängning av medlemmars testperiod"
+    >
+      <div className="space-y-6">
       {/* Global Konfiguration */}
       <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-xs">
         <div className="flex items-center gap-3 mb-4">
@@ -264,5 +271,6 @@ export const AdminTrialSettings: React.FC<AdminTrialSettingsProps> = ({ onExtend
         )}
       </div>
     </div>
+    </AdminInspect>
   );
 };

@@ -58,7 +58,12 @@ import { CommunityAndBlogModule } from './components/community/CommunityAndBlogM
 import { AdminPortalModule } from './components/admin/AdminPortalModule';
 import { ProfileSettingsAndDirectoryModule } from './components/profile/ProfileSettingsAndDirectoryModule';
 import { CustomizableBentoDashboard } from './components/dashboard/CustomizableBentoDashboard';
+import { DashboardGrid } from './components/dashboard/DashboardGrid';
 import { MaintenanceGate } from './components/dashboard/MaintenanceGate';
+import { InspectorProvider } from './components/dev/InspectorContext';
+import { DevHudDock } from './components/dev/DevHudDock';
+import { usePermissions } from './hooks/usePermissions';
+import { CommunityPage } from './components/community/CommunityPage';
 import { WebMeetingModal } from './components/calendar/WebMeetingModal';
 import { AdBannerEngine } from './components/ads/AdBannerEngine';
 import { QrScannerModal } from './components/common/QrScannerModal';
@@ -147,7 +152,19 @@ export default function App() {
     isSupabaseOnline,
     updateProfile 
   } = useAuth();
+  const { isSuperAdmin: userHasAdminRole } = usePermissions();
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
+
+  // Expanded Super Admin access detection (Email, Role, Flag)
+  const hasAdminAccess = Boolean(
+    userHasAdminRole || 
+    currentUser?.role === 'SUPER_ADMIN' || 
+    currentUser?.role === ('ADMIN' as any) ||
+    currentUser?.is_admin || 
+    currentUser?.email === 'rickard@wigrund.se' || 
+    currentUser?.email === 'admin@performile.com' || 
+    currentUser?.email === 'wigrund81@gmail.com'
+  );
 
   // Application State
   const [hubs, setHubs] = useState<Hub[]>(INITIAL_HUBS);
@@ -1420,23 +1437,29 @@ export default function App() {
   // Standalone public routes for invitations and authentication
   if (activeTab === 'connect') {
     return (
-      <InviteLandingPage
-        onGoToAuth={(mode) => {
-          setAuthMode(mode);
-          setActiveTab('auth');
-        }}
-        onBackToApp={() => setActiveTab('overview')}
-      />
+      <>
+        <InviteLandingPage
+          onGoToAuth={(mode) => {
+            setAuthMode(mode);
+            setActiveTab('auth');
+          }}
+          onBackToApp={() => setActiveTab('overview')}
+        />
+        <DevHudDock />
+      </>
     );
   }
 
   // Om ingen profil finns eller om användaren loggat ut, visa inloggning/demo-väljaren
   if (activeTab === 'auth' || !currentUser) {
     return (
-      <AuthPage
-        initialMode={authMode}
-        onBackToApp={() => setActiveTab('overview')}
-      />
+      <>
+        <AuthPage
+          initialMode={authMode}
+          onBackToApp={() => setActiveTab('overview')}
+        />
+        <DevHudDock />
+      </>
     );
   }
 
@@ -1466,6 +1489,8 @@ export default function App() {
         onOpenQrModal={() => setQrModalMember(currentUser)}
         onOpenArchitectureSpec={() => setActiveTab('architecture')}
         onOpenMembership={() => setActiveTab('membership')}
+        onOpenAdmin={() => setActiveTab('admin')}
+        isAdmin={hasAdminAccess}
         isGuest={isGuest}
         onOpenAuthModal={() => setShowAuthModal(true)}
         onSignOut={signOut}
@@ -1667,7 +1692,7 @@ export default function App() {
                     { id: 'promos', label: 'Kampanjer', icon: Tag },
                     { id: 'benefits', label: 'Förmåner', icon: Gift },
                     { id: 'profile_settings', label: 'Min Profil', icon: User },
-                    ...(currentUser.role === 'SUPER_ADMIN' ? [{ id: 'admin', label: 'Admin', icon: Shield }] : []),
+                    ...(hasAdminAccess ? [{ id: 'admin', label: 'Admin', icon: Shield }] : []),
                     { id: 'architecture', label: 'Arkitektur', icon: ShieldCheck },
                   ].map(item => {
                     const IconComponent = item.icon;
@@ -1777,7 +1802,7 @@ export default function App() {
               activeTab={activeTab}
               setActiveTab={setActiveTab}
               unreadChatCount={unreadChatCount}
-              isAdmin={currentUser.role === 'SUPER_ADMIN'}
+              isAdmin={hasAdminAccess}
             />
 
             <main>
@@ -2478,6 +2503,8 @@ export default function App() {
           </div>
         )}
 
+        {/* Admin Dev HUD & Inspector Dock */}
+        <DevHudDock />
       </div>
     </div>
     </MaintenanceGate>
@@ -2508,20 +2535,13 @@ export default function App() {
     }
 
     switch (activeTab) {
-      case 'overview':
-      case 'home':
+      case 'dashboard_widgets':
         return (
-          <CustomizableBentoDashboard
+          <DashboardGrid
             currentUser={currentUser}
+            allMembers={members}
             hubs={hubs}
             selectedHub={selectedHub}
-            pipelineItems={pipelineItems}
-            members={members}
-            scoreLogs={scoreLogs}
-            coworkingBookings={coworkingBookings}
-            deskSwaps={deskSwaps}
-            trialPasses={trialPasses}
-            webMeetings={webMeetings}
             onNavigateTab={(tab) => setActiveTab(tab)}
             onOpenDirectChat={(memberId) => {
               const target = members.find(m => m.id === memberId);
@@ -2530,18 +2550,58 @@ export default function App() {
                 setActiveTab('chat');
               }
             }}
-            onStartIntroWith={handleStartIntroWith}
             onAwardPoints={handleAwardPoints}
-            onCheckInGeoOrQr={() => setActiveTab('coworking')}
-            onOpenWebMeetingModal={handleOpenWebMeetingModal}
-            memberLocations={memberLocations}
-            proximityPings={proximityPings}
-            tickerEvents={tickerEvents}
-            onSendPing={handleSendPing}
-            onRespondPing={handleRespondPing}
-            onUpdateLocationStatus={handleUpdateLocationStatus}
-            onOpenLocationPingModal={() => setIsLocationPingModalOpen(true)}
           />
+        );
+
+      case 'overview':
+      case 'home':
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between pb-1 border-b border-gray-100">
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                Dashboard Vyer
+              </span>
+              <button
+                onClick={() => setActiveTab('dashboard_widgets')}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-[#800020] hover:bg-rose-100 transition border border-rose-200 cursor-pointer"
+              >
+                <span>Växla till Modulär Widget-vy</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[#800020] text-white">NY</span>
+              </button>
+            </div>
+            <CustomizableBentoDashboard
+              currentUser={currentUser}
+              hubs={hubs}
+              selectedHub={selectedHub}
+              pipelineItems={pipelineItems}
+              members={members}
+              scoreLogs={scoreLogs}
+              coworkingBookings={coworkingBookings}
+              deskSwaps={deskSwaps}
+              trialPasses={trialPasses}
+              webMeetings={webMeetings}
+              onNavigateTab={(tab) => setActiveTab(tab)}
+              onOpenDirectChat={(memberId) => {
+                const target = members.find(m => m.id === memberId);
+                if (target) {
+                  handleCreateChannel(target);
+                  setActiveTab('chat');
+                }
+              }}
+              onStartIntroWith={handleStartIntroWith}
+              onAwardPoints={handleAwardPoints}
+              onCheckInGeoOrQr={() => setActiveTab('coworking')}
+              onOpenWebMeetingModal={handleOpenWebMeetingModal}
+              memberLocations={memberLocations}
+              proximityPings={proximityPings}
+              tickerEvents={tickerEvents}
+              onSendPing={handleSendPing}
+              onRespondPing={handleRespondPing}
+              onUpdateLocationStatus={handleUpdateLocationStatus}
+              onOpenLocationPingModal={() => setIsLocationPingModalOpen(true)}
+            />
+          </div>
         );
 
       case 'matchmaking':
@@ -2715,6 +2775,10 @@ export default function App() {
         );
 
       case 'community':
+        return (
+          <CommunityPage onNavigateTab={(tab) => setActiveTab(tab)} />
+        );
+
       case 'blog':
       case 'community_network':
         return (

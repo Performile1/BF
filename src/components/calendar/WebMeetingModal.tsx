@@ -17,6 +17,7 @@ import {
   CalendarPlus
 } from 'lucide-react';
 import { Member, WebMeeting, MeetingParticipant, MeetingType } from '../../types';
+import { AdminInspect } from '../dev/AdminInspect';
 
 interface WebMeetingModalProps {
   isOpen: boolean;
@@ -185,7 +186,13 @@ export const WebMeetingModal: React.FC<WebMeetingModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+    <AdminInspect
+      component="WebMeetingModal.tsx"
+      sourceTable="public.web_meetings / meeting_participants"
+      columns={['id', 'host_id', 'title', 'start_time', 'end_time', 'meeting_type', 'join_url', 'provider']}
+      notes="Skapa webbmöte via Google Meet, Teams eller Zoom och bjud in deltagare"
+    >
+      <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
       <div className="bg-white rounded-3xl max-w-xl w-full border border-gray-200 shadow-2xl overflow-hidden my-6">
         {/* Header */}
         <div className="bg-gradient-to-r from-[#800020] to-[#5a0017] p-6 text-white relative">
@@ -530,5 +537,6 @@ export const WebMeetingModal: React.FC<WebMeetingModalProps> = ({
         )}
       </div>
     </div>
+    </AdminInspect>
   );
 };

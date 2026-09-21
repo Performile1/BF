@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Building2, Users, ArrowUpRight, Clock, MessageSquare, Sparkles } from 'lucide-react';
 import { WidgetComponentProps, HubPresenceMember } from '../../../types/widgets';
 import { getHubPresenceMembers } from '../../../lib/widgetServices';
+import { AdminInspect } from '../../dev/AdminInspect';
 
 export const HubPresenceWidget: React.FC<WidgetComponentProps> = ({
   currentUser,
@@ -29,7 +30,14 @@ export const HubPresenceWidget: React.FC<WidgetComponentProps> = ({
   const hubTitle = selectedHub?.name || 'Central Hubb Göteborg';
 
   return (
-    <div className="bg-white rounded-3xl p-5 border border-gray-200/80 shadow-xs flex flex-col justify-between h-full hover:border-gray-300 transition-all">
+    <AdminInspect
+      component="HubPresenceWidget.tsx"
+      sourceTable="public.v_who_is_at_hub_today"
+      columns={['hub_id', 'full_name', 'company_name', 'avatar_url', 'checked_in_at']}
+      notes="Realtidsvy över närvarande medlemmar i coworking-hubben"
+      className="h-full"
+    >
+      <div className="bg-white rounded-3xl p-5 border border-gray-200/80 shadow-xs flex flex-col justify-between h-full hover:border-gray-300 transition-all">
       <div>
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
@@ -120,5 +128,6 @@ export const HubPresenceWidget: React.FC<WidgetComponentProps> = ({
         </button>
       </div>
     </div>
+    </AdminInspect>
   );
 };

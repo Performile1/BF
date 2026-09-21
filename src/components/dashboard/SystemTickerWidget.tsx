@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Radio, ChevronRight, Bell, Sparkles, Pin } from 'lucide-react';
 import { SystemActivityTickerEvent, TabType } from '../../types';
+import { AdminInspect } from '../dev/AdminInspect';
 
 interface SystemTickerWidgetProps {
   events: SystemActivityTickerEvent[];
@@ -33,11 +34,18 @@ export const SystemTickerWidget: React.FC<SystemTickerWidgetProps> = ({
   };
 
   return (
-    <div
-      className={`relative overflow-hidden bg-white/95 backdrop-blur border border-slate-200/80 rounded-2xl shadow-xs transition-all ${className}`}
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
+    <AdminInspect
+      component="SystemTickerWidget.tsx"
+      sourceTable="public.activity_logs"
+      columns={['event_type', 'description', 'is_pinned_by_admin', 'target_tab', 'created_at']}
+      notes="Live Ticker med realtidsaktiviteter och nålade meddelanden"
+      className={className}
     >
+      <div
+        className={`relative overflow-hidden bg-white/95 backdrop-blur border border-slate-200/80 rounded-2xl shadow-xs transition-all ${className}`}
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+      >
       <div className="flex items-center gap-3 px-3.5 py-2.5">
         {/* Live Badge */}
         <div className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 bg-[#800020] text-white rounded-lg text-[11px] font-black uppercase tracking-wider shadow-xs">
@@ -104,5 +112,6 @@ export const SystemTickerWidget: React.FC<SystemTickerWidgetProps> = ({
         )}
       </div>
     </div>
+    </AdminInspect>
   );
 };

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Coffee, Utensils, Zap, X, Check, Calendar, MapPin, Sparkles } from 'lucide-react';
 import { Member, MasterCalendarEvent, LunchInvitation } from '../../types';
+import { AdminInspect } from '../dev/AdminInspect';
 
 interface LunchInvitationModalProps {
   attendee: any;
@@ -51,7 +52,13 @@ export const LunchInvitationModal: React.FC<LunchInvitationModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <AdminInspect
+      component="LunchInvitationModal.tsx"
+      sourceTable="public.lunch_invitations"
+      columns={['id', 'sender_member_id', 'receiver_member_id', 'proposed_date', 'location_name', 'host_pays', 'status']}
+      notes="Skicka lunchinbjudan och schemalägg 1-till-1 möten med medlemmar"
+    >
+      <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in zoom-in-95">
         
         {/* Header */}
@@ -189,5 +196,6 @@ export const LunchInvitationModal: React.FC<LunchInvitationModalProps> = ({
 
       </div>
     </div>
+    </AdminInspect>
   );
 };

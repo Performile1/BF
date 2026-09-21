@@ -22,8 +22,10 @@ import {
   Sparkles,
   Calendar,
   CreditCard,
-  Megaphone
+  Megaphone,
+  Sliders
 } from 'lucide-react';
+import { AdminInspect } from './dev/AdminInspect';
 
 export type MainCategory = 
   | 'home' 
@@ -35,6 +37,7 @@ export type MainCategory =
 export type SubTabId = 
   // 1. Hem
   | 'overview'
+  | 'dashboard_widgets'
   | 'matchmaking'
   // 2. Hubben & Event
   | 'coworking'
@@ -86,6 +89,7 @@ export const Navigation: React.FC<NavigationProps> = ({
       defaultTab: 'overview',
       subtabs: [
         { id: 'overview', label: 'Bento Översikt', icon: Home },
+        { id: 'dashboard_widgets', label: 'Modulär Dashboard', icon: Sliders, badge: 'Widgets' },
         { id: 'matchmaking', label: 'Veckans AI-Matchningar', icon: Sparkles, badge: 'AI' }
       ]
     },
@@ -167,7 +171,13 @@ export const Navigation: React.FC<NavigationProps> = ({
   };
 
   return (
-    <div className="space-y-2">
+    <AdminInspect
+      component="Navigation.tsx"
+      sourceTable="Client State / Nav"
+      columns={['activeTab', 'isAdmin', 'unreadChatCount']}
+      notes="5-kategoriers huvudmeny och sub-navigation"
+    >
+      <div className="space-y-2">
       {/* 1. PRIMARY 5-CATEGORY NAVIGATION BAR */}
       <nav className="bg-white rounded-2xl border border-gray-200 p-1.5 sm:p-2 shadow-xs" id="v12-primary-navigation">
         <div className="grid grid-cols-5 gap-1 sm:gap-2">
@@ -272,5 +282,6 @@ export const Navigation: React.FC<NavigationProps> = ({
         })}
       </div>
     </div>
+    </AdminInspect>
   );
 };

@@ -31,6 +31,7 @@ import { CreatePostModal } from './CreatePostModal';
 import { AdBannerEngine } from '../ads/AdBannerEngine';
 import { LinkedInShareButton } from '../common/LinkedInShareButton';
 import { toggleSubscription } from '../../lib/apiServices';
+import { AdminInspect } from '../dev/AdminInspect';
 
 interface CommunityAndBlogModuleProps {
   currentUser: Member;
@@ -269,7 +270,13 @@ export const CommunityAndBlogModule: React.FC<CommunityAndBlogModuleProps> = ({
   });
 
   return (
-    <div className="space-y-6">
+    <AdminInspect
+      component="CommunityAndBlogModule.tsx"
+      sourceTable="public.community_posts / post_comments / subscriptions"
+      columns={['id', 'author_id', 'post_type', 'category', 'title', 'content', 'upvotes_count', 'comments_count', 'weighted_score']}
+      notes="Community-flöde, expertartiklar, omröstningar och kommentarer"
+    >
+      <div className="space-y-6">
       {/* Top Banner: Varför Booster Friends slår LinkedIn */}
       <div className="bg-gradient-to-r from-[#800020] via-[#5c0017] to-[#2b000a] rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
         <div className="absolute -right-10 -bottom-10 w-80 h-80 bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
@@ -843,5 +850,6 @@ export const CommunityAndBlogModule: React.FC<CommunityAndBlogModuleProps> = ({
         />
       )}
     </div>
+    </AdminInspect>
   );
 };

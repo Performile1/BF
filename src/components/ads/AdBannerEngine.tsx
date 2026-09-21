@@ -20,6 +20,7 @@ import {
 import { BannerAd, AdFormat, AdPlacementType } from '../../types';
 import { INITIAL_BANNER_ADS } from '../../data/communityAndMatchmakingData';
 import { AdZonesVisualGuide } from './AdZonesVisualGuide';
+import { AdminInspect } from '../dev/AdminInspect';
 
 export type AdZone = 'FEED_TOP' | 'COMMUNITY_FEED' | 'CALENDAR_SIDEBAR' | 'HUB_HEADER' | 'MEMBERS_DIRECTORY' | 'EVENT_LIST' | 'DASHBOARD_BENTO';
 
@@ -236,7 +237,12 @@ export const AdBannerEngine: React.FC<AdBannerEngineProps> = ({
   // If no ads configured for this zone, render sponsor invitation card
   if (zoneBanners.length === 0) {
     return (
-      <>
+      <AdminInspect
+        component="AdBannerEngine.tsx"
+        sourceTable="public.banner_ads"
+        columns={['id', 'title', 'advertiser_name', 'placement', 'format', 'image_url', 'target_url', 'impressions_count', 'clicks_count']}
+        notes="Annonsvisningsmotor med mätning av visningar och klick per zon"
+      >
         <div className={`p-4 rounded-2xl bg-gradient-to-r from-gray-50 via-amber-50/40 to-white border border-dashed border-amber-200 text-gray-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${className}`}>
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center text-amber-800 shrink-0">
@@ -292,7 +298,7 @@ export const AdBannerEngine: React.FC<AdBannerEngineProps> = ({
           onClose={() => setShowVisualGuide(false)}
           onSelectZoneToCreate={handleSelectFromGuide}
         />
-      </>
+      </AdminInspect>
     );
   }
 
@@ -311,7 +317,12 @@ export const AdBannerEngine: React.FC<AdBannerEngineProps> = ({
   // ==========================================
   if (isSidebar) {
     return (
-      <>
+      <AdminInspect
+        component="AdBannerEngine.tsx"
+        sourceTable="public.banner_ads"
+        columns={['id', 'title', 'advertiser_name', 'placement', 'format', 'image_url', 'target_url', 'impressions_count', 'clicks_count']}
+        notes="Annonsvisningsmotor (Sidebar-variant)"
+      >
         <div className={`space-y-2 ${className}`}>
           <div 
             className="group relative rounded-2xl overflow-hidden border border-gray-200 bg-white shadow-xs hover:border-[#800020]/40 transition duration-200 flex flex-col justify-between"
@@ -391,7 +402,7 @@ export const AdBannerEngine: React.FC<AdBannerEngineProps> = ({
           onClose={() => setShowVisualGuide(false)}
           onSelectZoneToCreate={handleSelectFromGuide}
         />
-      </>
+      </AdminInspect>
     );
   }
 
@@ -399,7 +410,12 @@ export const AdBannerEngine: React.FC<AdBannerEngineProps> = ({
   // Full-width Landscape Variant (FEED_TOP, etc.)
   // ==========================================
   return (
-    <>
+    <AdminInspect
+      component="AdBannerEngine.tsx"
+      sourceTable="public.banner_ads"
+      columns={['id', 'title', 'advertiser_name', 'placement', 'format', 'image_url', 'target_url', 'impressions_count', 'clicks_count']}
+      notes="Annonsvisningsmotor (Fullbredd/In-feed-variant)"
+    >
       <div className={`space-y-2 ${className}`}>
         <div 
           className="relative rounded-2xl sm:rounded-3xl overflow-hidden border border-gray-200 bg-white shadow-xs hover:border-[#800020]/40 transition duration-200"
@@ -794,6 +810,6 @@ export const AdBannerEngine: React.FC<AdBannerEngineProps> = ({
         onClose={() => setShowVisualGuide(false)}
         onSelectZoneToCreate={handleSelectFromGuide}
       />
-    </>
+    </AdminInspect>
   );
 };

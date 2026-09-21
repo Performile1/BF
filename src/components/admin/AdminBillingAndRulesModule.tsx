@@ -43,6 +43,7 @@ import {
   INITIAL_MEMBERSHIP_PACKAGES, 
   INITIAL_INVOICES 
 } from '../../data/billingAndRulesData';
+import { AdminInspect } from '../dev/AdminInspect';
 
 interface AdminBillingAndRulesModuleProps {
   allMembers: Member[];
@@ -231,7 +232,13 @@ export const AdminBillingAndRulesModule: React.FC<AdminBillingAndRulesModuleProp
   }).length;
 
   return (
-    <div className="space-y-6">
+    <AdminInspect
+      component="AdminBillingAndRulesModule.tsx"
+      sourceTable="public.invoices / member_billing_status / booster_rules"
+      columns={['id', 'member_id', 'status', 'amount_sek', 'due_date', 'rule_key', 'rule_value']}
+      notes="Fakturering, betalningsregler, provperioder och spärrhantering"
+    >
+      <div className="space-y-6">
       
       {/* Feedback notice */}
       {notice && (
@@ -1172,5 +1179,6 @@ export const AdminBillingAndRulesModule: React.FC<AdminBillingAndRulesModuleProp
       )}
 
     </div>
+    </AdminInspect>
   );
 };

@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { Member, MembershipLevel, MemberSkill } from '../../types';
 import { downloadVCard } from '../../utils/vcard';
+import { AdminInspect } from '../dev/AdminInspect';
 
 export interface MemberCardProps {
   member: Member;
@@ -73,12 +74,18 @@ export const MemberCard: React.FC<MemberCardProps> = ({
   };
 
   return (
-    <div
-      id={`member-card-${member.id}`}
-      className={`bg-white rounded-2xl border p-5 transition-all duration-200 flex flex-col justify-between hover:shadow-md ${
-        isMe ? 'border-[#800020]/30 bg-[#800020]/[0.02]' : 'border-gray-200 hover:border-gray-300'
-      }`}
+    <AdminInspect
+      component="MemberCard.tsx"
+      sourceTable="public.profiles / member_skills"
+      columns={['id', 'full_name', 'avatar', 'membership_level', 'booster_score', 'company_name', 'role_title', 'city']}
+      notes="Medlemskort i nätverkskatalog med visitkort, lunch-inbjudan och vCard"
     >
+      <div
+        id={`member-card-${member.id}`}
+        className={`bg-white rounded-2xl border p-5 transition-all duration-200 flex flex-col justify-between hover:shadow-md ${
+          isMe ? 'border-[#800020]/30 bg-[#800020]/[0.02]' : 'border-gray-200 hover:border-gray-300'
+        }`}
+      >
       {/* Top Card Section */}
       <div>
         <div className="flex items-start justify-between gap-3">
@@ -293,5 +300,6 @@ export const MemberCard: React.FC<MemberCardProps> = ({
         )}
       </div>
     </div>
+    </AdminInspect>
   );
 };

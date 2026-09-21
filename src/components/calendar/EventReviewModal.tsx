@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Star, Zap, Award, X, Check } from 'lucide-react';
 import { MasterCalendarEvent, Member } from '../../types';
+import { AdminInspect } from '../dev/AdminInspect';
 
 interface EventReviewModalProps {
   event: MasterCalendarEvent;
@@ -35,7 +36,13 @@ export const EventReviewModal: React.FC<EventReviewModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <AdminInspect
+      component="EventReviewModal.tsx"
+      sourceTable="public.event_reviews"
+      columns={['id', 'event_id', 'member_id', 'rating', 'review_text', 'created_at']}
+      notes="Lämna recension på genomfört event och erhåll bonuspoäng"
+    >
+      <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in zoom-in-95">
         
         {/* Header */}
@@ -146,5 +153,6 @@ export const EventReviewModal: React.FC<EventReviewModalProps> = ({
 
       </div>
     </div>
+    </AdminInspect>
   );
 };

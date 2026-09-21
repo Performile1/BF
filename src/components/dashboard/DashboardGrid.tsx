@@ -12,6 +12,7 @@ import {
   saveUserWidgetPreferences 
 } from '../../lib/widgetServices';
 import { WidgetPickerModal } from './WidgetPickerModal';
+import { AdminInspect } from '../dev/AdminInspect';
 
 // Importera alla widgetkomponenter
 import { FlexBookingWidget } from './widgets/FlexBookingWidget';
@@ -54,9 +55,12 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
 }) => {
   const isAdmin = Boolean(
     currentUser.is_admin ||
+    (currentUser as any).profiles?.is_admin ||
     currentUser.role === 'SUPER_ADMIN' ||
+    currentUser.role === 'ADMIN' ||
     currentUser.role_title?.toLowerCase().includes('admin') ||
-    currentUser.id === 'usr_rickard_wigrund'
+    currentUser.id === 'usr_rickard_wigrund' ||
+    currentUser.email === 'wigrund81@gmail.com'
   );
 
   const [activeWidgetIds, setActiveWidgetIds] = useState<string[]>([]);
@@ -158,7 +162,13 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <AdminInspect
+      component="DashboardGrid.tsx"
+      sourceTable="public.user_widget_preferences"
+      columns={['user_id', 'active_widget_ids', 'updated_at']}
+      notes="Personlig dashboard grid-layout med modulladdning"
+    >
+      <div className="space-y-6">
       {/* Dashboard Topbar / Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 sm:px-6 sm:py-4 rounded-3xl border border-gray-200/80 shadow-xs">
         <div>
@@ -228,5 +238,6 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
         onSavePreferences={handleSavePreferences}
       />
     </div>
+    </AdminInspect>
   );
 };

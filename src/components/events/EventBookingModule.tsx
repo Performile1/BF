@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { BoosterEvent, GuestPass, Member, Hub } from '../../types';
 import { formatSek } from '../../utils/calendar';
+import { AdminInspect } from '../dev/AdminInspect';
 
 interface EventBookingModuleProps {
   currentUser: Member;
@@ -94,7 +95,13 @@ export const EventBookingModule: React.FC<EventBookingModuleProps> = ({
   const isGoldOrSilver = currentUser.membership_level === 'GOLD' || currentUser.membership_level === 'SILVER';
 
   return (
-    <div className="space-y-6">
+    <AdminInspect
+      component="EventBookingModule.tsx"
+      sourceTable="public.events / event_addons / guest_passes"
+      columns={['id', 'title', 'location', 'spots_remaining', 'is_booked', 'addons', 'check_in_status']}
+      notes="Eventbokning med tillval, gästpass och geo-fencing incheckning"
+    >
+      <div className="space-y-6">
       
       {/* Top Banner & Module Switcher */}
       <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -694,5 +701,6 @@ export const EventBookingModule: React.FC<EventBookingModuleProps> = ({
       )}
 
     </div>
+    </AdminInspect>
   );
 };

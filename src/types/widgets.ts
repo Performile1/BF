@@ -46,14 +46,23 @@ export interface AdminDashboardKpis {
   total_members: number;
   new_members_this_month: number;
   active_trials: number;
+  prospects_count?: number;
   mrr_sek: number;
   unpaid_invoices_count: number;
   unpaid_invoices_total_sek: number;
+  overdue_invoices_count?: number;
   total_deals_closed_sek: number;
   active_pipeline_deals_count: number;
+  won_deals_count?: number;
   hub_occupancy_percent: number;
+  today_hub_bookings?: number;
+  checked_in_now?: number;
+  maintenance_mode?: boolean;
   updated_at: string;
 }
+
+export type AdminKpiData = AdminDashboardKpis;
+export type MaintenanceSettings = SystemSettings;
 
 export interface SystemSettings {
   id?: string;

@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { DealPipelineItem, Member, PipelineStage, ActivityType } from '../../types';
 import { formatSek } from '../../utils/calendar';
+import { AdminInspect } from '../dev/AdminInspect';
 
 interface CrmPipelineModuleProps {
   currentUser: Member;
@@ -278,6 +279,12 @@ export const CrmPipelineModule: React.FC<CrmPipelineModuleProps> = ({
       )}
 
       {/* Top Banner & Action Controls */}
+      <AdminInspect
+        component="CrmPipelineModule.tsx"
+        sourceTable="public.crm_pipeline_deals"
+        columns={['owner_member_id', 'client_company', 'value_sek', 'contact_person', 'stage', 'next_step', 'due_date', 'probability', 'points_awarded']}
+        notes="stage är enum pipeline_stage. trigger_booster_points_deal ger automatiskt +100 BP vid closed_won."
+      >
       <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-xs space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-gray-100">
           <div>
@@ -472,6 +479,7 @@ export const CrmPipelineModule: React.FC<CrmPipelineModuleProps> = ({
 
         </div>
       </div>
+      </AdminInspect>
 
       {/* VIEW 1: 5-STAGE KANBAN BOARD */}
       {activeView === 'kanban' && (

@@ -49,6 +49,7 @@ import { AdBannerEngine } from '../ads/AdBannerEngine';
 import { MembershipBillingModule } from './MembershipBillingModule';
 import { MemberCard } from './MemberCard';
 import { downloadVCard } from '../../utils/vcard';
+import { AdminInspect } from '../dev/AdminInspect';
 
 interface ProfileSettingsAndDirectoryModuleProps {
   currentUser: Member;
@@ -422,7 +423,13 @@ export const ProfileSettingsAndDirectoryModule: React.FC<ProfileSettingsAndDirec
   };
 
   return (
-    <div className="space-y-6">
+    <AdminInspect
+      component="ProfileSettingsAndDirectoryModule.tsx"
+      sourceTable="public.profiles / member_skills / member_case_studies"
+      columns={['id', 'full_name', 'membership_level', 'seeking_tags', 'offering_tags', 'give_take_ratio', 'booster_score', 'deals_closed_sek']}
+      notes="Medlemsregister, nätverkskatalog, profilinställningar och case studies"
+    >
+      <div className="space-y-6">
       {/* Module Navigation Header */}
       <div className="bg-white rounded-2xl border border-gray-200 p-3 sm:p-4 shadow-xs flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
@@ -2259,5 +2266,6 @@ export const ProfileSettingsAndDirectoryModule: React.FC<ProfileSettingsAndDirec
         </div>
       )}
     </div>
+    </AdminInspect>
   );
 };

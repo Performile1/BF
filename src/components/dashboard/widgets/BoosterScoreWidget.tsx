@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Award, Trophy, Zap, ChevronRight } from 'lucide-react';
 import { WidgetComponentProps } from '../../../types/widgets';
+import { AdminInspect } from '../../dev/AdminInspect';
 
 export const BoosterScoreWidget: React.FC<WidgetComponentProps> = ({
   currentUser,
@@ -18,7 +19,14 @@ export const BoosterScoreWidget: React.FC<WidgetComponentProps> = ({
       : 'from-amber-700 to-amber-900 text-amber-100';
 
   return (
-    <div className="bg-white rounded-3xl p-5 border border-gray-200/80 shadow-xs flex flex-col justify-between h-full hover:border-gray-300 transition-all">
+    <AdminInspect
+      component="BoosterScoreWidget.tsx"
+      sourceTable="public.profiles"
+      columns={['id', 'full_name', 'booster_score', 'membership_level']}
+      notes="Medlemskort, Booster-poäng och nivåframsteg"
+      className="h-full"
+    >
+      <div className="bg-white rounded-3xl p-5 border border-gray-200/80 shadow-xs flex flex-col justify-between h-full hover:border-gray-300 transition-all">
       <div>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -71,5 +79,6 @@ export const BoosterScoreWidget: React.FC<WidgetComponentProps> = ({
         </button>
       </div>
     </div>
+    </AdminInspect>
   );
 };

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { WidgetComponentProps } from '../../../types/widgets';
 import { formatSek } from '../../../utils/calendar';
+import { AdminInspect } from '../../dev/AdminInspect';
 
 export const CommunityFeedWidget: React.FC<WidgetComponentProps> = ({ onNavigateTab }) => {
   const posts = [
@@ -272,7 +273,14 @@ export const AdminInvoicesWidget: React.FC<WidgetComponentProps> = ({ onNavigate
   ];
 
   return (
-    <div className="bg-white rounded-3xl p-5 border border-gray-200/80 shadow-xs flex flex-col justify-between h-full hover:border-gray-300 transition-all">
+    <AdminInspect
+      component="AdminInvoicesWidget"
+      sourceTable="public.invoices"
+      columns={['invoice_number', 'member_name', 'amount_sek', 'status', 'due_date']}
+      notes="Adminöversikt över medlemsfakturor och betalstatus"
+      className="h-full"
+    >
+      <div className="bg-white rounded-3xl p-5 border border-gray-200/80 shadow-xs flex flex-col justify-between h-full hover:border-gray-300 transition-all">
       <div>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -322,6 +330,7 @@ export const AdminInvoicesWidget: React.FC<WidgetComponentProps> = ({ onNavigate
         </button>
       </div>
     </div>
+    </AdminInspect>
   );
 };
 

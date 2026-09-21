@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, X, Calendar, MapPin, Clock, Users, Crown, Sparkles, Check, DollarSign } from 'lucide-react';
 import { MasterCalendarEvent, Member, CalendarEventCategory } from '../../types';
+import { AdminInspect } from '../dev/AdminInspect';
 
 interface CreateMemberEventModalProps {
   currentUser: Member;
@@ -74,7 +75,13 @@ export const CreateMemberEventModal: React.FC<CreateMemberEventModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <AdminInspect
+      component="CreateMemberEventModal.tsx"
+      sourceTable="public.calendar_events"
+      columns={['id', 'title', 'description', 'date_str', 'start_time', 'end_time', 'location', 'category', 'price_sek', 'speaker_or_host']}
+      notes="Skapa eget medlemsevent eller nätverksträff i kalendern"
+    >
+      <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-5 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
         
         {/* Header */}
@@ -292,5 +299,6 @@ export const CreateMemberEventModal: React.FC<CreateMemberEventModalProps> = ({
 
       </div>
     </div>
+    </AdminInspect>
   );
 };

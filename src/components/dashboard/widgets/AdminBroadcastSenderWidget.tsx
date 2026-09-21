@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Send, Users, Sparkles, CheckCircle2, AlertCircle } from 'lucide-react';
 import { WidgetComponentProps } from '../../../types/widgets';
 import { sendBroadcastCampaign } from '../../../lib/apiServices';
+import { AdminInspect } from '../../dev/AdminInspect';
 
 export const AdminBroadcastSenderWidget: React.FC<WidgetComponentProps> = ({
   currentUser
@@ -29,7 +30,14 @@ export const AdminBroadcastSenderWidget: React.FC<WidgetComponentProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-3xl p-5 border border-gray-200/80 shadow-xs flex flex-col justify-between h-full hover:border-gray-300 transition-all">
+    <AdminInspect
+      component="AdminBroadcastSenderWidget.tsx"
+      sourceTable="public.broadcast_campaigns"
+      columns={['title', 'body', 'target_audience', 'sent_by_user_id', 'created_at']}
+      notes="Skicka snabb-broadcast till medlemmar eller prospects"
+      className="h-full"
+    >
+      <div className="bg-white rounded-3xl p-5 border border-gray-200/80 shadow-xs flex flex-col justify-between h-full hover:border-gray-300 transition-all">
       <div>
         {/* Header */}
         <div className="flex items-center justify-between mb-3">
@@ -122,5 +130,6 @@ export const AdminBroadcastSenderWidget: React.FC<WidgetComponentProps> = ({
         )}
       </div>
     </div>
+    </AdminInspect>
   );
 };

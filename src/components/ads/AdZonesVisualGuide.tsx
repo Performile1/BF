@@ -21,6 +21,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { AdFormat, AdPlacementType, BannerAd } from '../../types';
+import { AdminInspect } from '../dev/AdminInspect';
 
 export interface AdZoneMeta {
   id: AdPlacementType;
@@ -245,7 +246,13 @@ export const AdZonesVisualGuide: React.FC<AdZonesVisualGuideProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-in fade-in duration-200">
+    <AdminInspect
+      component="AdZonesVisualGuide.tsx"
+      sourceTable="public.ad_zones / banner_ads"
+      columns={['id', 'placement', 'title', 'category', 'default_width', 'default_height', 'reach']}
+      notes="Interaktiv katalog och förhandsgranskning av alla annonszoner och format"
+    >
+      <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl border border-gray-200 max-w-5xl w-full shadow-2xl flex flex-col max-h-[92vh] overflow-hidden my-auto">
         
         {/* Header */}
@@ -677,5 +684,6 @@ export const AdZonesVisualGuide: React.FC<AdZonesVisualGuideProps> = ({
 
       </div>
     </div>
+    </AdminInspect>
   );
 };

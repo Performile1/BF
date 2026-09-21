@@ -18,6 +18,7 @@ import {
   Briefcase
 } from 'lucide-react';
 import { Member } from '../../types';
+import { AdminInspect } from '../dev/AdminInspect';
 
 export interface ProfileSettingsModuleProps {
   currentUser: Member;
@@ -135,7 +136,13 @@ export const ProfileSettingsModule: React.FC<ProfileSettingsModuleProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-3xl border border-gray-200 shadow-xs overflow-hidden">
+    <AdminInspect
+      component="ProfileSettingsModule.tsx"
+      sourceTable="public.profiles"
+      columns={['id', 'full_name', 'role_title', 'company_name', 'email', 'phone', 'linkedin_url', 'website_url', 'bio', 'city', 'seeking_tags', 'offering_tags']}
+      notes="Profilredigering och visitkortskonfiguration"
+    >
+      <div className="bg-white rounded-3xl border border-gray-200 shadow-xs overflow-hidden">
       {/* Header Banner */}
       <div className="p-6 sm:p-8 bg-gradient-to-r from-gray-50 via-rose-50/30 to-white border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -513,5 +520,6 @@ export const ProfileSettingsModule: React.FC<ProfileSettingsModuleProps> = ({
         </div>
       </form>
     </div>
+    </AdminInspect>
   );
 };

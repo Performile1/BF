@@ -21,6 +21,7 @@ import {
   Tag
 } from 'lucide-react';
 import { MasterCalendarEvent, Member, EventReview, EventGalleryImage } from '../../types';
+import { AdminInspect } from '../dev/AdminInspect';
 
 interface PastEventsRecapViewProps {
   currentUser: Member;
@@ -66,7 +67,13 @@ export const PastEventsRecapView: React.FC<PastEventsRecapViewProps> = ({
   }
 
   return (
-    <div className="space-y-6">
+    <AdminInspect
+      component="PastEventsRecapView.tsx"
+      sourceTable="public.calendar_events / event_reviews / event_gallery_images"
+      columns={['id', 'title', 'start_time', 'recap_markdown', 'event_reviews', 'gallery_images']}
+      notes="Genomförda event, bildgallerier, recensioner och deltagarlistor"
+    >
+      <div className="space-y-6">
       
       {/* Intro info box */}
       <div className="bg-gradient-to-r from-stone-900 to-stone-800 text-white p-6 rounded-3xl shadow-xs relative overflow-hidden">
@@ -382,5 +389,6 @@ export const PastEventsRecapView: React.FC<PastEventsRecapViewProps> = ({
       )}
 
     </div>
+    </AdminInspect>
   );
 };

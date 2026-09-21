@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { Member, AdPlacementConfig, AdCampaign, AdPlacementType } from '../../types';
 import { AD_PLACEMENTS_CONFIG, INITIAL_AD_CAMPAIGNS } from '../../data/billingAndRulesData';
+import { AdminInspect } from '../dev/AdminInspect';
 
 interface AdServerModuleProps {
   currentUser: Member;
@@ -98,7 +99,13 @@ export const AdServerModule: React.FC<AdServerModuleProps> = ({
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300">
+    <AdminInspect
+      component="AdServerModule.tsx"
+      sourceTable="public.ad_placements / ad_campaigns"
+      columns={['id', 'member_id', 'placement_type', 'pricing_model', 'title', 'image_url', 'target_url', 'status', 'impressions', 'clicks']}
+      notes="Självbetjäningsportal för annonskampanjer, prissättning och realtidsanalys"
+    >
+      <div className="space-y-8 animate-in fade-in duration-300">
       
       {/* Top Hero Banner */}
       <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-[#4A0013] text-white rounded-3xl p-6 sm:p-10 shadow-xl relative overflow-hidden">
@@ -873,5 +880,6 @@ export const AdServerModule: React.FC<AdServerModuleProps> = ({
       )}
 
     </div>
+    </AdminInspect>
   );
 };

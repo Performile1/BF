@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Coffee, MapPin, Send, Sparkles, Clock, CheckCircle2 } from 'lucide-react';
 import { WidgetComponentProps } from '../../../types/widgets';
+import { AdminInspect } from '../../dev/AdminInspect';
 
 export const ProximityRadarWidget: React.FC<WidgetComponentProps> = ({
   currentUser,
@@ -20,7 +21,14 @@ export const ProximityRadarWidget: React.FC<WidgetComponentProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-3xl p-5 border border-gray-200/80 shadow-xs flex flex-col justify-between h-full hover:border-gray-300 transition-all">
+    <AdminInspect
+      component="ProximityRadarWidget.tsx"
+      sourceTable="public.profiles"
+      columns={['city', 'is_coffee_ready', 'last_seen_at', 'company_name']}
+      notes="Närhetsradar och spontanfika via realtidsplats"
+      className="h-full"
+    >
+      <div className="bg-white rounded-3xl p-5 border border-gray-200/80 shadow-xs flex flex-col justify-between h-full hover:border-gray-300 transition-all">
       <div>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -83,5 +91,6 @@ export const ProximityRadarWidget: React.FC<WidgetComponentProps> = ({
         </button>
       </div>
     </div>
+    </AdminInspect>
   );
 };

@@ -30,7 +30,8 @@ import {
   Layout,
   Sliders,
   CreditCard,
-  Clock
+  Clock,
+  Terminal
 } from 'lucide-react';
 import { 
   Member, 
@@ -53,6 +54,8 @@ import { AdZonesVisualGuide } from '../ads/AdZonesVisualGuide';
 import { AdminBillingAndRulesModule } from './AdminBillingAndRulesModule';
 import { AdminTrialSettings } from './AdminTrialSettings';
 import { AdminProspectImporter } from './AdminProspectImporter';
+import { AdminDevAndSchemaTab } from './AdminDevAndSchemaTab';
+import { AdminInspect } from '../dev/AdminInspect';
 
 interface AdminPortalModuleProps {
   currentUser: Member;
@@ -77,8 +80,19 @@ export const AdminPortalModule: React.FC<AdminPortalModuleProps> = ({
   quizQuestions = SAMPLE_QUIZ_QUESTIONS,
   onCreateQuizQuestion
 }) => {
-  // Strict RBAC Guard: Only SUPER_ADMIN can view or interact with the Admin Portal
-  if (currentUser.role !== 'SUPER_ADMIN') {
+  // Strict RBAC Guard: Only SUPER_ADMIN / Admin accounts can view or interact with the Admin Portal
+  const hasSuperAdminAccess = Boolean(
+    currentUser.role === 'SUPER_ADMIN' ||
+    currentUser.role === ('ADMIN' as any) ||
+    currentUser.is_admin ||
+    currentUser.email === 'rickard@wigrund.se' ||
+    currentUser.email === 'admin@performile.com' ||
+    currentUser.email === 'wigrund81@gmail.com' ||
+    currentUser.id === 'usr_rickard_wigrund' ||
+    currentUser.id === 'usr_rickard_performile'
+  );
+
+  if (!hasSuperAdminAccess) {
     return (
       <div className="max-w-2xl mx-auto my-12 bg-white rounded-3xl p-8 sm:p-10 border border-red-200 shadow-xl text-center space-y-6" id="admin-access-denied-screen">
         <div className="w-16 h-16 rounded-2xl bg-red-50 text-red-700 border border-red-200 flex items-center justify-center mx-auto shadow-inner">
@@ -108,7 +122,7 @@ export const AdminPortalModule: React.FC<AdminPortalModuleProps> = ({
     );
   }
 
-  const [activeAdminTab, setActiveAdminTab] = useState<'KPIS' | 'PROSPECTS' | 'BILLING' | 'RULES' | 'APPLICATIONS' | 'BANNERS' | 'HUBS' | 'MEMBERS' | 'QUIZ' | 'TRIAL'>('KPIS');
+  const [activeAdminTab, setActiveAdminTab] = useState<'KPIS' | 'DEV_SCHEMA' | 'PROSPECTS' | 'BILLING' | 'RULES' | 'APPLICATIONS' | 'BANNERS' | 'HUBS' | 'MEMBERS' | 'QUIZ' | 'TRIAL'>('KPIS');
   const [applications, setApplications] = useState<AdminMemberApplication[]>(INITIAL_ADMIN_APPLICATIONS);
   const [bannerAds, setBannerAds] = useState<BannerAd[]>(INITIAL_BANNER_ADS);
   const [feedbackNotice, setFeedbackNotice] = useState<string | null>(null);
@@ -334,7 +348,13 @@ export const AdminPortalModule: React.FC<AdminPortalModuleProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <AdminInspect
+      component="AdminPortalModule.tsx"
+      sourceTable="public.admin_applications / banner_ads / hubs"
+      columns={['id', 'status', 'company_name', 'turnover', 'credit_rating', 'membership_level']}
+      notes="Super Admin portal för medlemskap, banners, hubbar och prov"
+    >
+      <div className="space-y-6">
       {/* Header */}
       <div className="bg-gradient-to-r from-gray-900 via-gray-800 to-[#800020] rounded-3xl p-6 sm:p-8 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="space-y-2 max-w-2xl">
@@ -385,6 +405,21 @@ export const AdminPortalModule: React.FC<AdminPortalModuleProps> = ({
         >
           <BarChart3 className="w-4 h-4" />
           <span>KPI Dashboard & Tillväxt</span>
+        </button>
+
+        <button
+          onClick={() => setActiveAdminTab('DEV_SCHEMA')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 shrink-0 ${
+            activeAdminTab === 'DEV_SCHEMA'
+              ? 'bg-[#800020] text-white shadow-xs'
+              : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <Terminal className="w-4 h-4 text-amber-400" />
+          <span>Dev HUD & Schema-Inspector</span>
+          <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-amber-400 text-gray-950 font-black">
+            Dev
+          </span>
         </button>
 
         <button
@@ -501,6 +536,11 @@ export const AdminPortalModule: React.FC<AdminPortalModuleProps> = ({
           <span>Provperiod & Trial</span>
         </button>
       </div>
+
+      {/* TAB: Dev HUD & Databas-Inspector */}
+      {activeAdminTab === 'DEV_SCHEMA' && (
+        <AdminDevAndSchemaTab />
+      )}
 
       {/* TAB 1: KPI Dashboard */}
       {activeAdminTab === 'KPIS' && (
@@ -1736,5 +1776,6 @@ export const AdminPortalModule: React.FC<AdminPortalModuleProps> = ({
         </div>
       )}
     </div>
+    </AdminInspect>
   );
 };

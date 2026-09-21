@@ -37,6 +37,7 @@ import {
   PaymentStatus 
 } from '../../types';
 import { INITIAL_MEMBERSHIP_PACKAGES, INITIAL_INVOICES } from '../../data/billingAndRulesData';
+import { AdminInspect } from '../dev/AdminInspect';
 
 interface MembershipBillingModuleProps {
   currentUser: Member;
@@ -218,7 +219,13 @@ export const MembershipBillingModule: React.FC<MembershipBillingModuleProps> = (
   };
 
   return (
-    <div className="space-y-6">
+    <AdminInspect
+      component="MembershipBillingModule.tsx"
+      sourceTable="public.invoices / member_billing_status / profiles"
+      columns={['id', 'member_id', 'membership_level', 'payment_status', 'amount_sek', 'due_date', 'pdf_url']}
+      notes="Medlemskapsnivåer, fakturor, uppgraderingar och medlemskapsstatus"
+    >
+      <div className="space-y-6">
       
       {/* Top Banner Notice */}
       {notificationNotice && (
@@ -1086,5 +1093,6 @@ export const MembershipBillingModule: React.FC<MembershipBillingModuleProps> = (
       )}
 
     </div>
+    </AdminInspect>
   );
 };

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { CalendarCheck, CheckCircle2, MapPin, Sparkles, Clock, AlertCircle } from 'lucide-react';
-import { WidgetComponentProps } from '../../types/widgets';
-import { bookFlexDeskToday } from '../../lib/widgetServices';
+import { WidgetComponentProps } from '../../../types/widgets';
+import { bookFlexDeskToday } from '../../../lib/widgetServices';
+import { AdminInspect } from '../../dev/AdminInspect';
 
 export const FlexBookingWidget: React.FC<WidgetComponentProps> = ({
   currentUser,
@@ -33,7 +34,14 @@ export const FlexBookingWidget: React.FC<WidgetComponentProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-3xl p-5 border border-gray-200/80 shadow-xs flex flex-col justify-between h-full hover:border-gray-300 transition-all">
+    <AdminInspect
+      component="FlexBookingWidget.tsx"
+      sourceTable="public.hub_bookings"
+      columns={['user_id', 'hub_id', 'booking_date', 'slot_type', 'status']}
+      notes="Flexplatsbokning och realtidsincheckning"
+      className="h-full"
+    >
+      <div className="bg-white rounded-3xl p-5 border border-gray-200/80 shadow-xs flex flex-col justify-between h-full hover:border-gray-300 transition-all">
       <div>
         {/* Header */}
         <div className="flex items-center justify-between mb-3">
@@ -123,5 +131,6 @@ export const FlexBookingWidget: React.FC<WidgetComponentProps> = ({
         )}
       </div>
     </div>
+    </AdminInspect>
   );
 };

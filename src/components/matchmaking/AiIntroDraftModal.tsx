@@ -12,6 +12,7 @@ import {
   Award
 } from 'lucide-react';
 import { Member } from '../../types';
+import { AdminInspect } from '../dev/AdminInspect';
 
 interface AiIntroDraftModalProps {
   currentUser: Member;
@@ -40,7 +41,13 @@ export const AiIntroDraftModal: React.FC<AiIntroDraftModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+    <AdminInspect
+      component="AiIntroDraftModal.tsx"
+      sourceTable="public.direct_chats / ai_matchmaking"
+      columns={['sender_id', 'receiver_id', 'draft_content', 'synergy_score', 'status']}
+      notes="AI-genererat introduktionsmeddelande för direktkontakt mellan medlemmar"
+    >
+      <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
       <div className="bg-white rounded-3xl max-w-xl w-full shadow-2xl border border-gray-200 overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="bg-gradient-to-r from-[#800020] to-[#5a0016] text-white p-5 flex items-center justify-between">
@@ -154,5 +161,6 @@ export const AiIntroDraftModal: React.FC<AiIntroDraftModalProps> = ({
         </div>
       </div>
     </div>
+    </AdminInspect>
   );
 };

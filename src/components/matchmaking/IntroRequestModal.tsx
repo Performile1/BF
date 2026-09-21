@@ -9,6 +9,7 @@ import {
   Award
 } from 'lucide-react';
 import { Member, IntroRequest } from '../../types';
+import { AdminInspect } from '../dev/AdminInspect';
 
 interface IntroRequestModalProps {
   currentUser: Member;
@@ -45,7 +46,13 @@ export const IntroRequestModal: React.FC<IntroRequestModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+    <AdminInspect
+      component="IntroRequestModal.tsx"
+      sourceTable="public.intro_requests"
+      columns={['id', 'author_id', 'target_role_or_company', 'description', 'bounty_bp', 'status']}
+      notes="Efterfråga varma introduktioner och sätt en Booster Points-bounty"
+    >
+      <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
       <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-gray-200 overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="bg-gradient-to-r from-[#800020] to-[#5a0016] text-white p-5 flex items-center justify-between">
@@ -152,5 +159,6 @@ export const IntroRequestModal: React.FC<IntroRequestModalProps> = ({
         </form>
       </div>
     </div>
+    </AdminInspect>
   );
 };

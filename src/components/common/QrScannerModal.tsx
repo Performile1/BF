@@ -14,6 +14,7 @@ import {
   Award
 } from 'lucide-react';
 import { Member, Hub } from '../../types';
+import { AdminInspect } from '../dev/AdminInspect';
 
 interface QrScannerModalProps {
   isOpen: boolean;
@@ -116,7 +117,13 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in">
+    <AdminInspect
+      component="QrScannerModal.tsx"
+      sourceTable="public.hub_checkins / profiles"
+      columns={['id', 'member_id', 'hub_id', 'checked_in_at', 'points_awarded']}
+      notes="Kamera/QR-skanner för hubbincheckning och profilkoppling"
+    >
+      <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in">
       <div className="bg-white rounded-3xl border border-gray-200 max-w-md w-full overflow-hidden shadow-2xl flex flex-col">
         
         {/* Header */}
@@ -321,5 +328,6 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({
 
       </div>
     </div>
+    </AdminInspect>
   );
 };

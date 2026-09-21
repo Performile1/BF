@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { AlertOctagon, Wrench, ShieldAlert, RefreshCw, LogIn } from 'lucide-react';
+import { AlertOctagon, Wrench, ShieldAlert, RefreshCw, LogIn, PowerOff } from 'lucide-react';
 import { Member } from '../../types';
 import { SystemSettings } from '../../types/widgets';
-import { getSystemSettings } from '../../lib/widgetServices';
+import { getSystemSettings, updateSystemSettings } from '../../lib/widgetServices';
+import { supabase, isSupabaseConfigured } from '../../lib/supabaseClient';
+import { AdminInspect } from '../dev/AdminInspect';
 
 interface MaintenanceGateProps {
   currentUser: Member | null;
@@ -17,9 +19,10 @@ export const MaintenanceGate: React.FC<MaintenanceGateProps> = ({
 }) => {
   const [settings, setSettings] = useState<SystemSettings>({
     maintenance_mode: false,
-    maintenance_message: 'Vi uppdaterar just nu Booster Friends. Vi beräknas vara tillbaka inom kort!',
+    maintenance_message: 'Vi uppdaterar just nu Booster Friends med nya nätverksfunktioner. Vi beräknas vara tillbaka inom kort!',
   });
   const [loading, setLoading] = useState<boolean>(true);
+  const [isDisabling, setIsDisabling] = useState<boolean>(false);
 
   const fetchSettings = async () => {
     try {
@@ -35,60 +38,123 @@ export const MaintenanceGate: React.FC<MaintenanceGateProps> = ({
   useEffect(() => {
     fetchSettings();
 
-    // Lyssna även på storage-events om en admin ändrar i samma flik/fönster
+    // 1. Supabase Realtime prenumeration på system_settings
+    let realtimeChannel: any = null;
+    if (isSupabaseConfigured) {
+      try {
+        realtimeChannel = supabase
+          .channel('realtime_system_settings_maintenance')
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'system_settings' },
+            () => {
+              fetchSettings();
+            }
+          )
+          .subscribe();
+      } catch (err) {
+        console.warn('Realtime subscription error on system_settings:', err);
+      }
+    }
+
+    // 2. Lyssna även på storage-events om en admin ändrar i samma flik/fönster
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'booster_system_settings') {
         fetchSettings();
       }
     };
+    const handleCustomUpdate = () => {
+      fetchSettings();
+    };
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener('booster_system_settings_updated', handleCustomUpdate);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('booster_system_settings_updated', handleCustomUpdate);
+      if (realtimeChannel && isSupabaseConfigured) {
+        supabase.removeChannel(realtimeChannel);
+      }
+    };
   }, []);
 
   const isAdmin = Boolean(
     currentUser?.is_admin ||
+    (currentUser as any)?.profiles?.is_admin ||
     currentUser?.role === 'SUPER_ADMIN' ||
+    currentUser?.role === 'ADMIN' ||
+    (currentUser as any)?.profiles?.role === 'SUPER_ADMIN' ||
     currentUser?.role_title?.toLowerCase().includes('admin') ||
-    currentUser?.id === 'usr_rickard_wigrund'
+    currentUser?.id === 'usr_rickard_wigrund' ||
+    currentUser?.email === 'wigrund81@gmail.com'
   );
 
-  // Om underhållsläge INTE är aktivt -> Släpp igenom helt
+  const handleDisableMaintenance = async () => {
+    setIsDisabling(true);
+    try {
+      await updateSystemSettings({ maintenance_mode: false });
+      setSettings(prev => ({ ...prev, maintenance_mode: false }));
+    } catch (err) {
+      console.error('Kunde inte stänga av underhållsläge:', err);
+    } finally {
+      setIsDisabling(false);
+    }
+  };
+
+  // Om underhållsläge INTE är aktivt -> Släpp igenom helt utan layout-shift
   if (!settings.maintenance_mode) {
     return <>{children}</>;
   }
 
   // Om underhållsläge ÄR aktivt OCH användaren ÄR ADMIN:
-  // Släpp igenom med en gul varningstext i toppen
+  // Släpp igenom med en fast varningsbanner högst upp med direktknapp för att inaktivera
   if (isAdmin) {
     return (
       <div className="relative w-full">
-        <div className="bg-amber-500 text-black px-4 py-2 text-xs font-black flex items-center justify-between shadow-md z-50 sticky top-0">
-          <div className="flex items-center gap-2">
-            <AlertOctagon className="w-4 h-4 text-black animate-pulse" />
-            <span>
-              UNDERHÅLLSLÄGE ÄR AKTIVT FÖR VANLIGA ANVÄNDARE. Du har admin-åtkomst (Bypass aktiv).
-            </span>
+        <AdminInspect
+          component="MaintenanceBanner.tsx"
+          sourceTable="public.system_settings"
+          columns={['maintenance_mode', 'maintenance_message', 'estimated_maintenance_end']}
+          notes="Realtidsprenumeration via Supabase Realtime"
+          className="w-full"
+        >
+          <div className="bg-amber-500 text-black px-4 py-2 text-xs font-black flex flex-wrap items-center justify-between gap-2 shadow-md z-50 sticky top-0 border-b border-amber-600/30">
+            <div className="flex items-center gap-2">
+              <AlertOctagon className="w-4 h-4 text-black animate-pulse shrink-0" />
+              <span>
+                UNDERHÅLLSLÄGE AKTIVT FÖR MEDLEMMAR — Du har administratörsåtkomst (Bypass aktiv)
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] font-medium hidden md:inline opacity-90">
+                "{settings.maintenance_message}"
+              </span>
+              <button
+                onClick={handleDisableMaintenance}
+                disabled={isDisabling}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-black text-white hover:bg-slate-900 text-[11px] font-bold transition shadow-xs cursor-pointer disabled:opacity-50"
+                title="Stäng av underhållsläge direkt"
+              >
+                <PowerOff className="w-3 h-3 text-amber-400" />
+                {isDisabling ? 'Avaktiverar...' : 'Inaktivera underhåll'}
+              </button>
+              <button
+                onClick={fetchSettings}
+                className="p-1 hover:bg-amber-600/30 rounded transition text-black"
+                title="Uppdatera status"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-[11px] font-medium hidden sm:inline">
-              Meddelande till besökare: "{settings.maintenance_message}"
-            </span>
-            <button
-              onClick={fetchSettings}
-              className="p-1 hover:bg-amber-600/30 rounded transition text-black"
-              title="Uppdatera status"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
+        </AdminInspect>
         {children}
       </div>
     );
   }
 
   // Om underhållsläge ÄR aktivt och användaren INTE är Admin:
-  // Blockera sidan helt och visa en stilren underhållsvy med det konfigurerade meddelandet
+  // Blockera sidan helt och visa en ren fullskärmsvy med uppdateringsinformation, beräknad återkomsttid och länk till admininloggning
   return (
     <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-6 select-none relative overflow-hidden">
       {/* Bakgrundsdekor */}

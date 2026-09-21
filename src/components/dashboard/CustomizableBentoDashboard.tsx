@@ -59,6 +59,7 @@ import {
   UserDashboardLayout
 } from '../../types';
 import { AdBannerEngine } from '../ads/AdBannerEngine';
+import { AdminInspect } from '../dev/AdminInspect';
 import { formatSek } from '../../utils/calendar';
 import { INITIAL_WEB_MEETINGS } from '../../data/calendarAndCoworkingData';
 import { INITIAL_COMMUNITY_POSTS } from '../../data/communityAndMatchmakingData';
@@ -1861,7 +1862,13 @@ export const CustomizableBentoDashboard: React.FC<CustomizableBentoDashboardProp
   };
 
   return (
-    <div className="space-y-4">
+    <AdminInspect
+      component="CustomizableBentoDashboard.tsx"
+      sourceTable="public.user_dashboard_layouts / profiles"
+      columns={['user_id', 'layout_json', 'active_widgets', 'columns_count']}
+      notes="Anpassningsbar Bento Dashboard med drak-och-släpp och storleksväljare"
+    >
+      <div className="space-y-4">
       {/* 📢 SPONSRAD BANNER ENGINE (FEED_TOP) */}
       <AdBannerEngine 
         zone="FEED_TOP" 
@@ -2326,5 +2333,6 @@ export const CustomizableBentoDashboard: React.FC<CustomizableBentoDashboardProp
         </div>
       )}
     </div>
+    </AdminInspect>
   );
 };

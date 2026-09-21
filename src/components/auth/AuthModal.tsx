@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { MembershipLevel } from '../../types';
+import { AdminInspect } from '../dev/AdminInspect';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -137,7 +138,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in overflow-y-auto">
+    <AdminInspect
+      component="AuthModal.tsx"
+      sourceTable="auth.users / public.profiles"
+      columns={['id', 'email', 'full_name', 'company_name', 'membership_level', 'role_title']}
+      notes="Inloggning, registrering och byte mellan demolägen"
+    >
+      <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in overflow-y-auto">
       <div className="bg-white rounded-3xl border border-gray-200 max-w-lg w-full shadow-2xl overflow-hidden relative my-auto">
         
         {/* Header with Burgundy Accent */}
@@ -556,5 +563,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
       </div>
     </div>
+    </AdminInspect>
   );
 };

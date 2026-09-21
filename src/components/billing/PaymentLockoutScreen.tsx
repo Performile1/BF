@@ -15,6 +15,7 @@ import {
   PhoneCall
 } from 'lucide-react';
 import { Member, MembershipLevel } from '../../types';
+import { AdminInspect } from '../dev/AdminInspect';
 
 interface PaymentLockoutScreenProps {
   member: Member;
@@ -50,7 +51,13 @@ export const PaymentLockoutScreen: React.FC<PaymentLockoutScreenProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-[#3b000f] to-gray-950 text-white flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-hidden">
+    <AdminInspect
+      component="PaymentLockoutScreen.tsx"
+      sourceTable="public.member_billing_status / invoices"
+      columns={['member_id', 'status', 'amount_due_sek', 'days_overdue', 'payment_method']}
+      notes="Spärrvy vid obetald faktura eller utgången provperiod med Swish/Kort-betalning"
+    >
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-[#3b000f] to-gray-950 text-white flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-hidden">
       {/* Background ambient lighting */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-rose-600/20 rounded-full blur-3xl pointer-events-none" />
 
@@ -225,5 +232,6 @@ export const PaymentLockoutScreen: React.FC<PaymentLockoutScreenProps> = ({
 
       </div>
     </div>
+    </AdminInspect>
   );
 };

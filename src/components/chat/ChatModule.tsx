@@ -24,6 +24,7 @@ import {
   MapPin
 } from 'lucide-react';
 import { ChatChannel, ChatMessage, Member, Hub } from '../../types';
+import { AdminInspect } from '../dev/AdminInspect';
 
 interface ChatModuleProps {
   currentUser: Member;
@@ -205,7 +206,13 @@ export const ChatModule: React.FC<ChatModuleProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden min-h-[640px] flex flex-col md:flex-row">
+    <AdminInspect
+      component="ChatModule.tsx"
+      sourceTable="public.chat_channels / chat_messages"
+      columns={['id', 'channel_type', 'title', 'sender_id', 'message_text', 'attachment_type', 'created_at']}
+      notes="Realtidschatt, direktmeddelanden, hubbkanaler och 3-vägs introduktionstrådar"
+    >
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden min-h-[640px] flex flex-col md:flex-row">
       
       {/* Channels Sidebar */}
       <div className="w-full md:w-80 lg:w-96 border-r border-gray-200 flex flex-col bg-[#F4F5F7]/40 flex-shrink-0">
@@ -883,5 +890,6 @@ export const ChatModule: React.FC<ChatModuleProps> = ({
       )}
 
     </div>
+    </AdminInspect>
   );
 };

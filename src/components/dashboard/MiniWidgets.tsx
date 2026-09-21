@@ -1,6 +1,7 @@
 import React from 'react';
 import { Award, Coffee, QrCode, Users, LucideIcon, ArrowUpRight, CheckCircle2 } from 'lucide-react';
 import { Member, MemberActiveLocation } from '../../types';
+import { AdminInspect } from '../dev/AdminInspect';
 
 interface MiniWidgetContainerProps {
   isEditMode?: boolean;
@@ -14,9 +15,17 @@ export const MiniWidgetContainer: React.FC<MiniWidgetContainerProps> = ({
   className = ''
 }) => {
   return (
-    <div className={`grid grid-cols-2 sm:grid-cols-4 gap-3 w-full ${className}`}>
-      {children}
-    </div>
+    <AdminInspect
+      component="MiniWidgets.tsx"
+      sourceTable="public.profiles / active_locations"
+      columns={['booster_score', 'is_available_for_coffee', 'current_city']}
+      notes="Dashboard snabb-indikatorer och miniwidgets"
+      className={className}
+    >
+      <div className={`grid grid-cols-2 sm:grid-cols-4 gap-3 w-full ${className}`}>
+        {children}
+      </div>
+    </AdminInspect>
   );
 };
 

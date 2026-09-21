@@ -45,6 +45,7 @@ import { CreateMemberEventModal } from './CreateMemberEventModal';
 import { LunchInvitationModal } from './LunchInvitationModal';
 import { AdBannerEngine } from '../ads/AdBannerEngine';
 import { LinkedInShareButton } from '../common/LinkedInShareButton';
+import { AdminInspect } from '../dev/AdminInspect';
 
 interface MasterCalendarModuleProps {
   currentUser: Member;
@@ -503,7 +504,13 @@ export const MasterCalendarModule: React.FC<MasterCalendarModuleProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <AdminInspect
+      component="MasterCalendarModule.tsx"
+      sourceTable="public.calendar_events / event_attendees / lunch_invitations"
+      columns={['id', 'title', 'start_time', 'end_time', 'location', 'spots_max', 'attendees_count', 'is_booked']}
+      notes="Masterkalendern, bokning av träffar, iCal-export och 1-till-1 möten"
+    >
+      <div className="space-y-6">
       {/* Top Banner: Masterkalender Overview */}
       <div className="bg-gradient-to-r from-[#800020] via-[#5c0017] to-[#3b000f] text-white rounded-3xl p-6 sm:p-8 shadow-sm relative overflow-hidden">
         <div className="relative z-10 max-w-3xl">
@@ -2862,5 +2869,6 @@ export const MasterCalendarModule: React.FC<MasterCalendarModuleProps> = ({
         />
       )}
     </div>
+    </AdminInspect>
   );
 };

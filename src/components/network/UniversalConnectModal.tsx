@@ -21,6 +21,7 @@ import {
   Award
 } from 'lucide-react';
 import { Member } from '../../types';
+import { AdminInspect } from '../dev/AdminInspect';
 
 interface UniversalConnectModalProps {
   currentUser: Member;
@@ -90,7 +91,13 @@ export const UniversalConnectModal: React.FC<UniversalConnectModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+    <AdminInspect
+      component="UniversalConnectModal.tsx"
+      sourceTable="public.profiles / connections"
+      columns={['id', 'full_name', 'company_name', 'email', 'phone', 'linkedin_url', 'qr_code_token']}
+      notes="Digitalt visitkort, QR-kod för nätverkande och Apple Wallet integration"
+    >
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-gray-200 overflow-hidden max-h-[92vh] flex flex-col">
         
         {/* Header */}
@@ -511,5 +518,6 @@ export const UniversalConnectModal: React.FC<UniversalConnectModalProps> = ({
 
       </div>
     </div>
+    </AdminInspect>
   );
 };

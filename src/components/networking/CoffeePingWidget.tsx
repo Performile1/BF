@@ -20,6 +20,7 @@ import {
   EyeOff
 } from 'lucide-react';
 import { Member, MemberActiveLocation, ProximityPing } from '../../types';
+import { AdminInspect } from '../dev/AdminInspect';
 
 interface CoffeePingWidgetProps {
   currentUser: Member;
@@ -201,7 +202,13 @@ export const CoffeePingWidget: React.FC<CoffeePingWidgetProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-3xl p-5 sm:p-6 border border-gray-200 shadow-xs space-y-5 relative overflow-hidden">
+    <AdminInspect
+      component="CoffeePingWidget.tsx"
+      sourceTable="public.member_locations / proximity_pings"
+      columns={['id', 'member_id', 'current_city', 'is_available_for_coffee', 'is_available_for_lunch', 'ping_type', 'status']}
+      notes="Kaffeping-widget, närhetsbaserade spontanmöten och tillgänglighetsstatus"
+    >
+      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-gray-200 shadow-xs space-y-5 relative overflow-hidden">
       
       {/* Subtle background glow */}
       <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-amber-500/5 via-rose-500/5 to-transparent rounded-full blur-3xl pointer-events-none" />
@@ -661,5 +668,6 @@ export const CoffeePingWidget: React.FC<CoffeePingWidgetProps> = ({
       )}
 
     </div>
+    </AdminInspect>
   );
 };

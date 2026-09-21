@@ -14,6 +14,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { Member, MemberActiveLocation, ProximityPing, Hub } from '../../types';
+import { AdminInspect } from '../dev/AdminInspect';
 
 interface LocationPingModalProps {
   isOpen: boolean;
@@ -117,7 +118,13 @@ export const LocationPingModal: React.FC<LocationPingModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <AdminInspect
+      component="LocationPingModal.tsx"
+      sourceTable="public.member_locations / proximity_pings"
+      columns={['receiver_id', 'ping_type', 'suggested_location', 'custom_message', 'status']}
+      notes="Fullständig modal för att skicka kaffe- eller lunch-ping baserat på stad"
+    >
+      <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 shadow-2xl space-y-5 p-6 animate-in zoom-in-95">
         
         {/* Header */}
@@ -346,5 +353,6 @@ export const LocationPingModal: React.FC<LocationPingModalProps> = ({
 
       </div>
     </div>
+    </AdminInspect>
   );
 };

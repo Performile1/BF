@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { Course, Certificate, MentorSlot, QuizQuestion, Member, ActivityType } from '../../types';
 import { formatSek } from '../../utils/calendar';
+import { AdminInspect } from '../dev/AdminInspect';
 
 interface AcademyModuleProps {
   currentUser: Member;
@@ -128,7 +129,13 @@ export const AcademyModule: React.FC<AcademyModuleProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <AdminInspect
+      component="AcademyModule.tsx"
+      sourceTable="public.courses / certificates / mentor_slots"
+      columns={['id', 'title', 'instructor', 'category', 'is_locked', 'price_sek', 'quiz_completed', 'certificate_hash']}
+      notes="Booster Academy med micro-kurser, kunskapstest (quiz), mentorpass och certifikat"
+    >
+      <div className="space-y-6">
 
       {/* Success banner */}
       {paymentSuccessNotice && (
@@ -814,5 +821,6 @@ export const AcademyModule: React.FC<AcademyModuleProps> = ({
       )}
 
     </div>
+    </AdminInspect>
   );
 };

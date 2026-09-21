@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AlertOctagon, Wrench, CheckCircle2, RefreshCw, Clock } from 'lucide-react';
 import { WidgetComponentProps, SystemSettings } from '../../../types/widgets';
 import { getSystemSettings, updateSystemSettings } from '../../../lib/widgetServices';
+import { AdminInspect } from '../../dev/AdminInspect';
 
 export const AdminMaintenanceWidget: React.FC<WidgetComponentProps> = () => {
   const [settings, setSettings] = useState<SystemSettings>({
@@ -39,12 +40,13 @@ export const AdminMaintenanceWidget: React.FC<WidgetComponentProps> = () => {
     setUpdating(false);
   };
 
-  const handleSaveMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveMessage = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setUpdating(true);
     const res = await updateSystemSettings({
       maintenance_mode: settings.maintenance_mode,
       maintenance_message: settings.maintenance_message,
+      estimated_maintenance_end: settings.estimated_maintenance_end,
     });
     if (res.success) {
       setSuccessNotice(true);
@@ -53,8 +55,24 @@ export const AdminMaintenanceWidget: React.FC<WidgetComponentProps> = () => {
     setUpdating(false);
   };
 
+  const setQuickDuration = (minutes: number | null) => {
+    if (minutes === null) {
+      setSettings(prev => ({ ...prev, estimated_maintenance_end: null }));
+    } else {
+      const targetTime = new Date(Date.now() + minutes * 60 * 1000).toISOString();
+      setSettings(prev => ({ ...prev, estimated_maintenance_end: targetTime }));
+    }
+  };
+
   return (
-    <div className={`rounded-3xl p-5 border shadow-xs flex flex-col justify-between h-full transition-all ${
+    <AdminInspect
+      component="AdminMaintenanceToggleWidget.tsx"
+      sourceTable="public.system_settings"
+      columns={['key = maintenance_mode', 'value (jsonb)']}
+      notes="Styr underhållsläget globalt via UPDATE på system_settings"
+      className="h-full"
+    >
+      <div className={`rounded-3xl p-5 border shadow-xs flex flex-col justify-between h-full transition-all ${
       settings.maintenance_mode 
         ? 'bg-amber-50/70 border-amber-300 ring-1 ring-amber-400/50' 
         : 'bg-white border-gray-200/80 hover:border-gray-300'
@@ -109,17 +127,66 @@ export const AdminMaintenanceWidget: React.FC<WidgetComponentProps> = () => {
           )}
         </div>
 
-        {/* Redigera meddelande */}
-        <form onSubmit={handleSaveMessage} className="space-y-2">
-          <label className="block text-[10px] font-bold text-gray-600">
-            Driftmeddelande till besökare:
-          </label>
-          <textarea
-            value={settings.maintenance_message}
-            onChange={e => setSettings({ ...settings, maintenance_message: e.target.value })}
-            rows={2}
-            className="w-full px-2.5 py-1.5 rounded-xl border border-gray-200 text-xs bg-white text-gray-800 focus:ring-1 focus:ring-[#800020] outline-hidden resize-none"
-          />
+        {/* Redigera meddelande och beräknad tid */}
+        <form onSubmit={handleSaveMessage} className="space-y-2.5">
+          <div>
+            <label className="block text-[10px] font-bold text-gray-600 mb-1">
+              Driftmeddelande till besökare:
+            </label>
+            <textarea
+              value={settings.maintenance_message}
+              onChange={e => setSettings({ ...settings, maintenance_message: e.target.value })}
+              rows={2}
+              className="w-full px-2.5 py-1.5 rounded-xl border border-gray-200 text-xs bg-white text-gray-800 focus:ring-1 focus:ring-[#800020] outline-hidden resize-none"
+            />
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between text-[10px] font-bold text-gray-600 mb-1">
+              <span className="flex items-center gap-1">
+                <Clock className="w-3 h-3 text-gray-400" />
+                Beräknat underhållsavslut:
+              </span>
+              {settings.estimated_maintenance_end ? (
+                <span className="text-[#800020] font-mono">
+                  {new Date(settings.estimated_maintenance_end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              ) : (
+                <span className="text-gray-400 font-normal">Tillsvidare</span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setQuickDuration(30)}
+                className="px-2 py-0.5 rounded-md bg-gray-100 hover:bg-gray-200 text-[10px] font-medium text-gray-700 cursor-pointer"
+              >
+                +30m
+              </button>
+              <button
+                type="button"
+                onClick={() => setQuickDuration(60)}
+                className="px-2 py-0.5 rounded-md bg-gray-100 hover:bg-gray-200 text-[10px] font-medium text-gray-700 cursor-pointer"
+              >
+                +1h
+              </button>
+              <button
+                type="button"
+                onClick={() => setQuickDuration(120)}
+                className="px-2 py-0.5 rounded-md bg-gray-100 hover:bg-gray-200 text-[10px] font-medium text-gray-700 cursor-pointer"
+              >
+                +2h
+              </button>
+              <button
+                type="button"
+                onClick={() => setQuickDuration(null)}
+                className="px-2 py-0.5 rounded-md bg-gray-100 hover:bg-gray-200 text-[10px] font-medium text-gray-700 cursor-pointer"
+              >
+                Ingen tid
+              </button>
+            </div>
+          </div>
 
           <div className="flex items-center justify-between pt-1">
             <span className="text-[9px] text-gray-400">
@@ -128,13 +195,14 @@ export const AdminMaintenanceWidget: React.FC<WidgetComponentProps> = () => {
             <button
               type="submit"
               disabled={updating}
-              className="px-3 py-1 rounded-lg bg-gray-900 hover:bg-black text-white text-[10px] font-bold transition cursor-pointer disabled:opacity-50"
+              className="px-3.5 py-1.5 rounded-xl bg-gray-900 hover:bg-black text-white text-[10px] font-bold transition cursor-pointer disabled:opacity-50"
             >
-              Uppdatera text
+              {updating ? 'Sparar...' : 'Spara inställningar'}
             </button>
           </div>
         </form>
       </div>
     </div>
+    </AdminInspect>
   );
 };

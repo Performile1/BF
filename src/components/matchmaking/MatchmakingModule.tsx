@@ -38,6 +38,7 @@ import {
 } from '../../data/communityAndMatchmakingData';
 import { AiIntroDraftModal } from './AiIntroDraftModal';
 import { IntroRequestModal } from './IntroRequestModal';
+import { AdminInspect } from '../dev/AdminInspect';
 
 interface MatchmakingModuleProps {
   currentUser: Member;
@@ -242,7 +243,13 @@ export const MatchmakingModule: React.FC<MatchmakingModuleProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <AdminInspect
+      component="MatchmakingModule.tsx"
+      sourceTable="public.ai_matches / intro_requests / speed_networking_matches"
+      columns={['id', 'member_id', 'target_member_id', 'match_score', 'synergy_reason', 'status']}
+      notes="AI Matchmaking, intro-efterfrågan, nätverksgraf och speed-networking"
+    >
+      <div className="space-y-6">
       {/* Top Banner: Intro-AI & Business Engine */}
       <div className="bg-gradient-to-r from-[#800020] via-[#650019] to-[#3a000e] rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
         <div className="absolute right-0 top-0 w-96 h-96 bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
@@ -1048,5 +1055,6 @@ export const MatchmakingModule: React.FC<MatchmakingModuleProps> = ({
         />
       )}
     </div>
+    </AdminInspect>
   );
 };

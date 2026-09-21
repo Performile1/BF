@@ -22,9 +22,11 @@ import {
   CreditCard,
   LogIn,
   LogOut,
-  UserPlus
+  UserPlus,
+  Shield
 } from 'lucide-react';
 import { Member, Hub, ChatChannel } from '../types';
+import { AdminInspect } from './dev/AdminInspect';
 
 interface HeaderProps {
   currentUser: Member;
@@ -41,6 +43,8 @@ interface HeaderProps {
   onOpenQrModal?: () => void;
   onOpenArchitectureSpec: () => void;
   onOpenMembership?: () => void;
+  onOpenAdmin?: () => void;
+  isAdmin?: boolean;
   channels?: ChatChannel[];
   onSelectChannel?: (channelId: string) => void;
   onOpenFullChat?: () => void;
@@ -64,6 +68,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenQrModal,
   onOpenArchitectureSpec,
   onOpenMembership,
+  onOpenAdmin,
+  isAdmin = false,
   channels = [],
   onSelectChannel,
   onOpenFullChat,
@@ -121,7 +127,14 @@ export const Header: React.FC<HeaderProps> = ({
   ];
 
   return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-xs">
+    <AdminInspect
+      component="Header.tsx"
+      sourceTable="public.profiles"
+      columns={['full_name', 'avatar_url', 'role', 'is_admin']}
+      notes="Hämtar aktiv inloggad användare och aviseringsräknare"
+      className="w-full sticky top-0 z-40"
+    >
+      <header className="bg-white border-b border-gray-200 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 sm:h-20 gap-2 sm:gap-4">
           
@@ -426,6 +439,19 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </div>
 
+            {/* Quick Admin Portal Button (Desktop) */}
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={onOpenAdmin}
+                className="hidden md:flex items-center gap-1.5 py-1.5 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold transition shadow-2xs cursor-pointer"
+                title="Öppna Adminpanelen, Dev HUD och schema-inspektorn"
+              >
+                <Shield className="w-3.5 h-3.5 text-amber-700" />
+                <span>Admin & Dev</span>
+              </button>
+            )}
+
             {/* User Profile & Persona Switcher */}
             <div className="relative">
               {isGuest ? (
@@ -483,6 +509,24 @@ export const Header: React.FC<HeaderProps> = ({
                       </div>
                       <span className="text-[10px] font-semibold text-[#800020]/70 group-hover:text-white/90">/profile/membership</span>
                     </button>
+
+                    {isAdmin && (
+                      <button
+                        onClick={() => {
+                          if (onOpenAdmin) onOpenAdmin();
+                          setShowUserMenu(false);
+                        }}
+                        className="w-full mt-2 py-2 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-300 text-xs font-bold text-amber-950 transition flex items-center justify-between group cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Shield className="w-3.5 h-3.5 text-amber-700" />
+                          <span>Adminpanel & Dev HUD</span>
+                        </div>
+                        <span className="text-[10px] font-black bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded">
+                          DEV
+                        </span>
+                      </button>
+                    )}
 
                     <div className="grid grid-cols-2 gap-1.5 mt-2">
                       <button
@@ -611,5 +655,6 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
     </header>
+    </AdminInspect>
   );
 };

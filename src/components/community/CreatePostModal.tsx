@@ -12,6 +12,7 @@ import {
   Tag
 } from 'lucide-react';
 import { Member, CommunityPost, CommunityPostType } from '../../types';
+import { AdminInspect } from '../dev/AdminInspect';
 
 interface CreatePostModalProps {
   currentUser: Member;
@@ -94,7 +95,13 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+    <AdminInspect
+      component="CreatePostModal.tsx"
+      sourceTable="public.community_posts"
+      columns={['id', 'author_id', 'post_type', 'category', 'title', 'content', 'image_url', 'tags']}
+      notes="Modal för att skapa inlägg, artiklar eller omröstningar i nätverket"
+    >
+      <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
       <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-gray-200 overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="bg-gradient-to-r from-[#800020] to-[#5a0016] text-white p-5 flex items-center justify-between">
@@ -312,5 +319,6 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
         </form>
       </div>
     </div>
+    </AdminInspect>
   );
 };

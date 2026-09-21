@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { Member, Hub, MembershipLevel, ProspectRecord } from '../../types';
 import { sendBroadcastCampaign } from '../../lib/apiServices';
+import { AdminInspect } from '../dev/AdminInspect';
 
 interface AdminProspectImporterProps {
   currentUser: Member;
@@ -476,7 +477,13 @@ export const AdminProspectImporter: React.FC<AdminProspectImporterProps> = ({
   };
 
   return (
-    <div className="space-y-6" id="admin-prospect-importer">
+    <AdminInspect
+      component="AdminProspectImporter.tsx"
+      sourceTable="public.prospects / broadcast_campaigns"
+      columns={['id', 'full_name', 'email', 'company_name', 'status', 'trial_tier', 'trial_ends_at']}
+      notes="CSV-import av prospekts, generering av onboarding-länkar och broadcast-utskick"
+    >
+      <div className="space-y-6" id="admin-prospect-importer">
       {/* Toast Notification */}
       {notificationMsg && (
         <div className={`p-4 rounded-2xl border flex items-center justify-between shadow-lg transition animate-in fade-in slide-in-from-top-2 ${
@@ -1210,5 +1217,6 @@ export const AdminProspectImporter: React.FC<AdminProspectImporterProps> = ({
         </div>
       )}
     </div>
+    </AdminInspect>
   );
 };

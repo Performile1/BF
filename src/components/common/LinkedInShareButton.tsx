@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Linkedin, Share2, Check, Copy, ExternalLink, Sparkles } from 'lucide-react';
+import { AdminInspect } from '../dev/AdminInspect';
 
 interface LinkedInShareButtonProps {
   title: string;
@@ -46,7 +47,12 @@ export const LinkedInShareButton: React.FC<LinkedInShareButtonProps> = ({
   };
 
   return (
-    <>
+    <AdminInspect
+      component="LinkedInShareButton.tsx"
+      sourceTable="RPC: record_share_action"
+      columns={['member_id', 'share_channel', 'points_awarded', 'shared_at']}
+      notes="LinkedIn-delning med Booster Points belöning"
+    >
       {variant === 'icon' ? (
         <button
           onClick={() => setShowModal(true)}
@@ -157,6 +163,6 @@ export const LinkedInShareButton: React.FC<LinkedInShareButtonProps> = ({
           </div>
         </div>
       )}
-    </>
+    </AdminInspect>
   );
 };

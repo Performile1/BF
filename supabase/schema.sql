@@ -1289,10 +1289,39 @@ CREATE POLICY "Channel members send messages"
   );
 
 -- ------------------------------------------------------------------------------
--- 20. SUPABASE REALTIME PUBLICATION
+-- 20. SYSTEM SETTINGS & MAINTENANCE CONFIG
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS system_settings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  maintenance_mode BOOLEAN NOT NULL DEFAULT FALSE,
+  maintenance_message TEXT NOT NULL DEFAULT 'Vi uppdaterar just nu Booster Friends med nya nätverksfunktioner. Vi beräknas vara tillbaka inom kort!',
+  estimated_maintenance_end TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Ensure columns exist if table was created previously with fewer columns
+ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS maintenance_mode BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS maintenance_message TEXT NOT NULL DEFAULT 'Vi uppdaterar just nu Booster Friends med nya nätverksfunktioner. Vi beräknas vara tillbaka inom kort!';
+ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS estimated_maintenance_end TIMESTAMPTZ;
+ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+
+ALTER TABLE system_settings ENABLE ROW LEVEL SECURITY;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'system_settings' AND policyname = 'Anyone can read system_settings') THEN
+    CREATE POLICY "Anyone can read system_settings" ON system_settings FOR SELECT TO authenticated, anon USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'system_settings' AND policyname = 'Admins can update system_settings') THEN
+    CREATE POLICY "Admins can update system_settings" ON system_settings FOR ALL TO authenticated USING (public.is_admin()) WITH CHECK (public.is_admin());
+  END IF;
+END $$;
+
+-- ------------------------------------------------------------------------------
+-- 21. SUPABASE REALTIME PUBLICATION
 -- ------------------------------------------------------------------------------
 ALTER PUBLICATION supabase_realtime ADD TABLE 
   public.system_activity_ticker_events,
   public.chat_messages,
   public.proximity_pings,
   public.member_active_locations;
+

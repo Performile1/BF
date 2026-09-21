@@ -1,6 +1,7 @@
 import React from 'react';
 import { Activity, Sparkles, TrendingUp, UserPlus, Trophy, ChevronRight } from 'lucide-react';
 import { WidgetComponentProps } from '../../../types/widgets';
+import { AdminInspect } from '../../dev/AdminInspect';
 
 export const ActivityTickerWidget: React.FC<WidgetComponentProps> = ({ onNavigateTab }) => {
   const events = [
@@ -11,7 +12,14 @@ export const ActivityTickerWidget: React.FC<WidgetComponentProps> = ({ onNavigat
   ];
 
   return (
-    <div className="bg-white rounded-3xl p-5 border border-gray-200/80 shadow-xs flex flex-col justify-between h-full hover:border-gray-300 transition-all">
+    <AdminInspect
+      component="ActivityTickerWidget.tsx"
+      sourceTable="public.activity_logs"
+      columns={['event_type', 'description', 'created_at']}
+      notes="Aktivitetsflöde och realtidshändelser i nätverket"
+      className="h-full"
+    >
+      <div className="bg-white rounded-3xl p-5 border border-gray-200/80 shadow-xs flex flex-col justify-between h-full hover:border-gray-300 transition-all">
       <div>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -50,5 +58,6 @@ export const ActivityTickerWidget: React.FC<WidgetComponentProps> = ({ onNavigat
         </button>
       </div>
     </div>
+    </AdminInspect>
   );
 };

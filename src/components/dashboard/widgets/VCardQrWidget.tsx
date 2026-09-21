@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { QrCode, Share2, Copy, Check, Download } from 'lucide-react';
 import { WidgetComponentProps } from '../../../types/widgets';
 import { getConnectUrl, downloadVCard } from '../../../utils/vcard';
+import { AdminInspect } from '../../dev/AdminInspect';
 
 export const VCardQrWidget: React.FC<WidgetComponentProps> = ({ currentUser }) => {
   const [copied, setCopied] = useState(false);
@@ -18,7 +19,14 @@ export const VCardQrWidget: React.FC<WidgetComponentProps> = ({ currentUser }) =
   };
 
   return (
-    <div className="bg-white rounded-3xl p-5 border border-gray-200/80 shadow-xs flex flex-col justify-between h-full hover:border-gray-300 transition-all">
+    <AdminInspect
+      component="VCardQrWidget.tsx"
+      sourceTable="public.profiles"
+      columns={['id', 'full_name', 'email', 'phone', 'company_name', 'linkedin_url']}
+      notes="Digitalt vCard och dynamisk QR-kod för kontaktutbyte"
+      className="h-full"
+    >
+      <div className="bg-white rounded-3xl p-5 border border-gray-200/80 shadow-xs flex flex-col justify-between h-full hover:border-gray-300 transition-all">
       <div>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -65,5 +73,6 @@ export const VCardQrWidget: React.FC<WidgetComponentProps> = ({ currentUser }) =
         </button>
       </div>
     </div>
+    </AdminInspect>
   );
 };

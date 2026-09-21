@@ -2,6 +2,7 @@ import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import { AuthProvider } from './context/AuthContext';
+import { InspectorProvider } from './components/dev/InspectorContext';
 import './index.css';
 
 // Gracefully handle browser extension messaging disconnects in iframe environments
@@ -38,7 +39,9 @@ if (typeof window !== 'undefined') {
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AuthProvider>
-      <App />
+      <InspectorProvider>
+        <App />
+      </InspectorProvider>
     </AuthProvider>
   </StrictMode>,
 );
