@@ -1,5 +1,14 @@
 import React from 'react';
-import { Member, Hub, CoworkingDeskBooking } from '../types';
+import { 
+  Member, 
+  Hub, 
+  CoworkingDeskBooking, 
+  DealPipelineItem, 
+  WebMeeting, 
+  BoosterScoreLog, 
+  GuestPass, 
+  MasterCalendarEvent 
+} from '../types';
 
 export type WidgetCategory = 'CORE' | 'HUB' | 'COMMUNITY' | 'ACADEMY' | 'ADMIN';
 export type WidgetWidth = 'span-1' | 'span-2' | 'span-full';
@@ -81,6 +90,13 @@ export interface WidgetComponentProps {
   onNavigateTab?: (tab: string) => void;
   onOpenDirectChat?: (memberId: string) => void;
   onAwardPoints?: (points: number, reason: string, activityType: string) => void;
+  pipelineItems?: DealPipelineItem[];
+  webMeetings?: WebMeeting[];
+  onOpenWebMeetingModal?: (targetMember?: Member | null, initialType?: 'ONE_TO_ONE' | 'GROUP') => void;
+  onStartIntroWith?: (member: Member) => void;
+  scoreLogs?: BoosterScoreLog[];
+  guestPasses?: GuestPass[];
+  masterEvents?: MasterCalendarEvent[];
 }
 
 export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = {
@@ -137,6 +153,105 @@ export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = {
     adminOnly: false,
     defaultWidth: 'span-1',
     iconName: 'CalendarCheck',
+  },
+  my_meetings: {
+    id: 'my_meetings',
+    title: 'Mina Webbmöten (1-1 & Grupp)',
+    description: 'Kommande digitala möten, anslutningslänk (Meet/Teams) och snabbokning (+20 BP).',
+    category: 'CORE',
+    adminOnly: false,
+    defaultWidth: 'span-2',
+    iconName: 'Video',
+  },
+  ai_matchmaking: {
+    id: 'ai_matchmaking',
+    title: 'AI Lead Match Spotlight',
+    description: 'Intelligenta affärs- och sparringsförslag med synergipoäng och direkt introduktionsutkast.',
+    category: 'COMMUNITY',
+    adminOnly: false,
+    defaultWidth: 'span-2',
+    iconName: 'Sparkles',
+  },
+  member_pipeline: {
+    id: 'member_pipeline',
+    title: 'Min Affärspipeline (CRM)',
+    description: 'Dina personliga pågående B2B-affärer, potentiellt ordervärde och säljsteg.',
+    category: 'CORE',
+    adminOnly: false,
+    defaultWidth: 'span-2',
+    iconName: 'TrendingUp',
+  },
+  calendar_upcoming: {
+    id: 'calendar_upcoming',
+    title: 'Min Kalender & Hubbmöten',
+    description: 'Kommande nätverksfrukostar, workshops, utbildningar och regionala träffar.',
+    category: 'HUB',
+    adminOnly: false,
+    defaultWidth: 'span-2',
+    iconName: 'Calendar',
+  },
+  guest_pass: {
+    id: 'guest_pass',
+    title: 'VIP Gästpass & Bjud in',
+    description: 'Dela ut digitala provpass till kollegor, kunder och partners (+bonus vid konvertering).',
+    category: 'COMMUNITY',
+    adminOnly: false,
+    defaultWidth: 'span-1',
+    iconName: 'Gift',
+  },
+  webinar: {
+    id: 'webinar',
+    title: 'Live Webinar Engine',
+    description: 'Kommande live-sändningar, expertseminarier och inspelade masterclasses.',
+    category: 'ACADEMY',
+    adminOnly: false,
+    defaultWidth: 'span-2',
+    iconName: 'Tv',
+  },
+  bp_ledger: {
+    id: 'bp_ledger',
+    title: 'Booster Points Revisionslogg',
+    description: 'Senaste verifierade BP-transaktioner, aktiviteter och audit-historik.',
+    category: 'CORE',
+    adminOnly: false,
+    defaultWidth: 'span-2',
+    iconName: 'History',
+  },
+  network_recommendations: {
+    id: 'network_recommendations',
+    title: 'Nätverksrekommendationer',
+    description: 'Nya relevanta medlemmar i nätverket att knyta kontakt och ta en kaffe med.',
+    category: 'COMMUNITY',
+    adminOnly: false,
+    defaultWidth: 'span-2',
+    iconName: 'UserPlus',
+  },
+  hub_battle: {
+    id: 'hub_battle',
+    title: 'Månadens Hubb Battle',
+    description: 'Regional tävling och sammanlagd poängranking mellan Stockholm, Göteborg och Malmö.',
+    category: 'HUB',
+    adminOnly: false,
+    defaultWidth: 'span-1',
+    iconName: 'Trophy',
+  },
+  geofencing: {
+    id: 'geofencing',
+    title: 'Geo-fencing Radar & Incheckning',
+    description: 'Automatisk GPS-närvarokontroll inom vald hubbs radie och 1-klicks incheckning.',
+    category: 'HUB',
+    adminOnly: false,
+    defaultWidth: 'span-1',
+    iconName: 'ShieldCheck',
+  },
+  knowledge_quiz: {
+    id: 'knowledge_quiz',
+    title: 'Kunskapsprov & Veckans Quiz',
+    description: 'Utmana dig i affärsjuridik, B2B-försäljning eller cybersäkerhet för att erhålla badges (+50 BP).',
+    category: 'ACADEMY',
+    adminOnly: false,
+    defaultWidth: 'span-1',
+    iconName: 'GraduationCap',
   },
   community_feed: {
     id: 'community_feed',
@@ -234,12 +349,17 @@ export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = {
 export const DEFAULT_USER_WIDGET_IDS = [
   'activity_ticker',
   'booster_score',
+  'my_meetings',
+  'ai_matchmaking',
+  'member_pipeline',
   'vcard_qr',
   'flex_booking',
   'hub_presence',
   'proximity_radar',
+  'calendar_upcoming',
   'community_feed',
   'academy_progress',
+  'guest_pass',
   'notifications_inbox',
   'tag_subscriptions',
 ];
@@ -251,6 +371,8 @@ export const DEFAULT_ADMIN_WIDGET_IDS = [
   'admin_deals_pipeline',
   'admin_invoices',
   'admin_account_lifecycle',
+  'my_meetings',
+  'member_pipeline',
   'activity_ticker',
   'booster_score',
   'hub_presence',

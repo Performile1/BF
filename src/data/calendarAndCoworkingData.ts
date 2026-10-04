@@ -42,7 +42,7 @@ export const INITIAL_COWORKING_CREDITS: Record<string, MemberCoworkingCredits> =
   }
 };
 
-export const INITIAL_MASTER_EVENTS: MasterCalendarEvent[] = [
+export const MOCK_MASTER_EVENTS: MasterCalendarEvent[] = [
   {
     id: 'evt_past_summer_summit_2026',
     title: 'Booster Friends Sommar-Summit & M&A Mingle',
@@ -717,7 +717,10 @@ export const INITIAL_MASTER_EVENTS: MasterCalendarEvent[] = [
   }
 ];
 
-export const INITIAL_COWORKING_BOOKINGS: CoworkingDeskBooking[] = [
+// Skarp grundinställning: Tom kalender (aktiviteter skapas skarpt eller laddas via MOCK_MASTER_EVENTS)
+export const INITIAL_MASTER_EVENTS: MasterCalendarEvent[] = [];
+
+export const MOCK_COWORKING_BOOKINGS: CoworkingDeskBooking[] = [
   {
     id: 'bk_1',
     hub_id: 'hub_stockholm',
@@ -833,6 +836,9 @@ export const INITIAL_COWORKING_BOOKINGS: CoworkingDeskBooking[] = [
   }
 ];
 
+// Skarp grundinställning: Tomma bokningar (bokas av användare eller laddas via MOCK_COWORKING_BOOKINGS)
+export const INITIAL_COWORKING_BOOKINGS: CoworkingDeskBooking[] = [];
+
 export const INITIAL_PARTNER_LOCATIONS: PartnerCoworkingLocation[] = [
   {
     id: 'ptnr_convendum_kungsgatan',
@@ -912,7 +918,7 @@ export const INITIAL_PARTNER_LOCATIONS: PartnerCoworkingLocation[] = [
   }
 ];
 
-export const INITIAL_DESK_SWAPS: DeskSwap[] = [
+export const MOCK_DESK_SWAPS: DeskSwap[] = [
   {
     id: 'swap_1',
     lender_member_id: 'usr_sofia_eklund',
@@ -965,6 +971,9 @@ export const INITIAL_DESK_SWAPS: DeskSwap[] = [
     created_at: '2026-09-03T09:00:00Z'
   }
 ];
+
+// Skarp grundinställning: Inga skrivbordsbyten (läggs upp av medlemmar eller laddas via MOCK_DESK_SWAPS)
+export const INITIAL_DESK_SWAPS: DeskSwap[] = [];
 
 export const INITIAL_PROMO_CODES: PromoCode[] = [
   {

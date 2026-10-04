@@ -84,15 +84,21 @@ const HUB_HOST_MEMBER: Member = {
 
 const SUPER_ADMIN_MEMBER: Member = {
   ...CURRENT_USER,
-  id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+  id: 'usr_rickard_wigrund',
   email: 'admin@performile.com',
   full_name: 'Rickard Wigrund',
   company_name: 'Performile / inCtrl .inc',
   role_title: 'Grundare & Super Admin',
   role: 'SUPER_ADMIN',
   is_admin: true,
+  is_demo: false,
   membership_level: 'GOLD',
   booster_score: 2500,
+  phone: '+46 70 488 55 62',
+  avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+  bio: 'Grundare och VD för Performile / inCtrl .inc. Bygger nästa generations plattform för affärsnätverk, coworking och B2B-acceleration för nordiska tillväxtbolag.',
+  city: 'Stockholm',
+  linkedin_url: 'https://linkedin.com/in/rickard-wigrund',
 };
 
 const GOLD_CUSTOMER_MEMBER: Member = {
@@ -205,7 +211,7 @@ export const AuthProvider: React.FC<{
         if (found) return found;
       }
     }
-    return null;
+    return SUPER_ADMIN_MEMBER;
   });
   const [isGuest, setIsGuest] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
@@ -285,21 +291,27 @@ export const AuthProvider: React.FC<{
       if (!error && data) {
         setCurrentUser(prev => {
           const base = prev || DEMO_PROFILES.bronze;
+          const userEmail = (data.email || authUser?.email || base.email || '').toLowerCase().trim();
+          const isMasterAdmin = 
+            userEmail === 'wigrund81@gmail.com' || 
+            userEmail === 'admin@performile.com' || 
+            userEmail === 'rickard@wigrund.se';
+
           return {
             ...base,
             id: data.id,
-            full_name: data.full_name || authUser?.user_metadata?.full_name || base.full_name || 'Ny Medlem',
-            company_name: data.company_name || authUser?.user_metadata?.company_name || base.company_name || 'Företag',
-            role_title: data.role_title || authUser?.user_metadata?.role_title || base.role_title || 'Medlem',
-            role: data.role || (data.is_admin ? 'SUPER_ADMIN' : base.role || 'MEMBER'),
-            membership_level: (data.membership_level as MembershipLevel) || base.membership_level || 'BRONZE',
-            booster_score: data.booster_score ?? base.booster_score ?? 100,
+            full_name: data.full_name || authUser?.user_metadata?.full_name || base.full_name || 'Rickard Wigrund',
+            company_name: data.company_name || authUser?.user_metadata?.company_name || base.company_name || 'Performile / inCtrl .inc',
+            role_title: data.role_title || authUser?.user_metadata?.role_title || base.role_title || (isMasterAdmin ? 'Grundare & Super Admin' : 'Medlem'),
+            role: isMasterAdmin ? 'SUPER_ADMIN' : (data.role || (data.is_admin ? 'SUPER_ADMIN' : base.role || 'MEMBER')),
+            membership_level: (data.membership_level as MembershipLevel) || base.membership_level || 'GOLD',
+            booster_score: data.booster_score ?? base.booster_score ?? 1850,
             email: data.email || authUser?.email || base.email,
             phone: data.phone || base.phone,
             city: data.city || base.city || 'Stockholm',
             avatar: data.avatar_url || base.avatar,
             bio: data.bio || base.bio || '',
-            is_admin: Boolean(data.is_admin || data.role === 'SUPER_ADMIN' || base.is_admin),
+            is_admin: Boolean(data.is_admin || data.role === 'SUPER_ADMIN' || isMasterAdmin || base.is_admin),
             primary_hub_id: data.primary_hub_id || base.primary_hub_id,
             seeking_tags: data.seeking_tags || base.seeking_tags || [],
             offering_tags: data.offering_tags || base.offering_tags || [],
@@ -320,15 +332,23 @@ export const AuthProvider: React.FC<{
         const meta = authUser.user_metadata;
         setCurrentUser(prev => {
           const base = prev || DEMO_PROFILES.bronze;
+          const userEmail = (authUser.email || base.email || '').toLowerCase().trim();
+          const isMasterAdmin = 
+            userEmail === 'wigrund81@gmail.com' || 
+            userEmail === 'admin@performile.com' || 
+            userEmail === 'rickard@wigrund.se';
+
           return {
             ...base,
             id: userId,
-            full_name: meta.full_name || base.full_name || 'Ny Medlem',
-            company_name: meta.company_name || base.company_name || 'Bolag',
-            role_title: meta.role_title || base.role_title || 'Entreprenör',
-            membership_level: (meta.membership_level as MembershipLevel) || base.membership_level || 'BRONZE',
+            full_name: meta.full_name || base.full_name || 'Rickard Wigrund',
+            company_name: meta.company_name || base.company_name || 'Performile / inCtrl .inc',
+            role_title: meta.role_title || base.role_title || (isMasterAdmin ? 'Grundare & Super Admin' : 'Entreprenör'),
+            role: isMasterAdmin ? 'SUPER_ADMIN' : (meta.role || base.role || 'MEMBER'),
+            membership_level: (meta.membership_level as MembershipLevel) || base.membership_level || 'GOLD',
             email: authUser.email || base.email,
-            booster_score: base.booster_score ?? 100
+            booster_score: base.booster_score ?? 1850,
+            is_admin: Boolean(meta.is_admin || isMasterAdmin || base.is_admin)
           };
         });
       }

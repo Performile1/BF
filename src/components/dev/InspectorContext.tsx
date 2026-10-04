@@ -24,15 +24,19 @@ const InspectorContext = createContext<InspectorContextType>({
 
 export function InspectorProvider({ children }: { children: React.ReactNode }) {
   const [inspectorEnabled, setInspectorEnabledState] = useState(false);
-  const [cleanSlateMode, setCleanSlateModeState] = useState(false);
+  const [cleanSlateMode, setCleanSlateModeState] = useState(true);
 
   useEffect(() => {
     try {
       const storedInspector = localStorage.getItem('bf_dev_inspector') === 'true';
       setInspectorEnabledState(storedInspector);
 
-      const storedCleanSlate = localStorage.getItem('bf_clean_slate') === 'true';
-      setCleanSlateModeState(storedCleanSlate);
+      const storedCleanSlate = localStorage.getItem('bf_clean_slate');
+      if (storedCleanSlate !== null) {
+        setCleanSlateModeState(storedCleanSlate === 'true');
+      } else {
+        setCleanSlateModeState(true);
+      }
     } catch {
       // hydration safe
     }

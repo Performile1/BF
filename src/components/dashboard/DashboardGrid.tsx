@@ -1,9 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Sliders, RefreshCw, Sparkles, Shield, AlertTriangle } from 'lucide-react';
-import { Member, Hub } from '../../types';
+import { 
+  Sliders, 
+  RefreshCw, 
+  Sparkles, 
+  Shield, 
+  AlertTriangle,
+  Maximize2,
+  Minimize2,
+  ArrowUp,
+  ArrowDown,
+  X,
+  Check,
+  LayoutGrid,
+  Columns
+} from 'lucide-react';
+import { Member, Hub, DealPipelineItem, WebMeeting, BoosterScoreLog, GuestPass, MasterCalendarEvent } from '../../types';
 import { 
   WIDGET_REGISTRY, 
   WidgetDefinition, 
+  WidgetWidth,
   DEFAULT_USER_WIDGET_IDS, 
   DEFAULT_ADMIN_WIDGET_IDS 
 } from '../../types/widgets';
@@ -33,6 +48,19 @@ import {
   AdminInvoicesWidget, 
   AdminAccountLifecycleWidget 
 } from './widgets/SecondaryWidgets';
+import {
+  MyMeetingsWidget,
+  AiMatchmakingWidget,
+  MemberPipelineWidget,
+  CalendarUpcomingWidget,
+  GuestPassWidget,
+  WebinarWidget,
+  BpLedgerWidget,
+  NetworkRecommendationsWidget,
+  HubBattleWidget,
+  GeofencingWidget,
+  KnowledgeQuizWidget
+} from './widgets/CoreModulesWidgets';
 
 interface DashboardGridProps {
   currentUser: Member;
@@ -42,6 +70,13 @@ interface DashboardGridProps {
   onNavigateTab?: (tab: string) => void;
   onOpenDirectChat?: (memberId: string) => void;
   onAwardPoints?: (points: number, reason: string, activityType: string) => void;
+  pipelineItems?: DealPipelineItem[];
+  webMeetings?: WebMeeting[];
+  onOpenWebMeetingModal?: (targetMember?: Member | null, initialType?: 'ONE_TO_ONE' | 'GROUP') => void;
+  onStartIntroWith?: (member: Member) => void;
+  scoreLogs?: BoosterScoreLog[];
+  guestPasses?: GuestPass[];
+  masterEvents?: MasterCalendarEvent[];
 }
 
 export const DashboardGrid: React.FC<DashboardGridProps> = ({
@@ -52,6 +87,13 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
   onNavigateTab,
   onOpenDirectChat,
   onAwardPoints,
+  pipelineItems = [],
+  webMeetings = [],
+  onOpenWebMeetingModal,
+  onStartIntroWith,
+  scoreLogs = [],
+  guestPasses = [],
+  masterEvents = [],
 }) => {
   const isAdmin = Boolean(
     currentUser.is_admin ||
@@ -59,13 +101,56 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
     currentUser.role === 'SUPER_ADMIN' ||
     currentUser.role === 'ADMIN' ||
     currentUser.role_title?.toLowerCase().includes('admin') ||
+    currentUser.role_title?.toLowerCase().includes('grundare') ||
     currentUser.id === 'usr_rickard_wigrund' ||
-    currentUser.email === 'wigrund81@gmail.com'
+    currentUser.id === 'usr_rickard_performile' ||
+    currentUser.email?.toLowerCase() === 'wigrund81@gmail.com' ||
+    currentUser.email?.toLowerCase() === 'admin@performile.com' ||
+    currentUser.email?.toLowerCase() === 'rickard@wigrund.se'
   );
 
   const [activeWidgetIds, setActiveWidgetIds] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [isPickerOpen, setIsPickerOpen] = useState<boolean>(false);
+  const [isEditMode, setIsEditMode] = useState<boolean>(false);
+
+  // Användardefinierade widget-storlekar (synkas med localStorage & user_dashboard_widgets)
+  const [customWidths, setCustomWidths] = useState<Record<string, WidgetWidth>>(() => {
+    try {
+      const saved = localStorage.getItem(`bf_widget_widths_${currentUser.id}`);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return {};
+  });
+
+  const handleSetWidgetWidth = (widgetId: string, width: WidgetWidth) => {
+    setCustomWidths(prev => {
+      const next = { ...prev, [widgetId]: width };
+      try {
+        localStorage.setItem(`bf_widget_widths_${currentUser.id}`, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  };
+
+  const handleMoveWidget = (index: number, direction: 'UP' | 'DOWN') => {
+    setActiveWidgetIds(prev => {
+      const targetIndex = direction === 'UP' ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= prev.length) return prev;
+      const next = [...prev];
+      const temp = next[index];
+      next[index] = next[targetIndex];
+      next[targetIndex] = temp;
+      saveUserWidgetPreferences(currentUser.id, next);
+      return next;
+    });
+  };
+
+  const handleRemoveWidget = (widgetId: string) => {
+    const next = activeWidgetIds.filter(id => id !== widgetId);
+    setActiveWidgetIds(next);
+    saveUserWidgetPreferences(currentUser.id, next);
+  };
 
   // Ladda användarens sparade widget-preferenser
   const loadPreferences = async () => {
@@ -101,6 +186,13 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
       onNavigateTab,
       onOpenDirectChat,
       onAwardPoints,
+      pipelineItems,
+      webMeetings,
+      onOpenWebMeetingModal,
+      onStartIntroWith,
+      scoreLogs,
+      guestPasses,
+      masterEvents,
     };
 
     switch (id) {
@@ -116,6 +208,28 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
         return <HubPresenceWidget {...props} />;
       case 'flex_booking':
         return <FlexBookingWidget {...props} />;
+      case 'my_meetings':
+        return <MyMeetingsWidget {...props} />;
+      case 'ai_matchmaking':
+        return <AiMatchmakingWidget {...props} />;
+      case 'member_pipeline':
+        return <MemberPipelineWidget {...props} />;
+      case 'calendar_upcoming':
+        return <CalendarUpcomingWidget {...props} />;
+      case 'guest_pass':
+        return <GuestPassWidget {...props} />;
+      case 'webinar':
+        return <WebinarWidget {...props} />;
+      case 'bp_ledger':
+        return <BpLedgerWidget {...props} />;
+      case 'network_recommendations':
+        return <NetworkRecommendationsWidget {...props} />;
+      case 'hub_battle':
+        return <HubBattleWidget {...props} />;
+      case 'geofencing':
+        return <GeofencingWidget {...props} />;
+      case 'knowledge_quiz':
+        return <KnowledgeQuizWidget {...props} />;
       case 'community_feed':
         return <CommunityFeedWidget {...props} />;
       case 'academy_progress':
@@ -150,12 +264,13 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
       return true;
     });
 
-  // Beräkna kolumnbreddsklass för Tailwind
+  // Beräkna kolumnbreddsklass för Tailwind (tar hänsyn till användarens valda anpassning)
   const getColSpanClass = (def: WidgetDefinition) => {
-    if (def.defaultWidth === 'span-full') {
+    const width = customWidths[def.id] || def.defaultWidth;
+    if (width === 'span-full') {
       return 'col-span-1 md:col-span-2 lg:col-span-3 xl:col-span-4';
     }
-    if (def.defaultWidth === 'span-2') {
+    if (width === 'span-2') {
       return 'col-span-1 md:col-span-2 lg:col-span-2 xl:col-span-2';
     }
     return 'col-span-1';
@@ -174,7 +289,7 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-base sm:text-lg font-black text-gray-900 tracking-tight">
-              Personlig Dashboard
+              Personlig Modulär Dashboard
             </h1>
             {isAdmin && (
               <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-200 uppercase tracking-wider">
@@ -183,17 +298,29 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
             )}
           </div>
           <p className="text-xs text-gray-500 font-medium">
-            Anpassa din vy med moduler för hubb, affärer, poäng och community
+            Anpassa din modulära vy: Välj moduler och ställ in önskad bredd (<span className="font-bold text-[#800020]">1 kol</span>, <span className="font-bold text-[#800020]">2 kol</span> eller <span className="font-bold text-[#800020]">Full</span>) direkt på varje widgetkort nedan.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
+            onClick={() => setIsEditMode(!isEditMode)}
+            className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition border cursor-pointer ${
+              isEditMode
+                ? 'bg-[#800020] text-white border-[#800020] shadow-sm'
+                : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            <LayoutGrid className="w-3.5 h-3.5" />
+            <span>{isEditMode ? '✓ Avsluta detaljläge' : '🎨 Detaljredigering'}</span>
+          </button>
+
+          <button
             onClick={() => setIsPickerOpen(true)}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-900 hover:bg-black text-white text-xs font-bold transition shadow-xs cursor-pointer"
           >
             <Sliders className="w-3.5 h-3.5 text-rose-400" />
-            Anpassa Dashboard
+            Välj moduler
           </button>
         </div>
       </div>
@@ -207,7 +334,7 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
         <div className="p-12 text-center bg-white rounded-3xl border border-dashed border-gray-300">
           <p className="text-sm font-bold text-gray-700 mb-2">Inga aktiva widgets valda</p>
           <p className="text-xs text-gray-500 mb-4">
-            Klicka på "Anpassa Dashboard" för att välja vilka verktyg du vill visa.
+            Klicka på "Välj moduler" för att välja vilka verktyg du vill visa.
           </p>
           <button
             onClick={() => setIsPickerOpen(true)}
@@ -218,11 +345,100 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {visibleWidgets.map(widget => {
+          {visibleWidgets.map((widget, index) => {
+            const currentWidth = customWidths[widget.id] || widget.defaultWidth;
             const spanClass = getColSpanClass(widget);
             return (
-              <div key={widget.id} className={`${spanClass} flex flex-col`}>
-                {renderWidgetComponent(widget.id)}
+              <div 
+                key={widget.id} 
+                className={`${spanClass} flex flex-col relative transition-all duration-200 ${
+                  isEditMode ? 'ring-2 ring-[#800020]/20 rounded-3xl p-1 bg-gray-50/60' : ''
+                }`}
+              >
+                {/* Size & Move Controls Bar - Direkt tillgänglig på varje widget */}
+                <div className={`mb-2 px-3 py-2 rounded-2xl border transition-all flex items-center justify-between gap-1 text-[11px] ${
+                  isEditMode 
+                    ? 'bg-rose-50/80 border-rose-200 shadow-xs' 
+                    : 'bg-white/95 hover:bg-white border-gray-200/90 shadow-2xs'
+                }`}>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-[11px] font-bold text-gray-700 truncate">{widget.title}</span>
+                  </div>
+
+                  <div className="flex items-center gap-1 shrink-0">
+                    <span className="text-[10px] text-gray-400 font-bold uppercase mr-0.5">Bredd:</span>
+                    <button
+                      type="button"
+                      onClick={() => handleSetWidgetWidth(widget.id, 'span-1')}
+                      className={`px-2 py-0.5 rounded-lg text-[10px] font-black transition cursor-pointer ${
+                        currentWidth === 'span-1'
+                          ? 'bg-[#800020] text-white shadow-xs'
+                          : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                      }`}
+                      title="1 kolumn (Kompakt bredd)"
+                    >
+                      1 kol
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSetWidgetWidth(widget.id, 'span-2')}
+                      className={`px-2 py-0.5 rounded-lg text-[10px] font-black transition cursor-pointer ${
+                        currentWidth === 'span-2'
+                          ? 'bg-[#800020] text-white shadow-xs'
+                          : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                      }`}
+                      title="2 kolumner (Halv bredd)"
+                    >
+                      2 kol
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSetWidgetWidth(widget.id, 'span-full')}
+                      className={`px-2 py-0.5 rounded-lg text-[10px] font-black transition cursor-pointer ${
+                        currentWidth === 'span-full'
+                          ? 'bg-[#800020] text-white shadow-xs'
+                          : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                      }`}
+                      title="Full bredd (4 kolumner)"
+                    >
+                      Full
+                    </button>
+
+                    {/* Move & Remove Controls */}
+                    <div className="flex items-center gap-0.5 ml-1 border-l border-gray-200 pl-1">
+                      <button
+                        type="button"
+                        onClick={() => handleMoveWidget(index, 'UP')}
+                        disabled={index === 0}
+                        className="p-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                        title="Flytta framåt/uppåt"
+                      >
+                        <ArrowUp className="w-3 h-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleMoveWidget(index, 'DOWN')}
+                        disabled={index === visibleWidgets.length - 1}
+                        className="p-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                        title="Flytta bakåt/nedåt"
+                      >
+                        <ArrowDown className="w-3 h-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveWidget(widget.id)}
+                        className="p-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 ml-0.5 cursor-pointer"
+                        title="Dölj denna widget"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex-1 flex flex-col min-w-0">
+                  {renderWidgetComponent(widget.id)}
+                </div>
               </div>
             );
           })}

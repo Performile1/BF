@@ -492,7 +492,7 @@ export const INITIAL_MEMBER_LOCATIONS: import('../types').MemberActiveLocation[]
   }
 ];
 
-export const INITIAL_PROXIMITY_PINGS: import('../types').ProximityPing[] = [
+export const MOCK_PROXIMITY_PINGS: import('../types').ProximityPing[] = [
   {
     id: 'ping_1',
     sender_member_id: 'usr_sofia_eklund',
@@ -524,3 +524,6 @@ export const INITIAL_PROXIMITY_PINGS: import('../types').ProximityPing[] = [
     created_at: new Date(Date.now() - 120 * 60000).toISOString()
   }
 ];
+
+// Skarp grundinställning: Inga aktiva kaffepings förrän de skickas i realtid
+export const INITIAL_PROXIMITY_PINGS: import('../types').ProximityPing[] = [];

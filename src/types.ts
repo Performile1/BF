@@ -92,6 +92,7 @@ export interface Member {
     expires_at: string;
     from_member_name: string;
   };
+  is_demo?: boolean;
 }
 
 export type UserRole = 'SUPER_ADMIN' | 'HUB_HOST' | 'MEMBER' | 'GUEST' | 'PROSPECT';

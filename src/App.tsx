@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase, isSupabaseConfigured } from './lib/supabaseClient';
 import { 
   INITIAL_MEMBERS, 
+  MOCK_MEMBERS,
   INITIAL_HUBS, 
   INITIAL_CHANNELS, 
   INITIAL_MESSAGES, 
@@ -9,6 +10,7 @@ import {
   INITIAL_SKILLS, 
   INITIAL_REVIEWS, 
   INITIAL_PIPELINE, 
+  MOCK_PIPELINE,
   INITIAL_EVENTS, 
   INITIAL_PARTNER_PERKS,
   INITIAL_SCORE_LOGS,
@@ -70,7 +72,7 @@ import { QrScannerModal } from './components/common/QrScannerModal';
 import { PaymentLockoutScreen } from './components/billing/PaymentLockoutScreen';
 import { AdServerModule } from './components/advertising/AdServerModule';
 import { LocationPingModal } from './components/networking/LocationPingModal';
-import { INITIAL_MEMBER_LOCATIONS, INITIAL_PROXIMITY_PINGS } from './data/billingAndRulesData';
+import { INITIAL_MEMBER_LOCATIONS, INITIAL_PROXIMITY_PINGS, MOCK_PROXIMITY_PINGS } from './data/billingAndRulesData';
 import {
   MasterCalendarEvent,
   CoworkingDeskBooking,
@@ -88,9 +90,12 @@ import {
 import { INITIAL_TICKER_EVENTS } from './data/tickerData';
 import {
   INITIAL_MASTER_EVENTS,
+  MOCK_MASTER_EVENTS,
   INITIAL_COWORKING_BOOKINGS,
+  MOCK_COWORKING_BOOKINGS,
   INITIAL_PARTNER_LOCATIONS,
   INITIAL_DESK_SWAPS,
+  MOCK_DESK_SWAPS,
   INITIAL_PROMO_CODES,
   INITIAL_TRIAL_PASSES,
   INITIAL_COWORKING_CREDITS,
@@ -607,12 +612,12 @@ export default function App() {
   };
 
   // Quick Action Form states
-  const [fabMeetingPartner, setFabMeetingPartner] = useState(INITIAL_MEMBERS[1].full_name);
+  const [fabMeetingPartner, setFabMeetingPartner] = useState('Ny kontakt');
   const [fabMeetingDate, setFabMeetingDate] = useState('2026-09-12');
   const [fabMeetingNotes, setFabMeetingNotes] = useState('Kaffemöte & strategiskt B2B-samarbete');
 
-  const [fabIntroContactA, setFabIntroContactA] = useState(INITIAL_MEMBERS[1].full_name);
-  const [fabIntroContactB, setFabIntroContactB] = useState(INITIAL_MEMBERS[2].full_name);
+  const [fabIntroContactA, setFabIntroContactA] = useState('Kontakt A');
+  const [fabIntroContactB, setFabIntroContactB] = useState('Kontakt B');
   const [fabIntroReason, setFabIntroReason] = useState('Synergier inom SaaS & E-handelsexpansion');
 
   const [fabDealTitle, setFabDealTitle] = useState('');
@@ -726,13 +731,13 @@ export default function App() {
       setLunchRequests([]);
       setGuestPasses([]);
     } else {
-      setMembers(INITIAL_MEMBERS);
-      setMasterEvents(INITIAL_MASTER_EVENTS);
+      setMembers(MOCK_MEMBERS);
+      setMasterEvents(MOCK_MASTER_EVENTS);
       setEvents(INITIAL_EVENTS);
-      setCoworkingBookings(INITIAL_COWORKING_BOOKINGS);
-      setDeskSwaps(INITIAL_DESK_SWAPS);
-      setPipelineItems(INITIAL_PIPELINE);
-      setProximityPings(INITIAL_PROXIMITY_PINGS);
+      setCoworkingBookings(MOCK_COWORKING_BOOKINGS);
+      setDeskSwaps(MOCK_DESK_SWAPS);
+      setPipelineItems(MOCK_PIPELINE);
+      setProximityPings(MOCK_PROXIMITY_PINGS);
       setGuestPasses([
         {
           id: 'gp_1',
@@ -2636,6 +2641,13 @@ export default function App() {
             allMembers={members}
             hubs={hubs}
             selectedHub={selectedHub}
+            pipelineItems={pipelineItems}
+            webMeetings={webMeetings}
+            onOpenWebMeetingModal={handleOpenWebMeetingModal}
+            onStartIntroWith={handleStartIntroWith}
+            scoreLogs={scoreLogs}
+            guestPasses={guestPasses}
+            masterEvents={masterEvents}
             onNavigateTab={(tab) => setActiveTab(tab)}
             onOpenDirectChat={(memberId) => {
               const target = members.find(m => m.id === memberId);
@@ -3292,35 +3304,54 @@ export default function App() {
                 </span>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-[#F4F5F7] flex items-start gap-3.5 border border-gray-100">
-                <img
-                  src={INITIAL_MEMBERS[1].avatar}
-                  alt={INITIAL_MEMBERS[1].full_name}
-                  className="w-12 h-12 rounded-xl object-cover ring-2 ring-[#800020] flex-shrink-0"
-                />
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-bold text-sm text-gray-900 truncate">{INITIAL_MEMBERS[1].full_name}</h4>
-                  <p className="text-xs text-gray-500 truncate">{INITIAL_MEMBERS[1].role_title} • {INITIAL_MEMBERS[1].company_name}</p>
-                  <p className="text-xs text-gray-700 mt-1.5">
-                    Erbjuder: <strong>{INITIAL_MEMBERS[1].offering_tags.join(', ')}</strong>
-                  </p>
-                </div>
-              </div>
-            </div>
+              {(() => {
+                const matchCandidate = members.find(m => m.id !== currentUser?.id);
+                if (!matchCandidate) {
+                  return (
+                    <div className="p-6 rounded-xl bg-[#F4F5F7]/80 flex flex-col items-center justify-center text-center space-y-2 border border-gray-100 my-auto">
+                      <Sparkles className="w-6 h-6 text-[#800020]/60" />
+                      <h4 className="font-bold text-xs text-gray-800">Inga andra medlemmar anslutna ännu</h4>
+                      <p className="text-[11px] text-gray-500 max-w-xs">
+                        Bjud in nya kollegor med din länk eller aktivera Mock-läge i DEV-dockan för att testa matchningen.
+                      </p>
+                    </div>
+                  );
+                }
 
-            <div className="mt-4 pt-3 border-t border-gray-100 flex gap-2">
-              <button
-                onClick={() => handleCreateChannel(INITIAL_MEMBERS[1])}
-                className="flex-1 px-3 py-2 rounded-lg bg-[#800020] text-white text-xs font-bold uppercase tracking-wider hover:bg-[#580016] transition text-center shadow-xs"
-              >
-                Starta Direktchatt
-              </button>
-              <button
-                onClick={() => handleStartIntroWith(INITIAL_MEMBERS[1].id)}
-                className="flex-1 px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-xs font-bold uppercase tracking-wider hover:bg-gray-50 transition text-center"
-              >
-                3-Partsmatchning
-              </button>
+                return (
+                  <>
+                    <div className="p-3.5 rounded-xl bg-[#F4F5F7] flex items-start gap-3.5 border border-gray-100">
+                      <img
+                        src={matchCandidate.avatar}
+                        alt={matchCandidate.full_name}
+                        className="w-12 h-12 rounded-xl object-cover ring-2 ring-[#800020] flex-shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-sm text-gray-900 truncate">{matchCandidate.full_name}</h4>
+                        <p className="text-xs text-gray-500 truncate">{matchCandidate.role_title} • {matchCandidate.company_name}</p>
+                        <p className="text-xs text-gray-700 mt-1.5">
+                          Erbjuder: <strong>{(matchCandidate.offering_tags || []).join(', ') || 'Strategi & B2B'}</strong>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 pt-3 border-t border-gray-100 flex gap-2">
+                      <button
+                        onClick={() => handleCreateChannel(matchCandidate)}
+                        className="flex-1 px-3 py-2 rounded-lg bg-[#800020] text-white text-xs font-bold uppercase tracking-wider hover:bg-[#580016] transition text-center shadow-xs cursor-pointer"
+                      >
+                        Starta Direktchatt
+                      </button>
+                      <button
+                        onClick={() => handleStartIntroWith(matchCandidate.id)}
+                        className="flex-1 px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-xs font-bold uppercase tracking-wider hover:bg-gray-50 transition text-center cursor-pointer"
+                      >
+                        3-Partsmatchning
+                      </button>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </section>
 

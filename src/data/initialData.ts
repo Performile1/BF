@@ -20,27 +20,31 @@ import {
 export const CURRENT_USER: Member = {
   id: 'usr_rickard_wigrund',
   full_name: 'Rickard Wigrund',
-  email: 'rickard@wigrund.se',
+  email: 'admin@performile.com',
   role: 'SUPER_ADMIN',
   is_admin: true,
+  is_demo: false,
   primary_hub_id: 'hub_stockholm',
   linkedin_url: 'https://linkedin.com/in/rickard-wigrund',
   phone: '+46 70 488 55 62',
-  company_name: 'inCtrl .inc',
-  role_title: 'VD & Grundare',
+  company_name: 'Performile / inCtrl .inc',
+  role_title: 'Grundare & Super Admin',
   membership_level: 'GOLD',
-  booster_score: 890,
+  booster_score: 1850,
   hub_id: 'hub_stockholm',
   hub_name: 'Hubb Stockholm City',
   avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-  bio: 'Bygger nästa generations molnsäkerhet för nordiska tillväxtbolag. Aktiv medlem sedan 2023, passionerad för B2B-tillväxt och strategiska partnerskap.',
+  bio: 'Grundare och VD för Performile / inCtrl .inc. Bygger nästa generations plattform för affärsnätverk, coworking och B2B-acceleration för nordiska tillväxtbolag.',
   seeking_tags: ['Serie A Investerare', 'Avtalsjuridik & M&A', 'Enterprise Säljchefer'],
   offering_tags: ['Molninfrastruktur', 'Cybersäkerhet', 'SaaS Skalning', 'Styrelsearbete'],
+  interest_tags: ['Tech & AI', 'M&A', 'Riskkapital', 'Padel', 'Golf'],
   city: 'Stockholm',
   deals_closed_sek: 1850000,
   referrals_sent: 14,
   rating_avg: 4.9,
   reviews_count: 19,
+  payment_status: 'PAID',
+  billing_cycle: 'ANNUAL',
   created_at: '2023-04-12T10:00:00Z',
   merits: [
     {
@@ -109,13 +113,20 @@ export const PERFORMILE_ADMIN_MEMBER: Member = {
   full_name: 'Rickard Wigrund',
   role: 'SUPER_ADMIN',
   is_admin: true,
+  is_demo: false,
   company_name: 'Performile / inCtrl .inc',
   role_title: 'Grundare & Super Admin',
   membership_level: 'GOLD',
   booster_score: 2500,
 };
 
-export const INITIAL_MEMBERS: Member[] = [
+// Enda verkliga aktiva grundmedlemmen: Vår Admin Rickard Wigrund
+export const REAL_MEMBERS: Member[] = [
+  CURRENT_USER
+];
+
+// Fiktiva medlemmar för presentation och demo-simulering (Mock data)
+export const MOCK_MEMBERS: Member[] = [
   CURRENT_USER,
   PERFORMILE_ADMIN_MEMBER,
   {
@@ -124,6 +135,7 @@ export const INITIAL_MEMBERS: Member[] = [
     email: 'sofia.eklund@eklundlaw.se',
     role: 'MEMBER',
     is_admin: false,
+    is_demo: true,
     primary_hub_id: 'hub_stockholm',
     linkedin_url: 'https://linkedin.com/in/sofia-eklund-law',
     phone: '+46 72 345 67 89',
@@ -150,6 +162,7 @@ export const INITIAL_MEMBERS: Member[] = [
     email: 'marcus@nordicgrowth.vc',
     role: 'HUB_HOST',
     is_admin: false,
+    is_demo: true,
     primary_hub_id: 'hub_stockholm',
     linkedin_url: 'https://linkedin.com/in/marcus-wallin-vc',
     phone: '+46 73 987 65 43',
@@ -176,6 +189,7 @@ export const INITIAL_MEMBERS: Member[] = [
     email: 'elena@salespeak.io',
     role: 'MEMBER',
     is_admin: false,
+    is_demo: true,
     primary_hub_id: 'hub_goteborg',
     linkedin_url: 'https://linkedin.com/in/elena-rostova-sales',
     phone: '+46 76 112 23 34',
@@ -202,6 +216,7 @@ export const INITIAL_MEMBERS: Member[] = [
     email: 'peter@urbanestates.se',
     role: 'MEMBER',
     is_admin: false,
+    is_demo: true,
     primary_hub_id: 'hub_malmo',
     linkedin_url: 'https://linkedin.com/in/peter-dahlgren-estates',
     phone: '+46 70 554 43 21',
@@ -228,6 +243,7 @@ export const INITIAL_MEMBERS: Member[] = [
     email: 'amanda@studionorth.se',
     role: 'MEMBER',
     is_admin: false,
+    is_demo: true,
     primary_hub_id: 'hub_stockholm',
     linkedin_url: 'https://linkedin.com/in/amanda-berg-creative',
     phone: '+46 73 221 14 45',
@@ -249,6 +265,10 @@ export const INITIAL_MEMBERS: Member[] = [
     created_at: '2024-02-14T13:20:00Z',
   }
 ];
+
+// Skarp grundinställning: Endast Rickard Wigrund (admin) med bild och kontaktuppgifter.
+// Fiktiva medlemmar finns tillgängliga som MOCK_MEMBERS vid demo-läge.
+export const INITIAL_MEMBERS: Member[] = REAL_MEMBERS;
 
 export const INITIAL_HUBS: Hub[] = [
   {
@@ -721,7 +741,7 @@ export const INITIAL_REVIEWS: Review[] = [
   }
 ];
 
-export const INITIAL_PIPELINE: DealPipelineItem[] = [
+export const MOCK_PIPELINE: DealPipelineItem[] = [
   {
     id: 'deal_1',
     title: 'Enterprise Molnsäkerhetsavtal',
@@ -803,6 +823,9 @@ export const INITIAL_PIPELINE: DealPipelineItem[] = [
     notes: 'Aktiv 3-partschatt. Intro skickat och godkänt av Peter.'
   }
 ];
+
+// Skarp grundinställning: Tom pipeline (affärer skapas av användaren eller laddas via MOCK_PIPELINE)
+export const INITIAL_PIPELINE: DealPipelineItem[] = [];
 
 export const INITIAL_SCORE_LOGS: BoosterScoreLog[] = [
   {

@@ -21,6 +21,7 @@ import {
   DEFAULT_ADMIN_WIDGET_IDS 
 } from '../../types/widgets';
 import { AdminInspect } from '../dev/AdminInspect';
+import { usePermissions } from '../../hooks/usePermissions';
 
 interface WidgetPickerModalProps {
   isOpen: boolean;
@@ -34,9 +35,12 @@ export const WidgetPickerModal: React.FC<WidgetPickerModalProps> = ({
   isOpen,
   onClose,
   activeWidgetIds,
-  isAdmin,
+  isAdmin: propIsAdmin,
   onSavePreferences,
 }) => {
+  const { isSuperAdmin, isAdmin: hookIsAdmin } = usePermissions();
+  const isAdmin = Boolean(propIsAdmin || isSuperAdmin || hookIsAdmin);
+
   const [selectedIds, setSelectedIds] = useState<string[]>(activeWidgetIds);
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
