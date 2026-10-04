@@ -204,7 +204,7 @@ export const CoffeePingWidget: React.FC<CoffeePingWidgetProps> = ({
   return (
     <AdminInspect
       component="CoffeePingWidget.tsx"
-      sourceTable="public.member_locations / proximity_pings"
+      sourceTable="public.member_active_locations / proximity_pings"
       columns={['id', 'member_id', 'current_city', 'is_available_for_coffee', 'is_available_for_lunch', 'ping_type', 'status']}
       notes="Kaffeping-widget, närhetsbaserade spontanmöten och tillgänglighetsstatus"
     >

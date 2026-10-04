@@ -53,7 +53,7 @@ export const PaymentLockoutScreen: React.FC<PaymentLockoutScreenProps> = ({
   return (
     <AdminInspect
       component="PaymentLockoutScreen.tsx"
-      sourceTable="public.member_billing_status / invoices"
+      sourceTable="public.invoices / profiles"
       columns={['member_id', 'status', 'amount_due_sek', 'days_overdue', 'payment_method']}
       notes="Spärrvy vid obetald faktura eller utgången provperiod med Swish/Kort-betalning"
     >

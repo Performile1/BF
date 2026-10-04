@@ -120,7 +120,7 @@ export const LocationPingModal: React.FC<LocationPingModalProps> = ({
   return (
     <AdminInspect
       component="LocationPingModal.tsx"
-      sourceTable="public.member_locations / proximity_pings"
+      sourceTable="public.member_active_locations / proximity_pings"
       columns={['receiver_id', 'ping_type', 'suggested_location', 'custom_message', 'status']}
       notes="Fullständig modal för att skicka kaffe- eller lunch-ping baserat på stad"
     >

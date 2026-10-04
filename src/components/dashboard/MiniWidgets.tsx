@@ -17,7 +17,7 @@ export const MiniWidgetContainer: React.FC<MiniWidgetContainerProps> = ({
   return (
     <AdminInspect
       component="MiniWidgets.tsx"
-      sourceTable="public.profiles / active_locations"
+      sourceTable="public.profiles / member_active_locations"
       columns={['booster_score', 'is_available_for_coffee', 'current_city']}
       notes="Dashboard snabb-indikatorer och miniwidgets"
       className={className}

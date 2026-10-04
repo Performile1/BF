@@ -119,7 +119,7 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({
   return (
     <AdminInspect
       component="QrScannerModal.tsx"
-      sourceTable="public.hub_checkins / profiles"
+      sourceTable="public.hubs / member_active_locations / profiles"
       columns={['id', 'member_id', 'hub_id', 'checked_in_at', 'points_awarded']}
       notes="Kamera/QR-skanner för hubbincheckning och profilkoppling"
     >

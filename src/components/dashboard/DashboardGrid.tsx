@@ -164,7 +164,7 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
   return (
     <AdminInspect
       component="DashboardGrid.tsx"
-      sourceTable="public.user_widget_preferences"
+      sourceTable="public.user_dashboard_widgets / user_dashboard_layouts"
       columns={['user_id', 'active_widget_ids', 'updated_at']}
       notes="Personlig dashboard grid-layout med modulladdning"
     >

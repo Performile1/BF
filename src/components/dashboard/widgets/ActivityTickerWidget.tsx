@@ -14,8 +14,8 @@ export const ActivityTickerWidget: React.FC<WidgetComponentProps> = ({ onNavigat
   return (
     <AdminInspect
       component="ActivityTickerWidget.tsx"
-      sourceTable="public.activity_logs"
-      columns={['event_type', 'description', 'created_at']}
+      sourceTable="public.system_activity_ticker_events"
+      columns={['event_type', 'message', 'created_at']}
       notes="Aktivitetsflöde och realtidshändelser i nätverket"
       className="h-full"
     >

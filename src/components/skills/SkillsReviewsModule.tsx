@@ -92,7 +92,7 @@ export const SkillsReviewsModule: React.FC<SkillsReviewsModuleProps> = ({
   return (
     <AdminInspect
       component="SkillsReviewsModule.tsx"
-      sourceTable="public.member_skills / reviews"
+      sourceTable="public.member_skills / skill_endorsements"
       columns={['id', 'member_id', 'skill_name', 'endorsements_count', 'target_type', 'rating', 'review_text']}
       notes="Kompetensintyg (skill endorsements), betyg och omdömen för medlemmar, hubbar och events"
     >

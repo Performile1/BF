@@ -350,9 +350,9 @@ export const AdminPortalModule: React.FC<AdminPortalModuleProps> = ({
   return (
     <AdminInspect
       component="AdminPortalModule.tsx"
-      sourceTable="public.admin_applications / banner_ads / hubs"
+      sourceTable="public.membership_packages / ad_campaigns / hubs"
       columns={['id', 'status', 'company_name', 'turnover', 'credit_rating', 'membership_level']}
-      notes="Super Admin portal för medlemskap, banners, hubbar och prov"
+      notes="Super Admin portal för medlemskap, banners, hubbar och systeminställningar"
     >
       <div className="space-y-6">
       {/* Header */}

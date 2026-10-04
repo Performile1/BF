@@ -60,7 +60,7 @@ import { ProfileSettingsAndDirectoryModule } from './components/profile/ProfileS
 import { CustomizableBentoDashboard } from './components/dashboard/CustomizableBentoDashboard';
 import { DashboardGrid } from './components/dashboard/DashboardGrid';
 import { MaintenanceGate } from './components/dashboard/MaintenanceGate';
-import { InspectorProvider } from './components/dev/InspectorContext';
+import { InspectorProvider, useInspector } from './components/dev/InspectorContext';
 import { DevHudDock } from './components/dev/DevHudDock';
 import { usePermissions } from './hooks/usePermissions';
 import { CommunityPage } from './components/community/CommunityPage';
@@ -165,6 +165,8 @@ export default function App() {
     currentUser?.email === 'admin@performile.com' || 
     currentUser?.email === 'wigrund81@gmail.com'
   );
+
+  const { cleanSlateMode } = useInspector();
 
   // Application State
   const [hubs, setHubs] = useState<Hub[]>(INITIAL_HUBS);
@@ -357,6 +359,57 @@ export default function App() {
           }));
           setProximityPings(mappedPings);
         }
+
+        // 3. Fetch live crm_pipeline_deals if available
+        const { data: dealsData, error: dealsErr } = await supabase
+          .from('crm_pipeline_deals')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (!dealsErr && dealsData && dealsData.length > 0) {
+          const liveDeals: DealPipelineItem[] = dealsData.map(d => ({
+            id: d.id,
+            owner_member_id: d.owner_member_id,
+            title: d.title,
+            client_company: d.client_company,
+            contact_person: d.contact_person,
+            value_sek: Number(d.value_sek) || 0,
+            stage: d.stage as any,
+            probability: d.probability || 20,
+            next_step: d.next_step || '',
+            due_date: d.due_date || new Date().toISOString().split('T')[0],
+            notes: d.notes || '',
+            points_awarded: d.points_awarded || false,
+            created_at: d.created_at
+          }));
+          if (!localStorage.getItem('bf_clean_slate') || localStorage.getItem('bf_clean_slate') !== 'true') {
+            setPipelineItems(liveDeals);
+          }
+        }
+
+        // 4. Fetch live hubs if available
+        const { data: hubsData, error: hubsErr } = await supabase
+          .from('hubs')
+          .select('*')
+          .eq('is_active', true)
+          .order('name');
+
+        if (!hubsErr && hubsData && hubsData.length > 0) {
+          const mappedHubs: Hub[] = hubsData.map(h => ({
+            id: h.id,
+            name: h.name,
+            city: h.city,
+            address: h.address,
+            member_count: h.max_flex_desks ? h.max_flex_desks * 3 : 24,
+            meeting_day: h.meeting_day || 'Torsdagar',
+            next_event_title: 'Nätverksfrukost & Möten',
+            next_event_date: 'Kommande torsdag 08:30',
+            geofence_lat: h.geofence_lat || 57.7089,
+            geofence_lng: h.geofence_lng || 11.9746,
+            radius_m: h.radius_m || 150
+          }));
+          setHubs(mappedHubs);
+        }
       } catch (err) {
         console.warn('Supabase initial fetch info:', err);
       }
@@ -505,8 +558,7 @@ export default function App() {
     // Sync to Supabase proximity_pings & broadcast activity ticker
     if (isSupabaseConfigured) {
       try {
-        await supabase.from('proximity_pings').insert({
-          id: newPing.id,
+        const insertPayload: any = {
           sender_member_id: newPing.sender_member_id,
           receiver_member_id: newPing.receiver_member_id,
           ping_type: newPing.ping_type,
@@ -514,7 +566,11 @@ export default function App() {
           suggested_location: newPing.suggested_location,
           custom_message: newPing.custom_message || null,
           created_at: newPing.created_at
-        });
+        };
+        if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(newPing.id)) {
+          insertPayload.id = newPing.id;
+        }
+        await supabase.from('proximity_pings').insert(insertPayload);
 
         const tickerMsg = `${newPing.ping_type === 'COFFEE' ? '☕' : '🍽️'} ${currentUser.full_name.split(' ')[0]} skickade ${newPing.ping_type === 'COFFEE' ? 'kaffe' : 'lunch'}-ping i ${newPing.suggested_location}`;
         await supabase.from('system_activity_ticker_events').insert({
@@ -654,6 +710,44 @@ export default function App() {
       'MEETING_1ON1'
     );
   };
+
+  // Clean Slate Mode dataset synchronization
+  useEffect(() => {
+    if (cleanSlateMode) {
+      if (currentUser) {
+        setMembers([currentUser]);
+      }
+      setMasterEvents([]);
+      setEvents([]);
+      setCoworkingBookings([]);
+      setDeskSwaps([]);
+      setPipelineItems([]);
+      setProximityPings([]);
+      setLunchRequests([]);
+      setGuestPasses([]);
+    } else {
+      setMembers(INITIAL_MEMBERS);
+      setMasterEvents(INITIAL_MASTER_EVENTS);
+      setEvents(INITIAL_EVENTS);
+      setCoworkingBookings(INITIAL_COWORKING_BOOKINGS);
+      setDeskSwaps(INITIAL_DESK_SWAPS);
+      setPipelineItems(INITIAL_PIPELINE);
+      setProximityPings(INITIAL_PROXIMITY_PINGS);
+      setGuestPasses([
+        {
+          id: 'gp_1',
+          guest_name: 'Helena Lindqvist',
+          guest_email: 'helena@vcfund.se',
+          guest_company: 'Nordic Growth Capital',
+          invited_by_member_id: currentUser?.id || 'usr_rickard_wigrund',
+          target_hub: 'Hubb Stockholm City',
+          target_date: '10 Sep 2026',
+          status: 'ACTIVE',
+          code: 'BOOST-GUEST-4921'
+        }
+      ]);
+    }
+  }, [cleanSlateMode, currentUser?.id]);
 
   // Unread badge count for chat
   const unreadChatCount = channels.reduce((acc, c) => acc + (c.unread_count || 0), 0);

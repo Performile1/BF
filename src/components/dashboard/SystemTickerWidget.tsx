@@ -36,8 +36,8 @@ export const SystemTickerWidget: React.FC<SystemTickerWidgetProps> = ({
   return (
     <AdminInspect
       component="SystemTickerWidget.tsx"
-      sourceTable="public.activity_logs"
-      columns={['event_type', 'description', 'is_pinned_by_admin', 'target_tab', 'created_at']}
+      sourceTable="public.system_activity_ticker_events"
+      columns={['event_type', 'message', 'is_pinned_by_admin', 'target_tab', 'created_at']}
       notes="Live Ticker med realtidsaktiviteter och nålade meddelanden"
       className={className}
     >

@@ -13,7 +13,7 @@ export function ReviewsSummaryCard({
   return (
     <AdminInspect
       component="ReviewsSummaryCard.tsx"
-      sourceTable="public.member_reviews / deals"
+      sourceTable="public.event_reviews / crm_pipeline_deals"
       columns={['rating_avg', 'reviews_count', 'deals_closed_sek']}
       notes="Omdömen och track record sammanställning"
     >

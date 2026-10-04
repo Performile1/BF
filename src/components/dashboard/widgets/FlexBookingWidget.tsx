@@ -36,7 +36,7 @@ export const FlexBookingWidget: React.FC<WidgetComponentProps> = ({
   return (
     <AdminInspect
       component="FlexBookingWidget.tsx"
-      sourceTable="public.hub_bookings"
+      sourceTable="public.coworking_desk_bookings"
       columns={['user_id', 'hub_id', 'booking_date', 'slot_type', 'status']}
       notes="Flexplatsbokning och realtidsincheckning"
       className="h-full"

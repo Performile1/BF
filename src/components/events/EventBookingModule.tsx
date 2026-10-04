@@ -97,7 +97,7 @@ export const EventBookingModule: React.FC<EventBookingModuleProps> = ({
   return (
     <AdminInspect
       component="EventBookingModule.tsx"
-      sourceTable="public.events / event_addons / guest_passes"
+      sourceTable="public.master_events / event_addons / guest_passes"
       columns={['id', 'title', 'location', 'spots_remaining', 'is_booked', 'addons', 'check_in_status']}
       notes="Eventbokning med tillval, gästpass och geo-fencing incheckning"
     >

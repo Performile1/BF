@@ -5,7 +5,7 @@ import { useInspector } from './InspectorContext';
 
 export function DevHudDock({ onDataMutated }: { onDataMutated?: () => void }) {
   const { isSuperAdmin, currentUser } = usePermissions();
-  const { inspectorEnabled, toggleInspector } = useInspector();
+  const { inspectorEnabled, toggleInspector, cleanSlateMode, toggleCleanSlate, setCleanSlateMode } = useInspector();
   const [loadingAction, setLoadingAction] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
 
@@ -23,6 +23,7 @@ export function DevHudDock({ onDataMutated }: { onDataMutated?: () => void }) {
   const handleSeed = async () => {
     try {
       setLoadingAction(true);
+      setCleanSlateMode(false);
       const { data: { session } } = await supabase.auth.getSession();
       const targetUserId = session?.user?.id || currentUser?.id;
       if (!targetUserId) {
@@ -157,22 +158,27 @@ export function DevHudDock({ onDataMutated }: { onDataMutated?: () => void }) {
   const handlePurge = async () => {
     try {
       setLoadingAction(true);
+      setCleanSlateMode(true);
       const { data: { session } } = await supabase.auth.getSession();
       const targetUserId = session?.user?.id || currentUser?.id;
-      if (!targetUserId) return;
+      if (targetUserId) {
+        const { error: rpcError } = await supabase.rpc('purge_demo_data', {
+          p_target_user_id: targetUserId,
+        });
 
-      const { error: rpcError } = await supabase.rpc('purge_demo_data', {
-        p_target_user_id: targetUserId,
-      });
-
-      if (rpcError) {
-        console.warn('purge_demo_data RPC fel, provar direkt delete:', rpcError.message);
-        await supabase.from('crm_pipeline_deals').delete().eq('owner_member_id', targetUserId).eq('is_demo', true);
-        await supabase.from('community_posts').delete().eq('author_id', targetUserId).eq('is_demo', true);
+        if (rpcError) {
+          console.warn('purge_demo_data RPC fel, provar direkt delete:', rpcError.message);
+          try {
+            await supabase.from('crm_pipeline_deals').delete().eq('owner_member_id', targetUserId).eq('is_demo', true);
+            await supabase.from('community_posts').delete().eq('author_id', targetUserId).eq('is_demo', true);
+          } catch (delErr) {
+            console.warn('Direct delete warning:', delErr);
+          }
+        }
       }
 
-      setStatusMsg('Mockup-data rensad! ✓');
-      setTimeout(() => setStatusMsg(null), 3000);
+      setStatusMsg('Clean Slate aktiverat & Mockup rensad! ✓');
+      setTimeout(() => setStatusMsg(null), 3500);
       if (onDataMutated) onDataMutated();
     } catch (err: any) {
       alert(`Fel: ${err.message}`);
@@ -201,13 +207,28 @@ export function DevHudDock({ onDataMutated }: { onDataMutated?: () => void }) {
         Hover Inspector: {inspectorEnabled ? 'PÅ' : 'AV'}
       </button>
 
-      {/* Mock Data Toggles */}
+      {/* Clean Slate vs Mock Switch */}
+      <button
+        type="button"
+        onClick={toggleCleanSlate}
+        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer flex items-center gap-1.5 ${
+          cleanSlateMode
+            ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs'
+            : 'bg-purple-900/40 hover:bg-purple-800/60 text-purple-200 border border-purple-700/50'
+        }`}
+        title={cleanSlateMode ? 'Clean Slate är aktivt (produktionsläge utan mockupdata)' : 'Mockup-läge aktivt med demodata'}
+      >
+        <span>{cleanSlateMode ? '🚀 Clean Slate: PÅ' : '🧪 Mock-läge'}</span>
+      </button>
+
+      {/* Mock Data Action Buttons */}
       <div className="flex items-center gap-1 pl-1">
         <button
           type="button"
           onClick={handleSeed}
           disabled={loadingAction}
           className="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 rounded-lg text-[11px] font-bold text-gray-200 transition disabled:opacity-50 cursor-pointer"
+          title="Skapa demoposter med is_demo=true"
         >
           Ladda Mock
         </button>
@@ -216,6 +237,7 @@ export function DevHudDock({ onDataMutated }: { onDataMutated?: () => void }) {
           onClick={handlePurge}
           disabled={loadingAction}
           className="px-2.5 py-1 bg-red-900/40 hover:bg-red-900/70 text-red-200 rounded-lg text-[11px] font-bold transition disabled:opacity-50 cursor-pointer"
+          title="Rensa all mockdata och aktivera Clean Slate"
         >
           Rensa Mock
         </button>

@@ -234,7 +234,7 @@ export const AdminBillingAndRulesModule: React.FC<AdminBillingAndRulesModuleProp
   return (
     <AdminInspect
       component="AdminBillingAndRulesModule.tsx"
-      sourceTable="public.invoices / member_billing_status / booster_rules"
+      sourceTable="public.invoices / profiles / system_rule_configs"
       columns={['id', 'member_id', 'status', 'amount_sek', 'due_date', 'rule_key', 'rule_value']}
       notes="Fakturering, betalningsregler, provperioder och spärrhantering"
     >

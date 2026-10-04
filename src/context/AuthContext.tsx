@@ -291,14 +291,28 @@ export const AuthProvider: React.FC<{
             full_name: data.full_name || authUser?.user_metadata?.full_name || base.full_name || 'Ny Medlem',
             company_name: data.company_name || authUser?.user_metadata?.company_name || base.company_name || 'Företag',
             role_title: data.role_title || authUser?.user_metadata?.role_title || base.role_title || 'Medlem',
+            role: data.role || (data.is_admin ? 'SUPER_ADMIN' : base.role || 'MEMBER'),
             membership_level: (data.membership_level as MembershipLevel) || base.membership_level || 'BRONZE',
             booster_score: data.booster_score ?? base.booster_score ?? 100,
             email: data.email || authUser?.email || base.email,
             phone: data.phone || base.phone,
-            city: data.city || base.city || 'Mölnlycke',
+            city: data.city || base.city || 'Stockholm',
             avatar: data.avatar_url || base.avatar,
             bio: data.bio || base.bio || '',
-            is_admin: data.is_admin ?? base.is_admin ?? false
+            is_admin: Boolean(data.is_admin || data.role === 'SUPER_ADMIN' || base.is_admin),
+            primary_hub_id: data.primary_hub_id || base.primary_hub_id,
+            seeking_tags: data.seeking_tags || base.seeking_tags || [],
+            offering_tags: data.offering_tags || base.offering_tags || [],
+            interest_tags: data.interest_tags || base.interest_tags || [],
+            deals_closed_sek: Number(data.deals_closed_sek) || base.deals_closed_sek || 0,
+            referrals_sent: data.referrals_sent ?? base.referrals_sent ?? 0,
+            rating_avg: Number(data.rating_avg) || base.rating_avg || 5.0,
+            reviews_count: data.reviews_count ?? base.reviews_count ?? 0,
+            payment_status: data.payment_status || base.payment_status || 'PAID',
+            billing_cycle: data.billing_cycle || base.billing_cycle || 'MONTHLY',
+            trial_ends_at: data.trial_ends_at || base.trial_ends_at,
+            linkedin_url: data.linkedin_url || base.linkedin_url,
+            website_url: data.website_url || base.website_url,
           };
         });
       } else if (authUser?.user_metadata) {
@@ -603,6 +617,12 @@ export const AuthProvider: React.FC<{
         if (updates.bio !== undefined) profileUpdates.bio = updates.bio;
         if (updates.city !== undefined) profileUpdates.city = updates.city;
         if (updates.avatar !== undefined) profileUpdates.avatar_url = updates.avatar;
+        if (updates.seeking_tags !== undefined) profileUpdates.seeking_tags = updates.seeking_tags;
+        if (updates.offering_tags !== undefined) profileUpdates.offering_tags = updates.offering_tags;
+        if (updates.interest_tags !== undefined) profileUpdates.interest_tags = updates.interest_tags;
+        if (updates.linkedin_url !== undefined) profileUpdates.linkedin_url = updates.linkedin_url;
+        if (updates.website_url !== undefined) profileUpdates.website_url = updates.website_url;
+        if (updates.primary_hub_id !== undefined) profileUpdates.primary_hub_id = updates.primary_hub_id;
 
         await supabase.from('profiles').update(profileUpdates).eq('id', currentUser.id);
       } catch (err) {

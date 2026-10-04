@@ -245,7 +245,7 @@ export const MatchmakingModule: React.FC<MatchmakingModuleProps> = ({
   return (
     <AdminInspect
       component="MatchmakingModule.tsx"
-      sourceTable="public.ai_matches / intro_requests / speed_networking_matches"
+      sourceTable="public.intro_requests / speed_networking_matches / profiles"
       columns={['id', 'member_id', 'target_member_id', 'match_score', 'synergy_reason', 'status']}
       notes="AI Matchmaking, intro-efterfrågan, nätverksgraf och speed-networking"
     >

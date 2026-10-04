@@ -272,7 +272,7 @@ export const CommunityAndBlogModule: React.FC<CommunityAndBlogModuleProps> = ({
   return (
     <AdminInspect
       component="CommunityAndBlogModule.tsx"
-      sourceTable="public.community_posts / post_comments / subscriptions"
+      sourceTable="public.community_posts / post_comments / post_upvotes"
       columns={['id', 'author_id', 'post_type', 'category', 'title', 'content', 'upvotes_count', 'comments_count', 'weighted_score']}
       notes="Community-flöde, expertartiklar, omröstningar och kommentarer"
     >

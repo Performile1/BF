@@ -506,7 +506,7 @@ export const MasterCalendarModule: React.FC<MasterCalendarModuleProps> = ({
   return (
     <AdminInspect
       component="MasterCalendarModule.tsx"
-      sourceTable="public.calendar_events / event_attendees / lunch_invitations"
+      sourceTable="public.master_events / event_attendees / lunch_invitations"
       columns={['id', 'title', 'start_time', 'end_time', 'location', 'spots_max', 'attendees_count', 'is_booked']}
       notes="Masterkalendern, bokning av träffar, iCal-export och 1-till-1 möten"
     >

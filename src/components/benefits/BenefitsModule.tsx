@@ -36,9 +36,9 @@ export const BenefitsModule: React.FC<BenefitsModuleProps> = ({
   return (
     <AdminInspect
       component="BenefitsModule.tsx"
-      sourceTable="public.partner_perks"
+      sourceTable="public.community_resources / community_resource_bookings"
       columns={['id', 'partner_name', 'category', 'discount_code', 'terms', 'membership_required', 'is_active']}
-      notes="Partnerförmåner, exklusiva rabattkoder och medlemsförmåner"
+      notes="Partnerförmåner, exklusiva rabattkoder och medlemsresurser"
     >
       <div className="space-y-8">
       

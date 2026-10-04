@@ -43,7 +43,7 @@ export const AiIntroDraftModal: React.FC<AiIntroDraftModalProps> = ({
   return (
     <AdminInspect
       component="AiIntroDraftModal.tsx"
-      sourceTable="public.direct_chats / ai_matchmaking"
+      sourceTable="public.chat_channels / intro_requests"
       columns={['sender_id', 'receiver_id', 'draft_content', 'synergy_score', 'status']}
       notes="AI-genererat introduktionsmeddelande för direktkontakt mellan medlemmar"
     >

@@ -49,9 +49,9 @@ export const LinkedInShareButton: React.FC<LinkedInShareButtonProps> = ({
   return (
     <AdminInspect
       component="LinkedInShareButton.tsx"
-      sourceTable="RPC: record_share_action"
+      sourceTable="RPC: record_share_action / public.booster_score_logs"
       columns={['member_id', 'share_channel', 'points_awarded', 'shared_at']}
-      notes="LinkedIn-delning med Booster Points belöning"
+      notes="LinkedIn-delning med Booster Points belöning (+15 BP via score-log)"
     >
       {variant === 'icon' ? (
         <button

@@ -94,7 +94,7 @@ export const PromoAndTrialsModule: React.FC<PromoAndTrialsModuleProps> = ({
   return (
     <AdminInspect
       component="PromoAndTrialsModule.tsx"
-      sourceTable="public.promo_codes / free_trial_passes"
+      sourceTable="public.guest_passes / referrals"
       columns={['id', 'code', 'discount_percent', 'max_redemptions', 'guest_email', 'hub_id', 'status', 'is_active']}
       notes="Kampanjkoder, gästpass (trial passes) och referral-bonusar"
     >

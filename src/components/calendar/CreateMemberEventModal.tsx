@@ -77,7 +77,7 @@ export const CreateMemberEventModal: React.FC<CreateMemberEventModalProps> = ({
   return (
     <AdminInspect
       component="CreateMemberEventModal.tsx"
-      sourceTable="public.calendar_events"
+      sourceTable="public.master_events"
       columns={['id', 'title', 'description', 'date_str', 'start_time', 'end_time', 'location', 'category', 'price_sek', 'speaker_or_host']}
       notes="Skapa eget medlemsevent eller nätverksträff i kalendern"
     >

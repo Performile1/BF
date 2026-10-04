@@ -221,7 +221,7 @@ export const MembershipBillingModule: React.FC<MembershipBillingModuleProps> = (
   return (
     <AdminInspect
       component="MembershipBillingModule.tsx"
-      sourceTable="public.invoices / member_billing_status / profiles"
+      sourceTable="public.invoices / profiles"
       columns={['id', 'member_id', 'membership_level', 'payment_status', 'amount_sek', 'due_date', 'pdf_url']}
       notes="Medlemskapsnivåer, fakturor, uppgraderingar och medlemskapsstatus"
     >

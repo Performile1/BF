@@ -178,7 +178,7 @@ export const CoworkingHubsModule: React.FC<CoworkingHubsModuleProps> = ({
   return (
     <AdminInspect
       component="CoworkingHubsModule.tsx"
-      sourceTable="public.hubs / coworking_desk_bookings / partner_locations / desk_swaps"
+      sourceTable="public.hubs / coworking_desk_bookings / partner_coworking_locations / desk_swaps"
       columns={['id', 'hub_id', 'member_id', 'booking_date', 'slot_type', 'is_checked_in', 'credits_remaining']}
       notes="Coworking-hubbar, skrivbordsbokning, desk swaps och partnerallokering"
     >

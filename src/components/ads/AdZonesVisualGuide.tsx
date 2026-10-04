@@ -248,7 +248,7 @@ export const AdZonesVisualGuide: React.FC<AdZonesVisualGuideProps> = ({
   return (
     <AdminInspect
       component="AdZonesVisualGuide.tsx"
-      sourceTable="public.ad_zones / banner_ads"
+      sourceTable="public.ad_placements_config / ad_campaigns"
       columns={['id', 'placement', 'title', 'category', 'default_width', 'default_height', 'reach']}
       notes="Interaktiv katalog och förhandsgranskning av alla annonszoner och format"
     >

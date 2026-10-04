@@ -32,9 +32,9 @@ export const AdminBroadcastSenderWidget: React.FC<WidgetComponentProps> = ({
   return (
     <AdminInspect
       component="AdminBroadcastSenderWidget.tsx"
-      sourceTable="public.broadcast_campaigns"
+      sourceTable="public.broadcast_campaigns / user_notifications"
       columns={['title', 'body', 'target_audience', 'sent_by_user_id', 'created_at']}
-      notes="Skicka snabb-broadcast till medlemmar eller prospects"
+      notes="Skicka snabb-broadcast till medlemmar eller prospects via broadcast_campaigns"
       className="h-full"
     >
       <div className="bg-white rounded-3xl p-5 border border-gray-200/80 shadow-xs flex flex-col justify-between h-full hover:border-gray-300 transition-all">

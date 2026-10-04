@@ -479,7 +479,7 @@ export const AdminProspectImporter: React.FC<AdminProspectImporterProps> = ({
   return (
     <AdminInspect
       component="AdminProspectImporter.tsx"
-      sourceTable="public.prospects / broadcast_campaigns"
+      sourceTable="public.broadcast_campaigns / referrals"
       columns={['id', 'full_name', 'email', 'company_name', 'status', 'trial_tier', 'trial_ends_at']}
       notes="CSV-import av prospekts, generering av onboarding-länkar och broadcast-utskick"
     >

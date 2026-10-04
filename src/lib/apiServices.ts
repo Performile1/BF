@@ -67,6 +67,8 @@ export async function toggleSubscription(
       user_id: userId,
       subscription_type: type,
       target_id: targetId,
+      notify_in_app: true,
+      notify_email: false
     });
   } else {
     return await supabase

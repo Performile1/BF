@@ -117,9 +117,9 @@ export const WebinarModule: React.FC<WebinarModuleProps> = ({
   return (
     <AdminInspect
       component="WebinarModule.tsx"
-      sourceTable="public.webinars / webinar_polls / webinar_qna"
-      columns={['id', 'title', 'speaker_name', 'start_time', 'duration_minutes', 'stream_url', 'is_live', 'archive_url']}
-      notes="Digitala masterclasses och webinarier, polls och live Q&A"
+      sourceTable="public.webinars"
+      columns={['id', 'title', 'scheduled_start', 'youtube_video_id', 'youtube_url', 'is_youtube_synced', 'is_public']}
+      notes="Digitala masterclasses och webinarier med YouTube-synk och direktsändning"
     >
       <div className="space-y-6">
       

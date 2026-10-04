@@ -31,7 +31,7 @@ import { getSystemSettings, updateSystemSettings } from '../../lib/widgetService
 import { SystemSettings } from '../../types/widgets';
 
 export const AdminDevAndSchemaTab: React.FC = () => {
-  const { inspectorEnabled, setInspectorEnabled, toggleInspector } = useInspector();
+  const { inspectorEnabled, setInspectorEnabled, toggleInspector, cleanSlateMode, toggleCleanSlate, setCleanSlateMode } = useInspector();
   const { currentUser } = usePermissions();
   const [loading, setLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -142,7 +142,8 @@ export const AdminDevAndSchemaTab: React.FC = () => {
         await supabase.from('crm_pipeline_deals').insert(deals);
       }
 
-      setStatusMessage('✓ Mock-data laddad i databasen (community_posts & crm_pipeline_deals med is_demo = true)');
+      setCleanSlateMode(false);
+      setStatusMessage('✓ Mock-data laddad i databasen (community_posts & crm_pipeline_deals med is_demo = true). Mock-läge aktivt.');
       setStatusType('success');
       setTimeout(() => setStatusMessage(null), 6000);
     } catch (err: any) {
@@ -160,17 +161,22 @@ export const AdminDevAndSchemaTab: React.FC = () => {
     setStatusType('info');
 
     try {
+      setCleanSlateMode(true);
       const { error: rpcErr } = await supabase.rpc('purge_demo_data', {
         p_target_user_id: targetUserId,
       });
 
       if (rpcErr) {
         console.warn('RPC purge_demo_data ej registrerad i SQL, kör resilient delete-fallback:', rpcErr.message);
-        await supabase.from('community_posts').delete().eq('author_id', targetUserId).eq('is_demo', true);
-        await supabase.from('crm_pipeline_deals').delete().eq('owner_member_id', targetUserId).eq('is_demo', true);
+        try {
+          await supabase.from('community_posts').delete().eq('author_id', targetUserId).eq('is_demo', true);
+          await supabase.from('crm_pipeline_deals').delete().eq('owner_member_id', targetUserId).eq('is_demo', true);
+        } catch (delErr) {
+          console.warn('Fallback delete warning:', delErr);
+        }
       }
 
-      setStatusMessage('✓ All mockdata (is_demo = true) har rensats ur databasen.');
+      setStatusMessage('✓ All mockdata har rensats och Clean Slate är aktiverat.');
       setStatusType('success');
       setTimeout(() => setStatusMessage(null), 5000);
     } catch (err: any) {
@@ -206,12 +212,18 @@ export const AdminDevAndSchemaTab: React.FC = () => {
           </div>
 
           {/* Quick status badges */}
-          <div className="flex items-center gap-2 text-xs">
+          <div className="flex flex-wrap items-center gap-2 text-xs">
             <div className={`px-3 py-1.5 rounded-xl border flex items-center gap-2 font-bold ${
               inspectorEnabled ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300' : 'bg-gray-800 border-gray-700 text-gray-400'
             }`}>
               <div className={`w-2 h-2 rounded-full ${inspectorEnabled ? 'bg-emerald-400 animate-pulse' : 'bg-gray-500'}`} />
               <span>Inspector: {inspectorEnabled ? 'AKTIV' : 'AV'}</span>
+            </div>
+            <div className={`px-3 py-1.5 rounded-xl border flex items-center gap-2 font-bold ${
+              cleanSlateMode ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300' : 'bg-purple-500/20 border-purple-500/40 text-purple-300'
+            }`}>
+              <div className={`w-2 h-2 rounded-full ${cleanSlateMode ? 'bg-emerald-400' : 'bg-purple-400 animate-pulse'}`} />
+              <span>Läge: {cleanSlateMode ? 'CLEAN SLATE' : 'MOCKUP / DEMO'}</span>
             </div>
             <div className={`px-3 py-1.5 rounded-xl border flex items-center gap-2 font-bold ${
               systemSettings.maintenance_mode ? 'bg-amber-500/20 border-amber-500/40 text-amber-300' : 'bg-gray-800 border-gray-700 text-gray-400'
@@ -239,10 +251,10 @@ export const AdminDevAndSchemaTab: React.FC = () => {
       </div>
 
       {/* SEKTION 1: KONTROLLPANEL – DEV HUD & INSPECTOR KNAPPAR */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
         
         {/* Kontroll 1: Hover Inspector Switch */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-xs flex flex-col justify-between space-y-4">
+        <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-xs flex flex-col justify-between space-y-4">
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Inspektionsläge</span>
@@ -253,7 +265,7 @@ export const AdminDevAndSchemaTab: React.FC = () => {
               Hover Inspector
             </h3>
             <p className="text-xs text-gray-500 leading-relaxed">
-              När detta läge är aktivt markeras alla omslutna frontend-komponenter med en bärnstensfärgad ram vid hover, och visar databastabell, kolumner och triggers.
+              Markerar komponenter vid hover med databastabell, kolumner och direkta säkra Supabase Studio-länkar.
             </p>
           </div>
 
@@ -274,14 +286,48 @@ export const AdminDevAndSchemaTab: React.FC = () => {
             ) : (
               <>
                 <Eye className="w-4 h-4 text-gray-400" />
-                <span>Hover Inspector: AV (Klicka för att aktivera)</span>
+                <span>Hover Inspector: AV</span>
               </>
             )}
           </button>
         </div>
 
-        {/* Kontroll 2: Ladda Mock-data */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-xs flex flex-col justify-between space-y-4">
+        {/* Kontroll 2: Clean Slate Toggle */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-xs flex flex-col justify-between space-y-4">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Nystart & Drift</span>
+              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                cleanSlateMode ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-purple-50 text-purple-700 border border-purple-200'
+              }`}>
+                {cleanSlateMode ? 'CLEAN SLATE' : 'MOCK-DATA'}
+              </span>
+            </div>
+            <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+              <Zap className="w-5 h-5 text-emerald-600" />
+              Clean Slate Läge
+            </h3>
+            <p className="text-xs text-gray-500 leading-relaxed">
+              Växla mellan ren produktionsstart utan fejkade medlemmar och testläge med rik demonstrationsdata.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={toggleCleanSlate}
+            className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-xs cursor-pointer ${
+              cleanSlateMode
+                ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                : 'bg-purple-100 hover:bg-purple-200 text-purple-900 border border-purple-300'
+            }`}
+          >
+            <Zap className="w-4 h-4" />
+            <span>{cleanSlateMode ? '🚀 Clean Slate: AKTIVT' : '🧪 Mock-läge (Växla)'}</span>
+          </button>
+        </div>
+
+        {/* Kontroll 3: Ladda Mock-data */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-xs flex flex-col justify-between space-y-4">
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Mock Data Engine</span>
@@ -294,7 +340,7 @@ export const AdminDevAndSchemaTab: React.FC = () => {
               Ladda Mock-data
             </h3>
             <p className="text-xs text-gray-500 leading-relaxed">
-              Genererar verifierade exempelrader i <code className="text-gray-800 font-mono text-[11px]">community_posts</code> och <code className="text-gray-800 font-mono text-[11px]">crm_pipeline_deals</code> taggade med <code className="text-blue-700 font-bold">is_demo = true</code>.
+              Skapar verifierade exempelrader i <code className="text-gray-800 font-mono text-[11px]">community_posts</code> och <code className="text-gray-800 font-mono text-[11px]">crm_pipeline_deals</code> taggade med <code className="text-blue-700 font-bold">is_demo = true</code>.
             </p>
           </div>
 
@@ -309,8 +355,8 @@ export const AdminDevAndSchemaTab: React.FC = () => {
           </button>
         </div>
 
-        {/* Kontroll 3: Rensa Mock-data */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-xs flex flex-col justify-between space-y-4">
+        {/* Kontroll 4: Rensa Mock-data */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-xs flex flex-col justify-between space-y-4">
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Isolering & Rensa</span>
@@ -320,10 +366,10 @@ export const AdminDevAndSchemaTab: React.FC = () => {
             </div>
             <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
               <Trash2 className="w-5 h-5 text-rose-600" />
-              Rensa Mock-data
+              Rensa & Clean Slate
             </h3>
             <p className="text-xs text-gray-500 leading-relaxed">
-              Raderar omedelbart alla poster med <code className="text-rose-700 font-bold">is_demo = true</code> från databasen så att endast skarpa produktionsdata kvarstår.
+              Raderar omedelbart alla poster med <code className="text-rose-700 font-bold">is_demo = true</code> och nollställer till en ren start för lansering.
             </p>
           </div>
 

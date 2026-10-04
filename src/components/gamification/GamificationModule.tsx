@@ -454,7 +454,7 @@ export const GamificationModule: React.FC<GamificationModuleProps> = ({
   return (
     <AdminInspect
       component="GamificationModule.tsx"
-      sourceTable="public.booster_points / booster_score_logs / p2p_transfers"
+      sourceTable="public.booster_score_logs / p2p_point_transfers / p2p_allowances"
       columns={['id', 'member_id', 'activity_type', 'points', 'title', 'verification_method', 'created_at']}
       notes="Gamification, poängmotor (Booster Points), P2P-dricks, belöningsbutik och topplistor"
     >

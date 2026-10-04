@@ -131,7 +131,7 @@ export const AcademyModule: React.FC<AcademyModuleProps> = ({
   return (
     <AdminInspect
       component="AcademyModule.tsx"
-      sourceTable="public.courses / certificates / mentor_slots"
+      sourceTable="public.academy_courses / academy_progress"
       columns={['id', 'title', 'instructor', 'category', 'is_locked', 'price_sek', 'quiz_completed', 'certificate_hash']}
       notes="Booster Academy med micro-kurser, kunskapstest (quiz), mentorpass och certifikat"
     >

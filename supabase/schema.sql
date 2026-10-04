@@ -1325,3 +1325,162 @@ ALTER PUBLICATION supabase_realtime ADD TABLE
   public.proximity_pings,
   public.member_active_locations;
 
+-- ------------------------------------------------------------------------------
+-- 22. CLEAN SLATE & MOCK DATA MANAGEMENT (DEMO PURGE & SEED)
+-- ------------------------------------------------------------------------------
+ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS is_demo BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE crm_pipeline_deals ADD COLUMN IF NOT EXISTS is_demo BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE master_events ADD COLUMN IF NOT EXISTS is_demo BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE proximity_pings ADD COLUMN IF NOT EXISTS is_demo BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- Purge all demo rows across the platform
+CREATE OR REPLACE FUNCTION purge_demo_data(p_target_user_id UUID)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_deals_deleted INT := 0;
+  v_posts_deleted INT := 0;
+BEGIN
+  DELETE FROM crm_pipeline_deals 
+  WHERE (owner_member_id = p_target_user_id OR p_target_user_id IS NULL) AND is_demo = TRUE;
+  GET DIAGNOSTICS v_deals_deleted = ROW_COUNT;
+
+  DELETE FROM community_posts 
+  WHERE (author_id = p_target_user_id OR p_target_user_id IS NULL) AND is_demo = TRUE;
+  GET DIAGNOSTICS v_posts_deleted = ROW_COUNT;
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'deals_deleted', v_deals_deleted,
+    'posts_deleted', v_posts_deleted
+  );
+END;
+$$;
+
+-- Seed verified demo rows for presentation and testing
+CREATE OR REPLACE FUNCTION seed_demo_data(p_target_user_id UUID)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  -- 1. Purge existing demo rows first
+  PERFORM purge_demo_data(p_target_user_id);
+
+  -- 2. Insert demo deals
+  INSERT INTO crm_pipeline_deals (
+    owner_member_id,
+    title,
+    client_company,
+    contact_person,
+    value_sek,
+    stage,
+    probability,
+    next_step,
+    due_date,
+    notes,
+    points_awarded,
+    is_demo
+  ) VALUES 
+  (
+    p_target_user_id,
+    'Logistikoptimering & WMS-analys',
+    'Nordic Supply AB',
+    'Anders Berg',
+    45000.00,
+    'lead',
+    20,
+    'Koppla i 3-partschatt',
+    CURRENT_DATE + INTERVAL '30 days',
+    'Demo Lead skapad via Seed.',
+    false,
+    true
+  ),
+  (
+    p_target_user_id,
+    'Checkout-konvertering & CRO',
+    'Svea E-Commerce Group',
+    'Elin Lundqvist',
+    85000.00,
+    'intro_sent',
+    40,
+    'Boka 1-till-1 introduktion',
+    CURRENT_DATE + INTERVAL '21 days',
+    'Demo Intro skickad.',
+    false,
+    true
+  ),
+  (
+    p_target_user_id,
+    'Transportupphandling & Avtal',
+    'Västkust Logistik Partner',
+    'Henrik Lind',
+    120000.00,
+    'meeting_done',
+    60,
+    'Genomföra möte i hubben',
+    CURRENT_DATE + INTERVAL '14 days',
+    'Demo Kaffemöte inbokat.',
+    false,
+    true
+  );
+
+  -- 3. Insert demo community posts
+  INSERT INTO community_posts (
+    author_id,
+    post_type,
+    category,
+    title,
+    content,
+    read_time_min,
+    is_demo
+  ) VALUES
+  (
+    p_target_user_id,
+    'POST',
+    'ALLMANT',
+    'Snabb fråga kring tullregler och 3PL',
+    'Någon i hubben som har erfarenhet av automatiserad tulldeklaration via API för e-handelsförsändelser till Norge? Tar gärna en kaffe och bollar tankar i loungen idag!',
+    1,
+    true
+  ),
+  (
+    p_target_user_id,
+    'ARTICLE',
+    'LOGISTIK',
+    '3 strategier för att sänka fraktkostnader och höja konverteringen 2026',
+    'Fraktalternativ i kassan är inte längre bara en logistikfråga – det är ett av dina starkaste verktyg för konverteringsoptimering.',
+    4,
+    true
+  );
+
+  RETURN jsonb_build_object('success', true);
+END;
+$$;
+
+-- Stored RPC: get_admin_dashboard_kpis
+CREATE OR REPLACE FUNCTION get_admin_dashboard_kpis()
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_active_members INT;
+  v_deals_closed_sek NUMERIC;
+  v_active_hubs INT;
+BEGIN
+  SELECT COUNT(*) INTO v_active_members FROM profiles WHERE account_status = 'ACTIVE';
+  SELECT COALESCE(SUM(value_sek), 0) INTO v_deals_closed_sek FROM crm_pipeline_deals WHERE stage = 'closed_won';
+  SELECT COUNT(*) INTO v_active_hubs FROM hubs;
+
+  RETURN jsonb_build_object(
+    'active_members', v_active_members,
+    'deals_closed_sek', v_deals_closed_sek,
+    'active_hubs', v_active_hubs
+  );
+END;
+$$;
+
+

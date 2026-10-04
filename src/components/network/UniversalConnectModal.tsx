@@ -93,7 +93,7 @@ export const UniversalConnectModal: React.FC<UniversalConnectModalProps> = ({
   return (
     <AdminInspect
       component="UniversalConnectModal.tsx"
-      sourceTable="public.profiles / connections"
+      sourceTable="public.profiles / friendships / member_follows"
       columns={['id', 'full_name', 'company_name', 'email', 'phone', 'linkedin_url', 'qr_code_token']}
       notes="Digitalt visitkort, QR-kod för nätverkande och Apple Wallet integration"
     >

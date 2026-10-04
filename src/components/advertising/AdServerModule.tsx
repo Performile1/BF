@@ -101,7 +101,7 @@ export const AdServerModule: React.FC<AdServerModuleProps> = ({
   return (
     <AdminInspect
       component="AdServerModule.tsx"
-      sourceTable="public.ad_placements / ad_campaigns"
+      sourceTable="public.ad_placements_config / ad_campaigns"
       columns={['id', 'member_id', 'placement_type', 'pricing_model', 'title', 'image_url', 'target_url', 'status', 'impressions', 'clicks']}
       notes="Självbetjäningsportal för annonskampanjer, prissättning och realtidsanalys"
     >

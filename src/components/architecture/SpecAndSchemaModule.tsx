@@ -210,7 +210,7 @@ export const SpecAndSchemaModule: React.FC<SpecAndSchemaModuleProps> = ({
   return (
     <AdminInspect
       component="SpecAndSchemaModule.tsx"
-      sourceTable="information_schema.tables / pg_catalog / OpenAPI Spec"
+      sourceTable="Klient-State: information_schema.tables / pg_catalog / OpenAPI Spec"
       columns={['table_name', 'column_name', 'data_type', 'is_nullable', 'endpoints', 'methods']}
       notes="Systemarkitektur, PostgreSQL-scheman (V1-V7), API Explorer och varumärkespalett"
     >

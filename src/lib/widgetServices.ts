@@ -63,8 +63,18 @@ export async function getSystemSettings(): Promise<SystemSettings> {
     }
 
     if (data) {
+      if (data.value && typeof data.value === 'object') {
+        const val = data.value;
+        return {
+          id: data.key || data.id,
+          maintenance_mode: Boolean(val.maintenance_mode !== undefined ? val.maintenance_mode : val.enabled),
+          maintenance_message: val.maintenance_message || val.message || fallback.maintenance_message,
+          estimated_maintenance_end: val.estimated_maintenance_end !== undefined ? val.estimated_maintenance_end : fallback.estimated_maintenance_end,
+          updated_at: data.updated_at,
+        };
+      }
       return {
-        id: data.id,
+        id: data.id || data.key,
         maintenance_mode: Boolean(data.maintenance_mode),
         maintenance_message: data.maintenance_message || fallback.maintenance_message,
         estimated_maintenance_end: data.estimated_maintenance_end !== undefined ? data.estimated_maintenance_end : fallback.estimated_maintenance_end,
@@ -101,7 +111,28 @@ export async function updateSystemSettings(
       return { success: true };
     }
 
-    // 2. Förbered payload för databasen
+    // 2. Prova först spara via key-value mönster (som matchar system_settings med key/value kolumner)
+    try {
+      const { error: kvError } = await supabase
+        .from('system_settings')
+        .upsert({
+          key: 'maintenance',
+          value: {
+            maintenance_mode: updated.maintenance_mode,
+            maintenance_message: updated.maintenance_message,
+            estimated_maintenance_end: updated.estimated_maintenance_end
+          },
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'key' });
+
+      if (!kvError) {
+        return { success: true };
+      }
+    } catch {
+      // Fortsätt till kolumnbaserad fallback nedan om key/value inte matchar
+    }
+
+    // 3. Kolumnbaserad fallback för äldre scheman
     const payload: Record<string, any> = {};
     if (settings.maintenance_mode !== undefined) payload.maintenance_mode = settings.maintenance_mode;
     if (settings.maintenance_message !== undefined) payload.maintenance_message = settings.maintenance_message;
@@ -236,22 +267,6 @@ export async function getUserWidgetPreferences(
     // continue
   }
 
-  // 4. Försök läsa från user_widget_preferences
-  try {
-    const { data, error } = await supabase
-      .from('user_widget_preferences')
-      .select('active_widget_ids')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    if (!error && data?.active_widget_ids && Array.isArray(data.active_widget_ids)) {
-      localStorage.setItem(`${LOCAL_WIDGET_PREF_KEY}_${userId}`, JSON.stringify(data.active_widget_ids));
-      return data.active_widget_ids;
-    }
-  } catch (err) {
-    console.warn('[getUserWidgetPreferences] Använder standardwidgets:', err);
-  }
-
   return defaultWidgets;
 }
 
@@ -289,30 +304,14 @@ export async function saveUserWidgetPreferences(
       // ignore
     }
 
-    // 2. Prova att spara till user_widget_preferences
-    try {
-      const { error } = await supabase
-        .from('user_widget_preferences')
-        .upsert({
-          user_id: userId,
-          active_widget_ids: widgetIds,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'user_id' });
-
-      if (!error) {
-        saved = true;
-      }
-    } catch (e) {
-      // ignore
-    }
-
-    // 3. Prova att spara till user_dashboard_layouts
+    // 2. Spara till user_dashboard_layouts
     try {
       await supabase
         .from('user_dashboard_layouts')
         .upsert({
           user_id: userId,
-          widgets: widgetIds,
+          columns_count: 4,
+          grid_gap: '1rem',
           updated_at: new Date().toISOString()
         }, { onConflict: 'user_id' });
     } catch (e) {
@@ -571,7 +570,7 @@ export async function bookFlexDeskToday(
   try {
     const todayStr = new Date().toISOString().split('T')[0];
     const { data, error } = await supabase
-      .from('hub_bookings')
+      .from('coworking_desk_bookings')
       .insert({
         member_id: userId,
         hub_id: hubId,
@@ -579,6 +578,7 @@ export async function bookFlexDeskToday(
         slot_type: slotType,
         is_checked_in: true,
         check_in_time: new Date().toISOString(),
+        check_in_method: 'MANUAL',
         created_at: new Date().toISOString()
       })
       .select('id')

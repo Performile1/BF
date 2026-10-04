@@ -173,9 +173,9 @@ export const Navigation: React.FC<NavigationProps> = ({
   return (
     <AdminInspect
       component="Navigation.tsx"
-      sourceTable="Client State / Nav"
+      sourceTable="Klient-State / Navigation"
       columns={['activeTab', 'isAdmin', 'unreadChatCount']}
-      notes="5-kategoriers huvudmeny och sub-navigation"
+      notes="5-kategoriers huvudmeny och sub-navigation (Klient-hanterat UI-state)"
     >
       <div className="space-y-2">
       {/* 1. PRIMARY 5-CATEGORY NAVIGATION BAR */}

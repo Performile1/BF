@@ -239,7 +239,7 @@ export const AdBannerEngine: React.FC<AdBannerEngineProps> = ({
     return (
       <AdminInspect
         component="AdBannerEngine.tsx"
-        sourceTable="public.banner_ads"
+        sourceTable="public.ad_placements_config / ad_campaigns"
         columns={['id', 'title', 'advertiser_name', 'placement', 'format', 'image_url', 'target_url', 'impressions_count', 'clicks_count']}
         notes="Annonsvisningsmotor med mätning av visningar och klick per zon"
       >
@@ -319,7 +319,7 @@ export const AdBannerEngine: React.FC<AdBannerEngineProps> = ({
     return (
       <AdminInspect
         component="AdBannerEngine.tsx"
-        sourceTable="public.banner_ads"
+        sourceTable="public.ad_placements_config / ad_campaigns"
         columns={['id', 'title', 'advertiser_name', 'placement', 'format', 'image_url', 'target_url', 'impressions_count', 'clicks_count']}
         notes="Annonsvisningsmotor (Sidebar-variant)"
       >
@@ -412,7 +412,7 @@ export const AdBannerEngine: React.FC<AdBannerEngineProps> = ({
   return (
     <AdminInspect
       component="AdBannerEngine.tsx"
-      sourceTable="public.banner_ads"
+      sourceTable="public.ad_placements_config / ad_campaigns"
       columns={['id', 'title', 'advertiser_name', 'placement', 'format', 'image_url', 'target_url', 'impressions_count', 'clicks_count']}
       notes="Annonsvisningsmotor (Fullbredd/In-feed-variant)"
     >

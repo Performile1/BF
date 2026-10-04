@@ -69,7 +69,7 @@ export const PastEventsRecapView: React.FC<PastEventsRecapViewProps> = ({
   return (
     <AdminInspect
       component="PastEventsRecapView.tsx"
-      sourceTable="public.calendar_events / event_reviews / event_gallery_images"
+      sourceTable="public.master_events / event_reviews / event_gallery_images"
       columns={['id', 'title', 'start_time', 'recap_markdown', 'event_reviews', 'gallery_images']}
       notes="Genomförda event, bildgallerier, recensioner och deltagarlistor"
     >
