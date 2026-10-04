@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { Webinar, Member, WebinarPoll, WebinarQnAItem } from '../../types';
 import { generateIcsCalendarFile } from '../../utils/calendar';
+import { AdminInspect } from '../dev/AdminInspect';
 
 interface WebinarModuleProps {
   currentUser: Member;
@@ -114,7 +115,13 @@ export const WebinarModule: React.FC<WebinarModuleProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <AdminInspect
+      component="WebinarModule.tsx"
+      sourceTable="public.webinars / webinar_polls / webinar_qna"
+      columns={['id', 'title', 'speaker_name', 'start_time', 'duration_minutes', 'stream_url', 'is_live', 'archive_url']}
+      notes="Digitala masterclasses och webinarier, polls och live Q&A"
+    >
+      <div className="space-y-6">
       
       {/* Top Bar with Switcher & Create Action */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-gray-200 shadow-xs">
@@ -682,5 +689,6 @@ export const WebinarModule: React.FC<WebinarModuleProps> = ({
       )}
 
     </div>
+    </AdminInspect>
   );
 };

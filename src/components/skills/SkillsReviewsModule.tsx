@@ -13,6 +13,7 @@ import {
   X
 } from 'lucide-react';
 import { Member, MemberSkill, Review } from '../../types';
+import { AdminInspect } from '../dev/AdminInspect';
 
 interface SkillsReviewsModuleProps {
   currentUser: Member;
@@ -89,7 +90,13 @@ export const SkillsReviewsModule: React.FC<SkillsReviewsModuleProps> = ({
   };
 
   return (
-    <div className="space-y-8">
+    <AdminInspect
+      component="SkillsReviewsModule.tsx"
+      sourceTable="public.member_skills / reviews"
+      columns={['id', 'member_id', 'skill_name', 'endorsements_count', 'target_type', 'rating', 'review_text']}
+      notes="Kompetensintyg (skill endorsements), betyg och omdömen för medlemmar, hubbar och events"
+    >
+      <div className="space-y-8">
       
       {/* SECTION 1: Skillbars & Kompetensröstning (Endorsements) */}
       <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-xs space-y-6">
@@ -431,5 +438,6 @@ export const SkillsReviewsModule: React.FC<SkillsReviewsModuleProps> = ({
       )}
 
     </div>
+    </AdminInspect>
   );
 };

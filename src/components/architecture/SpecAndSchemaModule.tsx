@@ -16,6 +16,7 @@ import {
 import { POSTGRESQL_SCHEMA_SQL } from '../../data/initialData';
 import { POSTGRESQL_V6_V7_SCHEMA_SQL } from '../../data/calendarAndCoworkingData';
 import { Member, Webinar, ChatChannel } from '../../types';
+import { AdminInspect } from '../dev/AdminInspect';
 
 interface SpecAndSchemaModuleProps {
   members: Member[];
@@ -207,7 +208,13 @@ export const SpecAndSchemaModule: React.FC<SpecAndSchemaModuleProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <AdminInspect
+      component="SpecAndSchemaModule.tsx"
+      sourceTable="information_schema.tables / pg_catalog / OpenAPI Spec"
+      columns={['table_name', 'column_name', 'data_type', 'is_nullable', 'endpoints', 'methods']}
+      notes="Systemarkitektur, PostgreSQL-scheman (V1-V7), API Explorer och varumärkespalett"
+    >
+      <div className="space-y-6">
       
       {/* Top Banner */}
       <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -502,5 +509,6 @@ export const SpecAndSchemaModule: React.FC<SpecAndSchemaModuleProps> = ({
       )}
 
     </div>
+    </AdminInspect>
   );
 };

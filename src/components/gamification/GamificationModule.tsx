@@ -46,6 +46,7 @@ import {
   P2PPointTransfer,
   RewardShopItem 
 } from '../../types';
+import { AdminInspect } from '../dev/AdminInspect';
 
 interface GamificationModuleProps {
   currentUser: Member;
@@ -451,7 +452,13 @@ export const GamificationModule: React.FC<GamificationModuleProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <AdminInspect
+      component="GamificationModule.tsx"
+      sourceTable="public.booster_points / booster_score_logs / p2p_transfers"
+      columns={['id', 'member_id', 'activity_type', 'points', 'title', 'verification_method', 'created_at']}
+      notes="Gamification, poängmotor (Booster Points), P2P-dricks, belöningsbutik och topplistor"
+    >
+      <div className="space-y-6">
       
       {/* Action Notification */}
       {actionSuccessMessage && (
@@ -1664,5 +1671,6 @@ export const GamificationModule: React.FC<GamificationModuleProps> = ({
       )}
 
     </div>
+    </AdminInspect>
   );
 };

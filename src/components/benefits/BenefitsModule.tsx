@@ -13,6 +13,7 @@ import {
   X
 } from 'lucide-react';
 import { PartnerPerk, Member } from '../../types';
+import { AdminInspect } from '../dev/AdminInspect';
 
 interface BenefitsModuleProps {
   currentUser: Member;
@@ -33,7 +34,13 @@ export const BenefitsModule: React.FC<BenefitsModuleProps> = ({
   };
 
   return (
-    <div className="space-y-8">
+    <AdminInspect
+      component="BenefitsModule.tsx"
+      sourceTable="public.partner_perks"
+      columns={['id', 'partner_name', 'category', 'discount_code', 'terms', 'membership_required', 'is_active']}
+      notes="Partnerförmåner, exklusiva rabattkoder och medlemsförmåner"
+    >
+      <div className="space-y-8">
       
       {/* Top Banner */}
       <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -220,5 +227,6 @@ export const BenefitsModule: React.FC<BenefitsModuleProps> = ({
       )}
 
     </div>
+    </AdminInspect>
   );
 };

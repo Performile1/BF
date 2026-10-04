@@ -34,6 +34,7 @@ import {
   MemberCoworkingCredits,
   MembershipLevel 
 } from '../../types';
+import { AdminInspect } from '../dev/AdminInspect';
 
 interface CoworkingHubsModuleProps {
   currentUser: Member;
@@ -175,7 +176,13 @@ export const CoworkingHubsModule: React.FC<CoworkingHubsModuleProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <AdminInspect
+      component="CoworkingHubsModule.tsx"
+      sourceTable="public.hubs / coworking_desk_bookings / partner_locations / desk_swaps"
+      columns={['id', 'hub_id', 'member_id', 'booking_date', 'slot_type', 'is_checked_in', 'credits_remaining']}
+      notes="Coworking-hubbar, skrivbordsbokning, desk swaps och partnerallokering"
+    >
+      <div className="space-y-6">
       {/* Sub-navigation tabs */}
       <div className="bg-white rounded-2xl border border-gray-200 p-2 shadow-xs flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-1.5">
@@ -1205,5 +1212,6 @@ export const CoworkingHubsModule: React.FC<CoworkingHubsModuleProps> = ({
         </div>
       )}
     </div>
+    </AdminInspect>
   );
 };

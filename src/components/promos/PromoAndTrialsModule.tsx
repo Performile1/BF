@@ -19,6 +19,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { PromoCode, FreeTrialPass, Member, Hub } from '../../types';
+import { AdminInspect } from '../dev/AdminInspect';
 
 interface PromoAndTrialsModuleProps {
   currentUser: Member;
@@ -91,7 +92,13 @@ export const PromoAndTrialsModule: React.FC<PromoAndTrialsModuleProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <AdminInspect
+      component="PromoAndTrialsModule.tsx"
+      sourceTable="public.promo_codes / free_trial_passes"
+      columns={['id', 'code', 'discount_percent', 'max_redemptions', 'guest_email', 'hub_id', 'status', 'is_active']}
+      notes="Kampanjkoder, gästpass (trial passes) och referral-bonusar"
+    >
+      <div className="space-y-6">
       {/* Top Banner */}
       <div className="bg-gradient-to-r from-amber-700 via-rose-900 to-[#800020] text-white rounded-3xl p-6 sm:p-8 shadow-sm">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-white/90 text-xs font-semibold backdrop-blur-xs mb-3 border border-white/15">
@@ -460,5 +467,6 @@ export const PromoAndTrialsModule: React.FC<PromoAndTrialsModuleProps> = ({
         </div>
       )}
     </div>
+    </AdminInspect>
   );
 };
