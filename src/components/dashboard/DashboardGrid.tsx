@@ -12,7 +12,8 @@ import {
   X,
   Check,
   LayoutGrid,
-  Columns
+  Columns,
+  Layers
 } from 'lucide-react';
 import { Member, Hub, DealPipelineItem, WebMeeting, BoosterScoreLog, GuestPass, MasterCalendarEvent } from '../../types';
 import { 
@@ -27,7 +28,9 @@ import {
   saveUserWidgetPreferences 
 } from '../../lib/widgetServices';
 import { WidgetPickerModal } from './WidgetPickerModal';
+import { DashboardComparisonModal } from './DashboardComparisonModal';
 import { AdminInspect } from '../dev/AdminInspect';
+import { usePermissions } from '../../hooks/usePermissions';
 
 // Importera alla widgetkomponenter
 import { FlexBookingWidget } from './widgets/FlexBookingWidget';
@@ -61,6 +64,13 @@ import {
   GeofencingWidget,
   KnowledgeQuizWidget
 } from './widgets/CoreModulesWidgets';
+import {
+  MiniWidgetContainer,
+  MiniBpCounterWidget,
+  MiniCoffeeToggleWidget,
+  MiniQuickQrWidget,
+  MiniHubAttendanceWidget
+} from './MiniWidgets';
 
 interface DashboardGridProps {
   currentUser: Member;
@@ -95,7 +105,10 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
   guestPasses = [],
   masterEvents = [],
 }) => {
+  const { isSuperAdmin, isAdmin: hookIsAdmin } = usePermissions();
   const isAdmin = Boolean(
+    isSuperAdmin ||
+    hookIsAdmin ||
     currentUser.is_admin ||
     (currentUser as any).profiles?.is_admin ||
     currentUser.role === 'SUPER_ADMIN' ||
@@ -113,6 +126,7 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
   const [loading, setLoading] = useState<boolean>(true);
   const [isPickerOpen, setIsPickerOpen] = useState<boolean>(false);
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
+  const [isComparisonOpen, setIsComparisonOpen] = useState<boolean>(false);
 
   // Användardefinierade widget-storlekar (synkas med localStorage & user_dashboard_widgets)
   const [customWidths, setCustomWidths] = useState<Record<string, WidgetWidth>>(() => {
@@ -196,23 +210,55 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
     };
 
     switch (id) {
+      case 'mini_widgets_bar':
+        return (
+          <div className="bg-white p-4 rounded-3xl border border-gray-200 shadow-2xs">
+            <MiniWidgetContainer>
+              <MiniBpCounterWidget
+                currentUser={currentUser}
+                onClick={() => onNavigateTab?.('gamification')}
+              />
+              <MiniCoffeeToggleWidget
+                currentUser={currentUser}
+                onToggleStatus={() => onNavigateTab?.('proximity')}
+                onOpenPingModal={() => onNavigateTab?.('proximity')}
+              />
+              <MiniQuickQrWidget
+                currentUser={currentUser}
+                onClick={() => onNavigateTab?.('profile_settings')}
+              />
+              <MiniHubAttendanceWidget
+                members={allMembers || []}
+                currentUser={currentUser}
+                onClick={() => onNavigateTab?.('directory')}
+              />
+            </MiniWidgetContainer>
+          </div>
+        );
       case 'booster_score':
+      case 'profile_gamification':
         return <BoosterScoreWidget {...props} />;
       case 'vcard_qr':
         return <VCardQrWidget {...props} />;
       case 'activity_ticker':
+      case 'system_ticker_widget':
         return <ActivityTickerWidget {...props} />;
       case 'proximity_radar':
+      case 'coffee_ping_radar':
         return <ProximityRadarWidget {...props} />;
       case 'hub_presence':
+      case 'who_is_at_hub':
         return <HubPresenceWidget {...props} />;
       case 'flex_booking':
+      case 'coworking_booking':
         return <FlexBookingWidget {...props} />;
       case 'my_meetings':
         return <MyMeetingsWidget {...props} />;
       case 'ai_matchmaking':
+      case 'matchmaking':
         return <AiMatchmakingWidget {...props} />;
       case 'member_pipeline':
+      case 'pipeline':
         return <MemberPipelineWidget {...props} />;
       case 'calendar_upcoming':
         return <CalendarUpcomingWidget {...props} />;
@@ -221,6 +267,7 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
       case 'webinar':
         return <WebinarWidget {...props} />;
       case 'bp_ledger':
+      case 'bp_ledger_widget':
         return <BpLedgerWidget {...props} />;
       case 'network_recommendations':
         return <NetworkRecommendationsWidget {...props} />;
@@ -231,14 +278,17 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
       case 'knowledge_quiz':
         return <KnowledgeQuizWidget {...props} />;
       case 'community_feed':
+      case 'forum_activity':
         return <CommunityFeedWidget {...props} />;
       case 'academy_progress':
+      case 'academy_certs':
         return <AcademyProgressWidget {...props} />;
       case 'notifications_inbox':
         return <NotificationsInboxWidget {...props} />;
       case 'tag_subscriptions':
         return <TagSubscriptionsWidget {...props} />;
       case 'admin_kpi_overview':
+      case 'kpi_overview':
         return <AdminKpiWidget {...props} />;
       case 'admin_deals_pipeline':
         return <AdminDealsPipelineWidget {...props} />;
@@ -298,12 +348,37 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
             )}
           </div>
           <p className="text-xs text-gray-500 font-medium">
-            Anpassa din modulära vy: Välj moduler och ställ in önskad bredd (<span className="font-bold text-[#800020]">1 kol</span>, <span className="font-bold text-[#800020]">2 kol</span> eller <span className="font-bold text-[#800020]">Full</span>) direkt på varje widgetkort nedan.
+            {isEditMode 
+              ? 'Detaljredigering aktiv: Justera modullayout (1 kol, 2 kol, Full), flytta eller dölj widgets.'
+              : 'Personlig modulär översikt över dina aktiva verktyg och nätverksdata.'}
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Compare Button */}
           <button
+            type="button"
+            onClick={() => setIsComparisonOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-gray-100 hover:bg-gray-200 text-gray-700 transition cursor-pointer"
+            title="Jämför Bento- och Modulär Dashboard sida vid sida"
+          >
+            <Layers className="w-3.5 h-3.5 text-[#800020]" />
+            <span>Jämför Vyer</span>
+          </button>
+
+          {/* Switch to Bento */}
+          <button
+            type="button"
+            onClick={() => onNavigateTab?.('overview')}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-rose-50 text-[#800020] hover:bg-rose-100 border border-rose-200 transition cursor-pointer"
+            title="Växla till Bento Dashboard"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-[#800020]" />
+            <span>Växla till Bento-vy</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setIsEditMode(!isEditMode)}
             className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition border cursor-pointer ${
               isEditMode
@@ -315,13 +390,17 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
             <span>{isEditMode ? '✓ Avsluta detaljläge' : '🎨 Detaljredigering'}</span>
           </button>
 
-          <button
-            onClick={() => setIsPickerOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-900 hover:bg-black text-white text-xs font-bold transition shadow-xs cursor-pointer"
-          >
-            <Sliders className="w-3.5 h-3.5 text-rose-400" />
-            Välj moduler
-          </button>
+          {/* ONLY show "Välj moduler" when isEditMode is true */}
+          {isEditMode && (
+            <button
+              type="button"
+              onClick={() => setIsPickerOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-900 hover:bg-black text-white text-xs font-bold transition shadow-xs cursor-pointer animate-in fade-in"
+            >
+              <Sliders className="w-3.5 h-3.5 text-rose-400" />
+              Välj moduler
+            </button>
+          )}
         </div>
       </div>
 
@@ -355,86 +434,84 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
                   isEditMode ? 'ring-2 ring-[#800020]/20 rounded-3xl p-1 bg-gray-50/60' : ''
                 }`}
               >
-                {/* Size & Move Controls Bar - Direkt tillgänglig på varje widget */}
-                <div className={`mb-2 px-3 py-2 rounded-2xl border transition-all flex items-center justify-between gap-1 text-[11px] ${
-                  isEditMode 
-                    ? 'bg-rose-50/80 border-rose-200 shadow-xs' 
-                    : 'bg-white/95 hover:bg-white border-gray-200/90 shadow-2xs'
-                }`}>
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-[11px] font-bold text-gray-700 truncate">{widget.title}</span>
-                  </div>
+                {/* Size & Move Controls Bar - Visas ENDAST när detaljredigering är aktiv */}
+                {isEditMode && (
+                  <div className="mb-2 px-3 py-2 rounded-2xl border bg-rose-50/80 border-rose-200 shadow-xs transition-all flex items-center justify-between gap-1 text-[11px] animate-in fade-in">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="text-[11px] font-bold text-gray-700 truncate">{widget.title}</span>
+                    </div>
 
-                  <div className="flex items-center gap-1 shrink-0">
-                    <span className="text-[10px] text-gray-400 font-bold uppercase mr-0.5">Bredd:</span>
-                    <button
-                      type="button"
-                      onClick={() => handleSetWidgetWidth(widget.id, 'span-1')}
-                      className={`px-2 py-0.5 rounded-lg text-[10px] font-black transition cursor-pointer ${
-                        currentWidth === 'span-1'
-                          ? 'bg-[#800020] text-white shadow-xs'
-                          : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                      }`}
-                      title="1 kolumn (Kompakt bredd)"
-                    >
-                      1 kol
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleSetWidgetWidth(widget.id, 'span-2')}
-                      className={`px-2 py-0.5 rounded-lg text-[10px] font-black transition cursor-pointer ${
-                        currentWidth === 'span-2'
-                          ? 'bg-[#800020] text-white shadow-xs'
-                          : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                      }`}
-                      title="2 kolumner (Halv bredd)"
-                    >
-                      2 kol
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleSetWidgetWidth(widget.id, 'span-full')}
-                      className={`px-2 py-0.5 rounded-lg text-[10px] font-black transition cursor-pointer ${
-                        currentWidth === 'span-full'
-                          ? 'bg-[#800020] text-white shadow-xs'
-                          : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                      }`}
-                      title="Full bredd (4 kolumner)"
-                    >
-                      Full
-                    </button>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <span className="text-[10px] text-gray-400 font-bold uppercase mr-0.5">Bredd:</span>
+                      <button
+                        type="button"
+                        onClick={() => handleSetWidgetWidth(widget.id, 'span-1')}
+                        className={`px-2 py-0.5 rounded-lg text-[10px] font-black transition cursor-pointer ${
+                          currentWidth === 'span-1'
+                            ? 'bg-[#800020] text-white shadow-xs'
+                            : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                        }`}
+                        title="1 kolumn (Kompakt bredd)"
+                      >
+                        1 kol
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSetWidgetWidth(widget.id, 'span-2')}
+                        className={`px-2 py-0.5 rounded-lg text-[10px] font-black transition cursor-pointer ${
+                          currentWidth === 'span-2'
+                            ? 'bg-[#800020] text-white shadow-xs'
+                            : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                        }`}
+                        title="2 kolumner (Halv bredd)"
+                      >
+                        2 kol
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSetWidgetWidth(widget.id, 'span-full')}
+                        className={`px-2 py-0.5 rounded-lg text-[10px] font-black transition cursor-pointer ${
+                          currentWidth === 'span-full'
+                            ? 'bg-[#800020] text-white shadow-xs'
+                            : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                        }`}
+                        title="Full bredd (4 kolumner)"
+                      >
+                        Full
+                      </button>
 
-                    {/* Move & Remove Controls */}
-                    <div className="flex items-center gap-0.5 ml-1 border-l border-gray-200 pl-1">
-                      <button
-                        type="button"
-                        onClick={() => handleMoveWidget(index, 'UP')}
-                        disabled={index === 0}
-                        className="p-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                        title="Flytta framåt/uppåt"
-                      >
-                        <ArrowUp className="w-3 h-3" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleMoveWidget(index, 'DOWN')}
-                        disabled={index === visibleWidgets.length - 1}
-                        className="p-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                        title="Flytta bakåt/nedåt"
-                      >
-                        <ArrowDown className="w-3 h-3" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveWidget(widget.id)}
-                        className="p-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 ml-0.5 cursor-pointer"
-                        title="Dölj denna widget"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
+                      {/* Move & Remove Controls */}
+                      <div className="flex items-center gap-0.5 ml-1 border-l border-gray-200 pl-1">
+                        <button
+                          type="button"
+                          onClick={() => handleMoveWidget(index, 'UP')}
+                          disabled={index === 0}
+                          className="p-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                          title="Flytta framåt/uppåt"
+                        >
+                          <ArrowUp className="w-3 h-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleMoveWidget(index, 'DOWN')}
+                          disabled={index === visibleWidgets.length - 1}
+                          className="p-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                          title="Flytta bakåt/nedåt"
+                        >
+                          <ArrowDown className="w-3 h-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveWidget(widget.id)}
+                          className="p-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 ml-0.5 cursor-pointer"
+                          title="Dölj denna widget"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 <div className="flex-1 flex flex-col min-w-0">
                   {renderWidgetComponent(widget.id)}
@@ -452,6 +529,18 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
         activeWidgetIds={activeWidgetIds}
         isAdmin={isAdmin}
         onSavePreferences={handleSavePreferences}
+      />
+
+      {/* Dashboard Comparison Modal */}
+      <DashboardComparisonModal
+        isOpen={isComparisonOpen}
+        onClose={() => setIsComparisonOpen(false)}
+        activeView="modular"
+        onSelectView={(view) => {
+          if (view === 'bento') {
+            onNavigateTab?.('overview');
+          }
+        }}
       />
     </div>
     </AdminInspect>

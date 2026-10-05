@@ -2663,21 +2663,8 @@ export default function App() {
       case 'overview':
       case 'home':
         return (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between pb-1 border-b border-gray-100">
-              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                Dashboard Vyer
-              </span>
-              <button
-                onClick={() => setActiveTab('dashboard_widgets')}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-[#800020] hover:bg-rose-100 transition border border-rose-200 cursor-pointer"
-              >
-                <span>Växla till Modulär Widget-vy</span>
-                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[#800020] text-white">NY</span>
-              </button>
-            </div>
-            <CustomizableBentoDashboard
-              currentUser={currentUser}
+          <CustomizableBentoDashboard
+            currentUser={currentUser}
               hubs={hubs}
               selectedHub={selectedHub}
               pipelineItems={pipelineItems}
@@ -2707,7 +2694,6 @@ export default function App() {
               onUpdateLocationStatus={handleUpdateLocationStatus}
               onOpenLocationPingModal={() => setIsLocationPingModalOpen(true)}
             />
-          </div>
         );
 
       case 'matchmaking':

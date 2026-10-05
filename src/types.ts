@@ -93,6 +93,7 @@ export interface Member {
     from_member_name: string;
   };
   is_demo?: boolean;
+  totp_settings?: TotpSecuritySettings;
 }
 
 export type UserRole = 'SUPER_ADMIN' | 'HUB_HOST' | 'MEMBER' | 'GUEST' | 'PROSPECT';

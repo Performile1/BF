@@ -50,6 +50,7 @@ import { MembershipBillingModule } from './MembershipBillingModule';
 import { MemberCard } from './MemberCard';
 import { downloadVCard } from '../../utils/vcard';
 import { AdminInspect } from '../dev/AdminInspect';
+import { TotpSecurityManager } from './TotpSecurityManager';
 
 interface ProfileSettingsAndDirectoryModuleProps {
   currentUser: Member;
@@ -2039,6 +2040,9 @@ export const ProfileSettingsAndDirectoryModule: React.FC<ProfileSettingsAndDirec
               )}
             </div>
           </div>
+
+          {/* 🛡️ TVÅFAKTORSAUTENTISERING (2FA / TOTP) & KONTOSÄKERHET */}
+          <TotpSecurityManager currentUser={currentUser} onUpdateUser={onUpdateProfile} />
 
           {/* Submit bar */}
           <div className="flex items-center justify-end gap-3 pt-2">

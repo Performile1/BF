@@ -19,7 +19,8 @@ import {
   Building2,
   Clock,
   ArrowRight,
-  ShieldCheck
+  ShieldCheck,
+  GraduationCap
 } from 'lucide-react';
 import { WidgetComponentProps } from '../../../types/widgets';
 import { formatSek } from '../../../utils/calendar';

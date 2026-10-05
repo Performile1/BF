@@ -36,6 +36,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 }) => {
   const { 
     signInWithEmail, 
+    verify2FALogin,
     signInWithOtp, 
     signUp, 
     switchDemoUser, 
@@ -45,6 +46,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
   const [authMethod, setAuthMethod] = useState<'password' | 'magic_link'>('password');
+  const [authStep, setAuthStep] = useState<'credentials' | '2fa'>('credentials');
+  const [tempMfaData, setTempMfaData] = useState<{ tempUserId: string; factorId?: string; maskedEmail: string } | null>(null);
+  const [totpCode, setTotpCode] = useState('');
+  const [useBackupCode, setUseBackupCode] = useState(false);
   
   // Form fields
   const [email, setEmail] = useState('');
@@ -77,9 +82,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           setSuccessMsg(message || `En Magic Link har skickats till ${email}! Klicka på länken i ditt mail.`);
         }
       } else {
-        const { error } = await signInWithEmail(email, password);
-        if (error) {
-          setErrorMsg(error.message || 'Felaktig e-postadress eller lösenord.');
+        const result = await signInWithEmail(email, password);
+        if (result.error) {
+          setErrorMsg(result.error.message || 'Felaktig e-postadress eller lösenord.');
+        } else if (result.requires2FA && result.tempUserId) {
+          setTempMfaData({
+            tempUserId: result.tempUserId,
+            factorId: result.factorId,
+            maskedEmail: result.maskedEmail || email
+          });
+          setAuthStep('2fa');
+          setTotpCode('');
+          setSuccessMsg('Lösenord godkänt! Vänligen bekräfta med tvåfaktorskod (2FA).');
         } else {
           setSuccessMsg('Välkommen tillbaka!');
           setTimeout(() => {
@@ -90,6 +104,31 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }
     } catch (err: any) {
       setErrorMsg(err?.message || 'Ett oväntat fel inträffade.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerify2FASubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tempMfaData?.tempUserId) return;
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    setLoading(true);
+
+    try {
+      const res = await verify2FALogin(tempMfaData.tempUserId, totpCode, tempMfaData.factorId);
+      if (res.error) {
+        setErrorMsg(res.error.message || 'Felaktig tvåfaktors-kod. Kontrollera din autentiseringsapp.');
+      } else {
+        setSuccessMsg(res.usedBackupCode ? '✓ Reservkod verifierad! Loggar in...' : '✓ Tvåfaktor verifierad! Välkommen tillbaka.');
+        setTimeout(() => {
+          onLoginSuccess?.();
+          onClose();
+        }, 600);
+      }
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'Ett oväntat fel inträffade vid verifiering.');
     } finally {
       setLoading(false);
     }
@@ -158,55 +197,59 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </button>
 
           <div className="flex items-center gap-2 mb-1">
-            <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+            <span className={`w-2.5 h-2.5 rounded-full ${authStep === '2fa' ? 'bg-emerald-400' : 'bg-amber-400'} animate-pulse`}></span>
             <span className="text-xs uppercase tracking-widest text-amber-200 font-bold">
-              Booster Friends V12
+              {authStep === '2fa' ? 'Säkerhetsverifiering (2FA)' : 'Booster Friends V12'}
             </span>
           </div>
 
           <h2 className="text-xl sm:text-2xl font-black tracking-tight">
-            {mode === 'login' ? 'Logga in i nätverket' : 'Bli medlem i nätverket'}
+            {authStep === '2fa' ? 'Tvåfaktorsautentisering' : mode === 'login' ? 'Logga in i nätverket' : 'Bli medlem i nätverket'}
           </h2>
 
           <p className="text-xs text-rose-100 mt-1 max-w-md">
-            {invitedByName 
+            {authStep === '2fa'
+              ? 'Ditt medlemskonto är skyddat med TOTP tvåfaktorsautentisering.'
+              : invitedByName 
               ? `👋 Inbjuden av ${invitedByName} – flexplatser, matchmaking och B2B-affärer.`
               : 'Sveriges ledande flex- och tillväxtnätverk för entreprenörer och ledare.'}
           </p>
 
-          {/* Mode Switcher Tabs */}
-          <div className="mt-4 grid grid-cols-2 gap-1 bg-black/20 p-1 rounded-xl">
-            <button
-              type="button"
-              onClick={() => {
-                setMode('login');
-                setErrorMsg(null);
-                setSuccessMsg(null);
-              }}
-              className={`py-1.5 text-xs font-bold rounded-lg transition ${
-                mode === 'login' 
-                  ? 'bg-white text-[#800020] shadow-xs' 
-                  : 'text-white/80 hover:text-white'
-              }`}
-            >
-              Logga in
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setMode('register');
-                setErrorMsg(null);
-                setSuccessMsg(null);
-              }}
-              className={`py-1.5 text-xs font-bold rounded-lg transition ${
-                mode === 'register' 
-                  ? 'bg-white text-[#800020] shadow-xs' 
-                  : 'text-white/80 hover:text-white'
-              }`}
-            >
-              Bli Medlem (Skapa konto)
-            </button>
-          </div>
+          {/* Mode Switcher Tabs (only when in credentials mode) */}
+          {authStep === 'credentials' && (
+            <div className="mt-4 grid grid-cols-2 gap-1 bg-black/20 p-1 rounded-xl">
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('login');
+                  setErrorMsg(null);
+                  setSuccessMsg(null);
+                }}
+                className={`py-1.5 text-xs font-bold rounded-lg transition ${
+                  mode === 'login' 
+                    ? 'bg-white text-[#800020] shadow-xs' 
+                    : 'text-white/80 hover:text-white'
+                }`}
+              >
+                Logga in
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('register');
+                  setErrorMsg(null);
+                  setSuccessMsg(null);
+                }}
+                className={`py-1.5 text-xs font-bold rounded-lg transition ${
+                  mode === 'register' 
+                    ? 'bg-white text-[#800020] shadow-xs' 
+                    : 'text-white/80 hover:text-white'
+                }`}
+              >
+                Bli Medlem (Skapa konto)
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Form Body */}
@@ -227,8 +270,104 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </div>
           )}
 
+          {/* 2FA VERIFICATION STEP */}
+          {authStep === '2fa' && (
+            <form onSubmit={handleVerify2FASubmit} className="space-y-4">
+              <div className="p-3.5 bg-amber-50/80 border border-amber-200/90 rounded-2xl flex items-start gap-3">
+                <div className="p-2 rounded-xl bg-[#800020] text-white flex-shrink-0 mt-0.5 shadow-xs">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-gray-900">
+                    Bekräfta din identitet
+                  </h4>
+                  <p className="text-[11px] text-gray-600 mt-0.5 leading-relaxed">
+                    Kontot för <strong className="text-gray-900">{tempMfaData?.maskedEmail}</strong> är skyddat med 2FA.
+                    Öppna din autentiseringsapp (Google Authenticator, Authy eller Apple Nyckelring) och ange den 6-siffriga koden.
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-gray-700">
+                    {useBackupCode ? '8-teckens Reservkod' : '6-siffrig TOTP-kod'}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUseBackupCode(!useBackupCode);
+                      setTotpCode('');
+                      setErrorMsg(null);
+                    }}
+                    className="text-[11px] text-[#800020] font-semibold hover:underline"
+                  >
+                    {useBackupCode ? 'Använd Authenticator-app' : 'Har du inte mobilen? Använd reservkod'}
+                  </button>
+                </div>
+
+                <div className="relative">
+                  <KeyRound className="w-4 h-4 text-gray-400 absolute left-3 top-3.5" />
+                  <input
+                    type="text"
+                    required
+                    autoFocus
+                    maxLength={useBackupCode ? 12 : 6}
+                    value={totpCode}
+                    onChange={e => setTotpCode(e.target.value.toUpperCase())}
+                    placeholder={useBackupCode ? 'XXXX-XXXX' : '123456'}
+                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 text-base font-mono tracking-widest text-center font-bold focus:outline-none focus:ring-2 focus:ring-[#800020] focus:border-transparent"
+                  />
+                </div>
+
+                {/* Test helper */}
+                <div className="mt-2.5 flex items-center justify-between bg-gray-50 border border-gray-200 px-3 py-2 rounded-xl text-[11px]">
+                  <span className="text-gray-500">Snabbtest (Demoläge):</span>
+                  <button
+                    type="button"
+                    onClick={() => setTotpCode('123456')}
+                    className="px-2 py-0.5 rounded-lg bg-[#800020]/10 text-[#800020] font-bold hover:bg-[#800020]/20 transition"
+                  >
+                    Fyll i testkod (123456)
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-2 pt-1">
+                <button
+                  type="submit"
+                  disabled={loading || totpCode.trim().length === 0}
+                  className="w-full py-3 px-4 bg-[#800020] hover:bg-[#68001a] text-white rounded-xl text-sm font-bold shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {loading ? (
+                    <span>Verifierar kod...</span>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Bekräfta & Logga in</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthStep('credentials');
+                    setTempMfaData(null);
+                    setTotpCode('');
+                    setErrorMsg(null);
+                    setSuccessMsg(null);
+                  }}
+                  className="w-full py-2 text-xs text-gray-500 hover:text-gray-800 transition font-medium"
+                >
+                  ← Avbryt och gå tillbaka till inloggning
+                </button>
+              </div>
+            </form>
+          )}
+
           {/* LOGIN VIEW */}
-          {mode === 'login' && (
+          {authStep === 'credentials' && mode === 'login' && (
             <form onSubmit={handleLoginSubmit} className="space-y-4">
               
               {/* Method toggle: Password vs Magic Link */}
@@ -324,7 +463,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           )}
 
           {/* REGISTER VIEW */}
-          {mode === 'register' && (
+          {authStep === 'credentials' && mode === 'register' && (
             <form onSubmit={handleRegisterSubmit} className="space-y-4">
               
               {/* Membership Tier Cards */}

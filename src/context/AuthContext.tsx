@@ -4,8 +4,17 @@ import { Member, MembershipLevel } from '../types';
 import { CURRENT_USER, INITIAL_MEMBERS } from '../data/initialData';
 import { useAccountSecurityEnforcer } from '../hooks/useAccountSecurityEnforcer';
 import { deleteAccount, sendBroadcastCampaign, toggleSubscription, processReferralSignup, connectVCardFriend, updateProfileAvatar } from '../lib/apiServices';
+import { is2FAEnforcedByRole, verifyTotpLogin } from '../lib/mfaService';
 
 export { useAccountSecurityEnforcer, deleteAccount, sendBroadcastCampaign, toggleSubscription, processReferralSignup, connectVCardFriend, updateProfileAvatar };
+
+export interface SignInResult {
+  error: Error | null;
+  requires2FA?: boolean;
+  tempUserId?: string;
+  factorId?: string;
+  maskedEmail?: string;
+}
 
 export interface DemoProfiles {
   admin: Member;
@@ -37,7 +46,8 @@ interface AuthContextType {
   loading: boolean;
   isSupabaseOnline: boolean;
   demoProfiles: DemoProfiles;
-  signInWithEmail: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signInWithEmail: (email: string, password: string) => Promise<SignInResult>;
+  verify2FALogin: (tempUserId: string, code: string, factorId?: string) => Promise<{ error: Error | null; usedBackupCode?: boolean }>;
   signInWithOtp: (email: string) => Promise<{ error: Error | null; message?: string }>;
   signUp: (params: SignUpParams) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -216,6 +226,8 @@ export const AuthProvider: React.FC<{
   const [isGuest, setIsGuest] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [isSupabaseOnline, setIsSupabaseOnline] = useState<boolean>(isSupabaseConfigured);
+  const [pendingAuthUser, setPendingAuthUser] = useState<any | null>(null);
+  const [pendingLocalUser, setPendingLocalUser] = useState<Member | null>(null);
 
   const setCurrentUser = useCallback((valueOrFn: Member | null | ((prev: Member | null) => Member | null)) => {
     setCurrentUserState(prev => {
@@ -357,16 +369,62 @@ export const AuthProvider: React.FC<{
     }
   }
 
-  // 2. Sign in with Email & Password
-  const signInWithEmail = async (email: string, password: string): Promise<{ error: Error | null }> => {
+  // 2. Sign in with Email & Password (with optional 2FA / TOTP challenge)
+  const signInWithEmail = async (email: string, password: string): Promise<SignInResult> => {
     try {
       const normalizedEmail = email.trim().toLowerCase();
+
+      const checkMfaActiveForUser = (userId: string, role?: string, userEmail?: string): boolean => {
+        if (typeof window === 'undefined') return false;
+        const isEnforced = is2FAEnforcedByRole(role, userEmail);
+        const isActive = localStorage.getItem(`booster_mfa_active_${userId}`) === 'true';
+        const rawSettings = localStorage.getItem(`booster_mfa_settings_${userId}`);
+        if (rawSettings) {
+          try {
+            const parsed = JSON.parse(rawSettings);
+            if (parsed.is_2fa_enabled) return true;
+          } catch {}
+        }
+        return isEnforced || isActive;
+      };
 
       if (isSupabaseConfigured) {
         const { data, error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
         if (error) {
           console.warn('Supabase sign-in note:', error.message);
         } else if (data.user) {
+          // Check Supabase MFA Authenticator Assurance Level (AAL) and verified factors
+          try {
+            const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+            const factors = await supabase.auth.mfa.listFactors();
+            const verifiedFactor = factors?.data?.totp?.find(f => f.status === 'verified');
+
+            if ((aalData?.nextLevel === 'aal2' && aalData?.currentLevel === 'aal1') || verifiedFactor) {
+              setPendingAuthUser(data.user);
+              return {
+                error: null,
+                requires2FA: true,
+                tempUserId: data.user.id,
+                factorId: verifiedFactor?.id || factors?.data?.totp?.[0]?.id,
+                maskedEmail: normalizedEmail
+              };
+            }
+          } catch (mfaErr) {
+            console.warn('[MFA] Supabase AAL check note:', mfaErr);
+          }
+
+          // Check if local 2FA settings are active for this user
+          if (checkMfaActiveForUser(data.user.id, undefined, data.user.email)) {
+            setPendingAuthUser(data.user);
+            return {
+              error: null,
+              requires2FA: true,
+              tempUserId: data.user.id,
+              factorId: 'factor_local_' + data.user.id,
+              maskedEmail: normalizedEmail
+            };
+          }
+
           setIsGuest(false);
           await loadUserProfile(data.user.id, data.user);
           return { error: null };
@@ -380,6 +438,18 @@ export const AuthProvider: React.FC<{
           email: normalizedEmail,
           company_name: normalizedEmail === 'admin@performile.com' ? 'Performile / inCtrl .inc' : 'inCtrl .inc'
         };
+
+        if (checkMfaActiveForUser(adminUser.id, adminUser.role, adminUser.email)) {
+          setPendingLocalUser(adminUser);
+          return {
+            error: null,
+            requires2FA: true,
+            tempUserId: adminUser.id,
+            factorId: 'factor_local_' + adminUser.id,
+            maskedEmail: normalizedEmail
+          };
+        }
+
         setCurrentUser(adminUser);
         localStorage.setItem('booster_active_persona', 'admin');
         setIsGuest(false);
@@ -389,6 +459,17 @@ export const AuthProvider: React.FC<{
       // Fallback in demo mode: match mock members by email
       const matched = INITIAL_MEMBERS.find(m => m.email.toLowerCase() === normalizedEmail);
       if (matched) {
+        if (checkMfaActiveForUser(matched.id, matched.role, matched.email)) {
+          setPendingLocalUser(matched);
+          return {
+            error: null,
+            requires2FA: true,
+            tempUserId: matched.id,
+            factorId: 'factor_local_' + matched.id,
+            maskedEmail: normalizedEmail
+          };
+        }
+
         setCurrentUser(matched);
         const tierKey = Object.entries(DEMO_PROFILES).find(([_, p]) => p.id === matched.id || p.email.toLowerCase() === matched.email.toLowerCase())?.[0];
         if (tierKey) {
@@ -412,6 +493,18 @@ export const AuthProvider: React.FC<{
           membership_level: 'BRONZE',
           booster_score: 150
         };
+
+        if (checkMfaActiveForUser(testMember.id, testMember.role, testMember.email)) {
+          setPendingLocalUser(testMember);
+          return {
+            error: null,
+            requires2FA: true,
+            tempUserId: testMember.id,
+            factorId: 'factor_local_' + testMember.id,
+            maskedEmail: normalizedEmail
+          };
+        }
+
         setCurrentUser(testMember);
         localStorage.setItem('booster_active_persona', 'bronze');
         setIsGuest(false);
@@ -419,6 +512,52 @@ export const AuthProvider: React.FC<{
       }
 
       return { error: new Error('Ogiltig e-postadress eller lösenord.') };
+    } catch (err: any) {
+      return { error: err };
+    }
+  };
+
+  // 2b. Verify 2FA / TOTP Login Challenge
+  const verify2FALogin = async (
+    tempUserId: string,
+    code: string,
+    factorId?: string
+  ): Promise<{ error: Error | null; usedBackupCode?: boolean }> => {
+    try {
+      const result = await verifyTotpLogin({ userId: tempUserId, code, factorId });
+      if (!result.success) {
+        return { error: new Error(result.error || 'Felaktig tvåfaktors-kod.') };
+      }
+
+      // If pending Supabase user:
+      if (pendingAuthUser && pendingAuthUser.id === tempUserId) {
+        setIsGuest(false);
+        await loadUserProfile(pendingAuthUser.id, pendingAuthUser);
+        setPendingAuthUser(null);
+        return { error: null, usedBackupCode: result.usedBackupCode };
+      }
+
+      // If pending local user:
+      let targetUser = pendingLocalUser;
+      if (!targetUser) {
+        targetUser = INITIAL_MEMBERS.find(m => m.id === tempUserId) ||
+          (tempUserId === SUPER_ADMIN_MEMBER.id || tempUserId.includes('rickard') ? SUPER_ADMIN_MEMBER : null);
+      }
+
+      if (targetUser) {
+        setCurrentUser(targetUser);
+        const tierKey = Object.entries(DEMO_PROFILES).find(([_, p]) => p.id === targetUser?.id || p.email.toLowerCase() === targetUser?.email.toLowerCase())?.[0];
+        if (tierKey) {
+          localStorage.setItem('booster_active_persona', tierKey);
+        } else {
+          localStorage.setItem('booster_active_persona', targetUser.id === SUPER_ADMIN_MEMBER.id ? 'admin' : targetUser.id);
+        }
+        setIsGuest(targetUser.role === 'GUEST');
+        setPendingLocalUser(null);
+        return { error: null, usedBackupCode: result.usedBackupCode };
+      }
+
+      return { error: null, usedBackupCode: result.usedBackupCode };
     } catch (err: any) {
       return { error: err };
     }
@@ -663,6 +802,7 @@ export const AuthProvider: React.FC<{
         isSupabaseOnline,
         demoProfiles: DEMO_PROFILES,
         signInWithEmail,
+        verify2FALogin,
         signInWithOtp,
         signUp,
         signOut,

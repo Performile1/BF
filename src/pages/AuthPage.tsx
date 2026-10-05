@@ -31,6 +31,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBac
   const { 
     currentUser,
     signInWithEmail, 
+    verify2FALogin,
     signInWithOtp, 
     signUp, 
     switchDemoUser, 
@@ -39,6 +40,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBac
   } = useAuth();
 
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
+  const [authStep, setAuthStep] = useState<'credentials' | '2fa'>('credentials');
+  const [tempMfaData, setTempMfaData] = useState<{ tempUserId: string; factorId?: string; maskedEmail: string } | null>(null);
+  const [totpCode, setTotpCode] = useState('');
+  const [useBackupCode, setUseBackupCode] = useState(false);
 
   React.useEffect(() => {
     if (initialMode) {
@@ -79,9 +84,18 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBac
           setSuccessMsg(message || `En Magic Link har skickats till ${email}! Kontrollera din inkorg.`);
         }
       } else {
-        const { error } = await signInWithEmail(email, password);
-        if (error) {
-          setErrorMsg(error.message || 'Felaktig e-post eller lösenord.');
+        const result = await signInWithEmail(email, password);
+        if (result.error) {
+          setErrorMsg(result.error.message || 'Felaktig e-post eller lösenord.');
+        } else if (result.requires2FA && result.tempUserId) {
+          setTempMfaData({
+            tempUserId: result.tempUserId,
+            factorId: result.factorId,
+            maskedEmail: result.maskedEmail || email
+          });
+          setAuthStep('2fa');
+          setTotpCode('');
+          setSuccessMsg('Lösenord godkänt! Vänligen bekräfta med tvåfaktors-kod (2FA).');
         } else {
           setSuccessMsg('Inloggad! Omdirigerar till nätverket...');
           setTimeout(onBackToApp, 500);
@@ -89,6 +103,28 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBac
       }
     } catch (err: any) {
       setErrorMsg(err?.message || 'Ett fel uppstod vid inloggning.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerify2FA = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tempMfaData?.tempUserId) return;
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    setLoading(true);
+
+    try {
+      const res = await verify2FALogin(tempMfaData.tempUserId, totpCode, tempMfaData.factorId);
+      if (res.error) {
+        setErrorMsg(res.error.message || 'Felaktig tvåfaktors-kod. Kontrollera din autentiseringsapp.');
+      } else {
+        setSuccessMsg(res.usedBackupCode ? '✓ Reservkod verifierad! Loggar in...' : '✓ Tvåfaktor verifierad! Omdirigerar...');
+        setTimeout(onBackToApp, 500);
+      }
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'Ett fel uppstod vid verifiering av 2FA.');
     } finally {
       setLoading(false);
     }
@@ -205,45 +241,62 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBac
           <div className="lg:col-span-7 bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 shadow-xl flex flex-col justify-between">
             
             <div>
-              {/* Tab Switcher */}
-              <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-6">
-                <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-xl">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMode('login');
-                      setErrorMsg(null);
-                      setSuccessMsg(null);
-                    }}
-                    className={`py-1.5 px-4 text-xs font-bold rounded-lg transition ${
-                      mode === 'login'
-                        ? 'bg-white text-[#800020] shadow-xs'
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    Logga in
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMode('register');
-                      setErrorMsg(null);
-                      setSuccessMsg(null);
-                    }}
-                    className={`py-1.5 px-4 text-xs font-bold rounded-lg transition ${
-                      mode === 'register'
-                        ? 'bg-white text-[#800020] shadow-xs'
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    Bli Medlem
-                  </button>
-                </div>
+              {/* Tab Switcher (only in credentials step) */}
+              {authStep === 'credentials' ? (
+                <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-6">
+                  <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-xl">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMode('login');
+                        setErrorMsg(null);
+                        setSuccessMsg(null);
+                      }}
+                      className={`py-1.5 px-4 text-xs font-bold rounded-lg transition ${
+                        mode === 'login'
+                          ? 'bg-white text-[#800020] shadow-xs'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      Logga in
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMode('register');
+                        setErrorMsg(null);
+                        setSuccessMsg(null);
+                      }}
+                      className={`py-1.5 px-4 text-xs font-bold rounded-lg transition ${
+                        mode === 'register'
+                          ? 'bg-white text-[#800020] shadow-xs'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      Bli Medlem
+                    </button>
+                  </div>
 
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider hidden sm:inline">
-                  {mode === 'login' ? 'Befintlig medlem' : 'Nytt medlemskap'}
-                </span>
-              </div>
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider hidden sm:inline">
+                    {mode === 'login' ? 'Befintlig medlem' : 'Nytt medlemskap'}
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-6">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-xl bg-[#800020] text-white">
+                      <ShieldCheck className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-black text-gray-900">Säkerhetsverifiering</h3>
+                      <p className="text-[11px] text-gray-500">Tvåfaktorsautentisering krävs (TOTP)</p>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
+                    AAL2 Skyddad
+                  </span>
+                </div>
+              )}
 
               {/* Status alerts */}
               {errorMsg && (
@@ -259,8 +312,103 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBac
                 </div>
               )}
 
+              {/* 2FA VERIFICATION STEP */}
+              {authStep === '2fa' && (
+                <form onSubmit={handleVerify2FA} className="space-y-4">
+                  <div className="p-4 bg-amber-50/80 border border-amber-200/90 rounded-2xl flex items-start gap-3">
+                    <div className="p-2 rounded-xl bg-[#800020] text-white flex-shrink-0 mt-0.5 shadow-xs">
+                      <KeyRound className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-gray-900">
+                        Verifiera inloggning för {tempMfaData?.maskedEmail}
+                      </h4>
+                      <p className="text-[11px] text-gray-600 mt-0.5 leading-relaxed">
+                        Öppna din autentiseringsapp (Google Authenticator, Authy eller Apple Nyckelring) och ange den 6-siffriga engångskoden.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-bold text-gray-700">
+                        {useBackupCode ? '8-teckens Reservkod' : '6-siffrig TOTP-kod'}
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUseBackupCode(!useBackupCode);
+                          setTotpCode('');
+                          setErrorMsg(null);
+                        }}
+                        className="text-[11px] text-[#800020] font-semibold hover:underline"
+                      >
+                        {useBackupCode ? 'Använd Authenticator-kod' : 'Har du inte mobilen? Använd reservkod'}
+                      </button>
+                    </div>
+
+                    <div className="relative">
+                      <KeyRound className="w-4 h-4 text-gray-400 absolute left-3 top-3.5" />
+                      <input
+                        type="text"
+                        required
+                        autoFocus
+                        maxLength={useBackupCode ? 12 : 6}
+                        value={totpCode}
+                        onChange={e => setTotpCode(e.target.value.toUpperCase())}
+                        placeholder={useBackupCode ? 'XXXX-XXXX' : '123456'}
+                        className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 text-base font-mono tracking-widest text-center font-bold focus:ring-2 focus:ring-[#800020] outline-hidden"
+                      />
+                    </div>
+
+                    {/* Test helper */}
+                    <div className="mt-2.5 flex items-center justify-between bg-gray-50 border border-gray-200 px-3 py-2 rounded-xl text-[11px]">
+                      <span className="text-gray-500">Snabbtest (Demoläge):</span>
+                      <button
+                        type="button"
+                        onClick={() => setTotpCode('123456')}
+                        className="px-2 py-0.5 rounded-lg bg-[#800020]/10 text-[#800020] font-bold hover:bg-[#800020]/20 transition"
+                      >
+                        Fyll i testkod (123456)
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 pt-1">
+                    <button
+                      type="submit"
+                      disabled={loading || totpCode.trim().length === 0}
+                      className="w-full py-3 px-4 bg-[#800020] hover:bg-[#68001a] text-white rounded-xl text-sm font-bold shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {loading ? (
+                        <span>Verifierar...</span>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>Bekräfta & Slutför inloggning</span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthStep('credentials');
+                        setTempMfaData(null);
+                        setTotpCode('');
+                        setErrorMsg(null);
+                        setSuccessMsg(null);
+                      }}
+                      className="w-full py-2 text-xs text-gray-500 hover:text-gray-800 transition font-medium"
+                    >
+                      ← Tillbaka till lösenord
+                    </button>
+                  </div>
+                </form>
+              )}
+
               {/* LOGIN FORM */}
-              {mode === 'login' && (
+              {authStep === 'credentials' && mode === 'login' && (
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-bold text-gray-500 uppercase">Metod:</span>
@@ -361,7 +509,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBac
               )}
 
               {/* REGISTER FORM */}
-              {mode === 'register' && (
+              {authStep === 'credentials' && mode === 'register' && (
                 <form onSubmit={handleRegister} className="space-y-4">
                   {/* Tier Selection */}
                   <div>

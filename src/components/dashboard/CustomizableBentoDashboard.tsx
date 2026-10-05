@@ -39,7 +39,8 @@ import {
   Minimize2,
   Columns,
   Save,
-  Sliders
+  Sliders,
+  Layers
 } from 'lucide-react';
 import { 
   Member, 
@@ -73,6 +74,17 @@ import {
   MiniQuickQrWidget,
   MiniHubAttendanceWidget
 } from './MiniWidgets';
+import { VCardQrWidget } from './widgets/VCardQrWidget';
+import { 
+  NotificationsInboxWidget, 
+  TagSubscriptionsWidget, 
+  AdminDealsPipelineWidget, 
+  AdminInvoicesWidget, 
+  AdminAccountLifecycleWidget 
+} from './widgets/SecondaryWidgets';
+import { AdminBroadcastSenderWidget } from './widgets/AdminBroadcastSenderWidget';
+import { AdminMaintenanceWidget } from './widgets/AdminMaintenanceWidget';
+import { DashboardComparisonModal } from './DashboardComparisonModal';
 
 export interface WidgetDefinition {
   id: string;
@@ -83,6 +95,7 @@ export interface WidgetDefinition {
   defaultColSpan: number; // 1, 2, 3, 4 (desktop columns)
   defaultRowSpan: number; // 1 (standard) or 2 (extended)
   description: string;
+  adminOnly?: boolean;
 }
 
 export const ALL_AVAILABLE_WIDGETS: WidgetDefinition[] = [
@@ -296,6 +309,91 @@ export const ALL_AVAILABLE_WIDGETS: WidgetDefinition[] = [
     defaultColSpan: 4,
     defaultRowSpan: 1,
     description: 'Central sammanställning av dina nyckeltal och plattformens aktivitet'
+  },
+  {
+    id: 'vcard_qr',
+    title: 'Digitalt Visitkort (vCard QR)',
+    category: 'mitt',
+    defaultSpan: 'col-span-12 md:col-span-4',
+    defaultSize: 'SMALL',
+    defaultColSpan: 1,
+    defaultRowSpan: 1,
+    description: 'Direkt QR-kod för smart connect och mobil kontaktbokinläsning.'
+  },
+  {
+    id: 'notifications_inbox',
+    title: 'Aviseringar & Inkorg',
+    category: 'mitt',
+    defaultSpan: 'col-span-12 md:col-span-6',
+    defaultSize: 'MEDIUM',
+    defaultColSpan: 2,
+    defaultRowSpan: 1,
+    description: 'Personliga notiser för taggbevakningar, direktmeddelanden och utskick.'
+  },
+  {
+    id: 'tag_subscriptions',
+    title: 'Mina Bevakningar (Taggar & Ämnen)',
+    category: 'mitt',
+    defaultSpan: 'col-span-12 md:col-span-6',
+    defaultSize: 'MEDIUM',
+    defaultColSpan: 2,
+    defaultRowSpan: 1,
+    description: 'Snabbväljare för att slå av och på bevakning på branscher och expertiser.'
+  },
+  {
+    id: 'admin_deals_pipeline',
+    title: 'Admin: Nätverkets B2B-affärer',
+    category: 'kpi',
+    defaultSpan: 'col-span-12 md:col-span-6',
+    defaultSize: 'MEDIUM',
+    defaultColSpan: 2,
+    defaultRowSpan: 1,
+    adminOnly: true,
+    description: 'Pipeline över genererade affärer och förmedlade leads mellan medlemmar.'
+  },
+  {
+    id: 'admin_invoices',
+    title: 'Admin: Faktura- & Betalstatus',
+    category: 'kpi',
+    defaultSpan: 'col-span-12 md:col-span-6',
+    defaultSize: 'MEDIUM',
+    defaultColSpan: 2,
+    defaultRowSpan: 1,
+    adminOnly: true,
+    description: 'Översikt över förfallna, obetalda och reglerade medlemsfakturor med statuspiller.'
+  },
+  {
+    id: 'admin_broadcast_sender',
+    title: 'Admin: Riktade Utskick (Broadcast)',
+    category: 'kpi',
+    defaultSpan: 'col-span-12 md:col-span-6',
+    defaultSize: 'MEDIUM',
+    defaultColSpan: 2,
+    defaultRowSpan: 1,
+    adminOnly: true,
+    description: 'Skicka in-app-kampanjer och pushnotiser till prospects eller medlemmar.'
+  },
+  {
+    id: 'admin_account_lifecycle',
+    title: 'Admin: Kontolivscykel & Frysning',
+    category: 'kpi',
+    defaultSpan: 'col-span-12 md:col-span-6',
+    defaultSize: 'MEDIUM',
+    defaultColSpan: 2,
+    defaultRowSpan: 1,
+    adminOnly: true,
+    description: 'Hantera kontostatus, frysning och radering av medlemskonton.'
+  },
+  {
+    id: 'admin_maintenance_toggle',
+    title: 'Admin: Underhållsläge (Maintenance Mode)',
+    category: 'kpi',
+    defaultSpan: 'col-span-12 md:col-span-6',
+    defaultSize: 'MEDIUM',
+    defaultColSpan: 2,
+    defaultRowSpan: 1,
+    adminOnly: true,
+    description: 'Aktivera driftläge för vanliga användare och konfigurera informationsmeddelande.'
   }
 ];
 
@@ -456,6 +554,7 @@ export const CustomizableBentoDashboard: React.FC<CustomizableBentoDashboardProp
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [pickerCategory, setPickerCategory] = useState<string>('ALL');
   const [customizingMode, setCustomizingMode] = useState(false);
+  const [isComparisonOpen, setIsComparisonOpen] = useState(false);
   const [toastNotice, setToastNotice] = useState<string | null>(null);
   const [copiedMeetingId, setCopiedMeetingId] = useState<string | null>(null);
 
@@ -724,6 +823,7 @@ export const CustomizableBentoDashboard: React.FC<CustomizableBentoDashboardProp
   const renderWidgetContent = (id: string) => {
     switch (id) {
       case 'profile_gamification':
+      case 'booster_score':
         return (
           <div className="flex flex-col justify-between h-full space-y-4">
             <div>
@@ -810,6 +910,7 @@ export const CustomizableBentoDashboard: React.FC<CustomizableBentoDashboardProp
         );
 
       case 'pipeline':
+      case 'member_pipeline':
         return (
           <div className="flex flex-col justify-between h-full space-y-4">
             <div>
@@ -962,6 +1063,7 @@ export const CustomizableBentoDashboard: React.FC<CustomizableBentoDashboardProp
         );
 
       case 'matchmaking':
+      case 'ai_matchmaking':
         const targetMem = members[1] || members[0];
         return (
           <div className="flex flex-col justify-between h-full space-y-3">
@@ -1051,6 +1153,7 @@ export const CustomizableBentoDashboard: React.FC<CustomizableBentoDashboardProp
         );
 
       case 'coworking_booking':
+      case 'flex_booking':
         return (
           <div className="flex flex-col justify-between h-full space-y-3">
             <div>
@@ -1094,6 +1197,7 @@ export const CustomizableBentoDashboard: React.FC<CustomizableBentoDashboardProp
         );
 
       case 'bp_ledger_widget':
+      case 'bp_ledger':
         return (
           <div className="flex flex-col justify-between h-full space-y-3">
             <div>
@@ -1214,6 +1318,7 @@ export const CustomizableBentoDashboard: React.FC<CustomizableBentoDashboardProp
         );
 
       case 'academy_certs':
+      case 'academy_progress':
         return (
           <div className="flex flex-col justify-between h-full space-y-3">
             <div>
@@ -1440,6 +1545,7 @@ export const CustomizableBentoDashboard: React.FC<CustomizableBentoDashboardProp
 
       // ==================== VEM ÄR PÅ HUBBEN IDAG ====================
       case 'who_is_at_hub':
+      case 'hub_presence':
         // Guldmedlemmar har prioriterad topplacering
         const checkedInMembers = [...members.filter(m => m.id !== currentUser.id)].sort((a, b) => {
           if (a.membership_level === 'GOLD' && b.membership_level !== 'GOLD') return -1;
@@ -1547,6 +1653,7 @@ export const CustomizableBentoDashboard: React.FC<CustomizableBentoDashboardProp
 
       // ==================== SENASTE FORUMAKTIVITET ====================
       case 'forum_activity':
+      case 'community_feed':
         const recentPosts = INITIAL_COMMUNITY_POSTS.slice(0, 3);
         return (
           <div className="flex flex-col justify-between h-full space-y-3">
@@ -1708,6 +1815,7 @@ export const CustomizableBentoDashboard: React.FC<CustomizableBentoDashboardProp
 
       // ==================== PUNKT 28: ÖVERGRIPANDE KPI ====================
       case 'kpi_overview':
+      case 'admin_kpi_overview':
         return (
           <div className="flex flex-col justify-between h-full space-y-4">
             <div>
@@ -1782,6 +1890,7 @@ export const CustomizableBentoDashboard: React.FC<CustomizableBentoDashboardProp
 
       // ==================== PROXIMITY PING (KAFFE & LUNCH RADAR) ====================
       case 'coffee_ping_radar':
+      case 'proximity_radar':
         return (
           <CoffeePingWidget
             currentUser={currentUser}
@@ -1798,6 +1907,7 @@ export const CustomizableBentoDashboard: React.FC<CustomizableBentoDashboardProp
 
       // ==================== LIVE TICKER WIDGET ====================
       case 'system_ticker_widget':
+      case 'activity_ticker':
         return (
           <div className="-mx-1 sm:-mx-2">
             <SystemTickerWidget
@@ -1855,6 +1965,30 @@ export const CustomizableBentoDashboard: React.FC<CustomizableBentoDashboardProp
           </MiniWidgetContainer>
         );
       }
+
+      case 'vcard_qr':
+        return <VCardQrWidget currentUser={currentUser} />;
+
+      case 'notifications_inbox':
+        return <NotificationsInboxWidget currentUser={currentUser} onNavigateTab={onNavigateTab} />;
+
+      case 'tag_subscriptions':
+        return <TagSubscriptionsWidget currentUser={currentUser} onNavigateTab={onNavigateTab} />;
+
+      case 'admin_deals_pipeline':
+        return <AdminDealsPipelineWidget currentUser={currentUser} onNavigateTab={onNavigateTab} />;
+
+      case 'admin_invoices':
+        return <AdminInvoicesWidget currentUser={currentUser} onNavigateTab={onNavigateTab} />;
+
+      case 'admin_broadcast_sender':
+        return <AdminBroadcastSenderWidget currentUser={currentUser} onNavigateTab={onNavigateTab} />;
+
+      case 'admin_account_lifecycle':
+        return <AdminAccountLifecycleWidget currentUser={currentUser} onNavigateTab={onNavigateTab} />;
+
+      case 'admin_maintenance_toggle':
+        return <AdminMaintenanceWidget currentUser={currentUser} onNavigateTab={onNavigateTab} />;
 
       default:
         return null;
@@ -1937,36 +2071,37 @@ export const CustomizableBentoDashboard: React.FC<CustomizableBentoDashboardProp
             </>
           ) : (
             <>
+              {/* Compare Button */}
+              <button
+                type="button"
+                onClick={() => setIsComparisonOpen(true)}
+                className="px-3 py-2 rounded-xl text-xs font-bold bg-gray-100 hover:bg-gray-200 text-gray-700 transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                title="Jämför Bento- och Modulär Dashboard sida vid sida"
+              >
+                <Layers className="w-3.5 h-3.5 text-[#800020]" />
+                <span>Jämför Vyer</span>
+              </button>
+
+              {/* Switch to Modular Grid */}
+              <button
+                type="button"
+                onClick={() => onNavigateTab('dashboard_widgets')}
+                className="px-3 py-2 rounded-xl text-xs font-bold bg-rose-50 text-[#800020] border border-rose-200 hover:bg-rose-100 transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                title="Växla till Modulär Widget-vy"
+              >
+                <Sliders className="w-3.5 h-3.5 text-[#800020]" />
+                <span>Växla till Modulär vy</span>
+              </button>
+
               {/* Edit Mode Toggle Button */}
               <button
                 type="button"
                 onClick={() => setCustomizingMode(true)}
-                className="px-3 py-2 rounded-xl text-xs font-bold bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 transition flex items-center gap-1.5 shadow-xs"
-                title="Växla till redigeringsläge för att ändra kolumner, kortstorlekar och ordning"
+                className="px-3.5 py-2 rounded-xl text-xs font-bold bg-white text-gray-800 border border-gray-200 hover:bg-gray-50 transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                title="Växla till detaljredigering för att ändra kolumner, kortstorlekar och ordning"
               >
                 <SlidersHorizontal className="w-3.5 h-3.5 text-[#800020]" />
-                <span>Redigera layout</span>
-              </button>
-
-              {/* Add Widget Button */}
-              <button
-                type="button"
-                onClick={() => setShowWidgetPicker(true)}
-                className="px-3 py-2 rounded-xl text-xs font-bold bg-white text-[#800020] border border-[#800020]/30 hover:bg-[#800020]/5 transition flex items-center gap-1.5 shadow-xs"
-                title="Lägg till widgets från andra vyer"
-              >
-                <Plus className="w-3.5 h-3.5 text-[#800020]" />
-                <span>Lägg till widget</span>
-              </button>
-
-              {/* Reset to Default Button */}
-              <button
-                type="button"
-                onClick={() => setShowResetConfirm(true)}
-                className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition border border-gray-200"
-                title="Återställ till standardvy"
-              >
-                <RotateCcw className="w-4 h-4" />
+                <span>🎨 Detaljredigering</span>
               </button>
             </>
           )}
@@ -2332,6 +2467,17 @@ export const CustomizableBentoDashboard: React.FC<CustomizableBentoDashboardProp
           </div>
         </div>
       )}
+      {/* Dashboard Comparison Modal */}
+      <DashboardComparisonModal
+        isOpen={isComparisonOpen}
+        onClose={() => setIsComparisonOpen(false)}
+        activeView="bento"
+        onSelectView={(view) => {
+          if (view === 'modular') {
+            onNavigateTab('dashboard_widgets');
+          }
+        }}
+      />
     </div>
     </AdminInspect>
   );

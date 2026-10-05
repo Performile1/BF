@@ -100,6 +100,15 @@ export interface WidgetComponentProps {
 }
 
 export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = {
+  mini_widgets_bar: {
+    id: 'mini_widgets_bar',
+    title: 'Snabb-Puckar & Status (Mini Widgets 1x1)',
+    description: 'Kompakta 1x1 snabbpuckar för BP-saldo, Fika/Lunch-status toggle, vCard QR och Hubb-närvaro.',
+    category: 'CORE',
+    adminOnly: false,
+    defaultWidth: 'span-full',
+    iconName: 'LayoutGrid',
+  },
   booster_score: {
     id: 'booster_score',
     title: 'Booster Score & Medlemskort',
@@ -344,9 +353,111 @@ export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = {
     defaultWidth: 'span-1',
     iconName: 'AlertOctagon',
   },
+
+  // Alias-mappningar för 100% kompatibilitet mellan Bento och Modulär Dashboard
+  system_ticker_widget: {
+    id: 'system_ticker_widget',
+    title: 'Live Ticker (Realtidsnotiser & Nyheter)',
+    description: 'Rullande realtidsnotiser, kaffeping-aktivitet och systemmeddelanden.',
+    category: 'COMMUNITY',
+    adminOnly: false,
+    defaultWidth: 'span-full',
+    iconName: 'Activity',
+  },
+  profile_gamification: {
+    id: 'profile_gamification',
+    title: 'Profil & Booster Score',
+    description: 'Ditt digitala medlemskort, statusnivå, aktuellt poängsaldo och måluppfyllelse.',
+    category: 'CORE',
+    adminOnly: false,
+    defaultWidth: 'span-1',
+    iconName: 'Award',
+  },
+  coworking_booking: {
+    id: 'coworking_booking',
+    title: 'Mina Bokningar & Snabbokning Flexplats',
+    description: 'Se tillgängliga flexbord idag och boka/checka in med ett klick.',
+    category: 'HUB',
+    adminOnly: false,
+    defaultWidth: 'span-1',
+    iconName: 'CalendarCheck',
+  },
+  bp_ledger_widget: {
+    id: 'bp_ledger_widget',
+    title: 'Booster Points Revisionslogg',
+    description: 'Senaste verifierade BP-transaktioner, aktiviteter och audit-historik.',
+    category: 'CORE',
+    adminOnly: false,
+    defaultWidth: 'span-2',
+    iconName: 'History',
+  },
+  academy_certs: {
+    id: 'academy_certs',
+    title: 'Akademi & Kompetenslyft',
+    description: 'Dina pågående kurser, certifieringar och diplom i Booster Academy.',
+    category: 'ACADEMY',
+    adminOnly: false,
+    defaultWidth: 'span-1',
+    iconName: 'GraduationCap',
+  },
+  coffee_ping_radar: {
+    id: 'coffee_ping_radar',
+    title: 'Närhetsradar (Fika & Lunch)',
+    description: 'Realtidsöversikt över anslutna medlemmar i närheten redo för spontanmöten.',
+    category: 'COMMUNITY',
+    adminOnly: false,
+    defaultWidth: 'span-2',
+    iconName: 'Radar',
+  },
+  matchmaking: {
+    id: 'matchmaking',
+    title: 'AI Lead Match Spotlight',
+    description: 'Intelligenta affärs- och sparringsförslag med synergipoäng och direkt introduktionsutkast.',
+    category: 'COMMUNITY',
+    adminOnly: false,
+    defaultWidth: 'span-2',
+    iconName: 'Sparkles',
+  },
+  pipeline: {
+    id: 'pipeline',
+    title: 'Min Affärspipeline (CRM)',
+    description: 'Dina personliga pågående B2B-affärer, potentiellt ordervärde och säljsteg.',
+    category: 'CORE',
+    adminOnly: false,
+    defaultWidth: 'span-2',
+    iconName: 'TrendingUp',
+  },
+  who_is_at_hub: {
+    id: 'who_is_at_hub',
+    title: 'Vem är i hubben idag?',
+    description: 'Lista på incheckade och bokade medlemmar med roller och avatarer i vald hubb.',
+    category: 'HUB',
+    adminOnly: false,
+    defaultWidth: 'span-2',
+    iconName: 'Building2',
+  },
+  forum_activity: {
+    id: 'forum_activity',
+    title: 'Community & Diskussioner',
+    description: 'Snabböversikt över de senaste foruminläggen, samarbetena och diskussionerna.',
+    category: 'COMMUNITY',
+    adminOnly: false,
+    defaultWidth: 'span-2',
+    iconName: 'MessageSquare',
+  },
+  kpi_overview: {
+    id: 'kpi_overview',
+    title: 'Admin: Samlade KPI:er',
+    description: 'Realtidsnyckeltal: Medlemmar, aktiva trials, MRR, oreglerade fakturor och nätverksomsättning.',
+    category: 'ADMIN',
+    adminOnly: true,
+    defaultWidth: 'span-full',
+    iconName: 'BarChart3',
+  },
 };
 
 export const DEFAULT_USER_WIDGET_IDS = [
+  'mini_widgets_bar',
   'activity_ticker',
   'booster_score',
   'my_meetings',
@@ -365,6 +476,7 @@ export const DEFAULT_USER_WIDGET_IDS = [
 ];
 
 export const DEFAULT_ADMIN_WIDGET_IDS = [
+  'mini_widgets_bar',
   'admin_kpi_overview',
   'admin_maintenance_toggle',
   'admin_broadcast_sender',
