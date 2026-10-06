@@ -10,7 +10,6 @@ export function useAdminTools(userId: string) {
 }
 export function AdminToolSettings({ tools, onChange }: { tools: AdminTools; onChange: (value: AdminTools) => void }) {
   return <fieldset className="border rounded-xl p-4 space-y-4"><legend className="font-semibold px-2">Adminverktyg i nederkant</legend>
-    <label className="flex gap-3 items-center"><input type="checkbox" checked={tools.quickAction} onChange={e => onChange({ ...tools, quickAction: e.target.checked })} />Visa Snabbåtgärd / Logga (+BP)</label>
     <label className="flex gap-3 items-center"><input type="checkbox" checked={tools.hud} onChange={e => onChange({ ...tools, hud: e.target.checked })} />Visa ADMIN DEV HUD</label>
     <p className="text-sm text-gray-500">Dolda som standard. Valen sparas automatiskt för ditt konto i denna webbläsare. Utvecklarpanelen innehåller Hover Inspector, Clean Slate, Ladda Mock och Rensa Mock. Att visa panelen laddar eller rensar inga data.</p>
   </fieldset>;
