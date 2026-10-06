@@ -591,7 +591,7 @@ export const Navigation: React.FC<NavigationProps> = ({
                   {/* ======================================================== */}
                   {navMode === 'dropdown' && isDropdownOpen && (
                     <div 
-                      className={`absolute top-full mt-2 w-80 sm:w-96 bg-white rounded-2xl border border-gray-200/90 shadow-2xl shadow-rose-950/10 p-2.5 z-50 animate-in fade-in zoom-in-95 duration-150 ring-1 ring-black/5 ${getDropdownPlacementClass(catIndex)}`}
+                      className={`ui-menu-panel absolute top-full mt-2 w-80 sm:w-96 bg-white rounded-2xl border border-gray-200/90 shadow-2xl shadow-rose-950/10 p-2.5 z-50 animate-in fade-in zoom-in-95 duration-150 ring-1 ring-black/5 ${getDropdownPlacementClass(catIndex)}`}
                     >
                       {/* Dropdown Header */}
                       <div className="px-3 py-2 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white rounded-xl mb-1.5">

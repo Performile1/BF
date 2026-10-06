@@ -602,7 +602,7 @@ export const ChatModule: React.FC<ChatModuleProps> = ({
           <AiWritingAssistant scope={activeChannel?.id} text={inputText} onApply={setInputText} />
           {/* Attach Menu Popover */}
           {showAttachMenu && (
-            <div className="absolute bottom-20 left-4 bg-white rounded-2xl shadow-xl border border-gray-200 p-2 z-30 w-64 animate-in fade-in slide-in-from-bottom-2">
+            <div className="ui-menu-panel absolute bottom-20 left-4 bg-white rounded-2xl shadow-xl border border-gray-200 p-2 z-30 w-64 animate-in fade-in slide-in-from-bottom-2">
               <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider px-3 py-1">
                 Bifoga i nätverkschatt
               </div>

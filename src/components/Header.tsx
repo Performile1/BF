@@ -192,7 +192,7 @@ export const Header: React.FC<HeaderProps> = ({
 
               {/* Notification & Direct Messaging Flyout */}
               {showNotificationMenu && (
-                <div className="absolute right-0 mt-2 w-84 sm:w-96 bg-white rounded-2xl shadow-xl border border-gray-200 py-3 z-50 animate-in fade-in">
+                <div className="ui-menu-panel absolute right-0 mt-2 w-84 sm:w-96 bg-white rounded-2xl shadow-xl border border-gray-200 py-3 z-50 animate-in fade-in">
                   {/* Top Bar */}
                   <div className="px-4 pb-3 border-b border-gray-100 flex items-center justify-between">
                     <div>
@@ -393,7 +393,7 @@ export const Header: React.FC<HeaderProps> = ({
 
               {/* Persona switcher dropdown */}
               {showUserMenu && (
-                <div id="profile-quick-menu" className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-6rem)] overflow-y-auto bg-white rounded-2xl shadow-xl border border-gray-200 py-3 z-50 animate-in fade-in">
+                <div id="profile-quick-menu" className="ui-menu-panel ui-menu-panel absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-6rem)] overflow-y-auto bg-white rounded-2xl shadow-xl border border-gray-200 py-3 z-50 animate-in fade-in">
                   <div className="px-4 pb-2 border-b border-gray-100">
                     <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Inloggad profil</p>
                     <p className="text-sm font-bold text-gray-900">{currentUser.full_name}</p>
