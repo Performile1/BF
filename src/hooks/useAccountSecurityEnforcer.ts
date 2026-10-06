@@ -17,7 +17,7 @@ export function useAccountSecurityEnforcer(
     if (isLocalDemoPersona) return;
 
     // Funktion för att genomföra omedelbar och ren utloggning
-    const executeForceLogout = async (reason: 'DELETED' | 'FROZEN') => {
+    const executeForceLogout = async (reason: 'DELETED' | 'FROZEN' | 'UNVERIFIED') => {
       console.warn(`[Security] Session avbruten: Kontot är ${reason}. Rensar session...`);
       
       // 1. Logga ut från Supabase Auth
@@ -37,7 +37,7 @@ export function useAccountSecurityEnforcer(
           if (reason === 'FROZEN') {
             alert('Ditt konto har inaktiverats eller frysts. Kontakta administratör.');
           } else {
-            alert('Ditt konto hittades inte och har tagits bort.');
+            alert(reason === 'UNVERIFIED' ? 'Kontots profil kunde inte verifieras. Försök igen eller kontakta administratör.' : 'Din kontoprofil är inte tillgänglig. Kontakta administratör.');
           }
         }
       } catch (e) {
@@ -57,8 +57,8 @@ export function useAccountSecurityEnforcer(
 
       if (error || !profile) {
         // Profilen finns inte i databasen (t.ex. raderad i backend)
-        await executeForceLogout('DELETED');
-      } else if (profile.account_status === 'FROZEN') {
+        await executeForceLogout('UNVERIFIED');
+      } else if (profile.account_status !== 'ACTIVE') {
         await executeForceLogout('FROZEN');
       }
     };

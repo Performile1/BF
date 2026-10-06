@@ -300,9 +300,9 @@ export const AuthProvider: React.FC<{
         .eq('id', userId)
         .single();
 
-      if (!error && data) {
+      if (!error && data && data.account_status === 'ACTIVE') {
         setCurrentUser(prev => {
-          const base = prev || DEMO_PROFILES.bronze;
+          const base = DEMO_PROFILES.bronze;
           const userEmail = (data.email || authUser?.email || base.email || '').toLowerCase().trim();
           const isMasterAdmin = 
             userEmail === 'wigrund81@gmail.com' || 
@@ -315,7 +315,7 @@ export const AuthProvider: React.FC<{
             full_name: data.full_name || authUser?.user_metadata?.full_name || base.full_name || 'Rickard Wigrund',
             company_name: data.company_name || authUser?.user_metadata?.company_name || base.company_name || 'Performile / inCtrl .inc',
             role_title: data.role_title || authUser?.user_metadata?.role_title || base.role_title || (isMasterAdmin ? 'Grundare & Super Admin' : 'Medlem'),
-            role: isMasterAdmin ? 'SUPER_ADMIN' : (data.role || (data.is_admin ? 'SUPER_ADMIN' : base.role || 'MEMBER')),
+            role: data.role || 'MEMBER',
             membership_level: (data.membership_level as MembershipLevel) || base.membership_level || 'GOLD',
             booster_score: data.booster_score ?? base.booster_score ?? 1850,
             email: data.email || authUser?.email || base.email,
@@ -323,7 +323,7 @@ export const AuthProvider: React.FC<{
             city: data.city || base.city || 'Stockholm',
             avatar: data.avatar_url || base.avatar,
             bio: data.bio || base.bio || '',
-            is_admin: Boolean(data.is_admin || data.role === 'SUPER_ADMIN' || isMasterAdmin || base.is_admin),
+            is_admin: data.role === 'SUPER_ADMIN' && data.account_status === 'ACTIVE',
             primary_hub_id: data.primary_hub_id || base.primary_hub_id,
             seeking_tags: data.seeking_tags || base.seeking_tags || [],
             offering_tags: data.offering_tags || base.offering_tags || [],
@@ -339,33 +339,15 @@ export const AuthProvider: React.FC<{
             website_url: data.website_url || base.website_url,
           };
         });
-      } else if (authUser?.user_metadata) {
-        // Construct from raw metadata if profile row isn't indexed yet
-        const meta = authUser.user_metadata;
-        setCurrentUser(prev => {
-          const base = prev || DEMO_PROFILES.bronze;
-          const userEmail = (authUser.email || base.email || '').toLowerCase().trim();
-          const isMasterAdmin = 
-            userEmail === 'wigrund81@gmail.com' || 
-            userEmail === 'admin@performile.com' || 
-            userEmail === 'rickard@wigrund.se';
-
-          return {
-            ...base,
-            id: userId,
-            full_name: meta.full_name || base.full_name || 'Rickard Wigrund',
-            company_name: meta.company_name || base.company_name || 'Performile / inCtrl .inc',
-            role_title: meta.role_title || base.role_title || (isMasterAdmin ? 'Grundare & Super Admin' : 'Entreprenör'),
-            role: isMasterAdmin ? 'SUPER_ADMIN' : (meta.role || base.role || 'MEMBER'),
-            membership_level: (meta.membership_level as MembershipLevel) || base.membership_level || 'GOLD',
-            email: authUser.email || base.email,
-            booster_score: base.booster_score ?? 1850,
-            is_admin: Boolean(meta.is_admin || isMasterAdmin || base.is_admin)
-          };
-        });
+      } else {
+        setCurrentUser(null);
+        throw new Error('Kontots profil kunde inte verifieras. Försök igen eller kontakta administratör.');
       }
+
     } catch (err) {
-      console.warn('Could not load profile from Supabase, maintaining local active user:', err);
+      setCurrentUser(null);
+      console.warn('Profile verification failed:', err);
+      throw err;
     }
   }
 
