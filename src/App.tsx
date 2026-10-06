@@ -1611,6 +1611,7 @@ export default function App() {
       <a href="#main-content" className="sr-only focus:not-sr-only focus:block focus:p-4 focus:bg-white">Hoppa till innehåll</a>
       {/* Top Main Navigation & Hub Header */}
       <Header
+        onNavigate={setActiveTab}
         onHome={() => setActiveTab(experience.home)}
         onOpenSettings={() => setActiveTab('settings')}
         onQuickAction={() => { setShowFabModal(true); setActiveFabAction(null); }}

@@ -1,3 +1,4 @@
+import { ThunderSearch } from './common/ThunderSearch';
 import React, { useState } from 'react';
 import { 
   Bell, 
@@ -32,6 +33,7 @@ import { Member, Hub, ChatChannel } from '../types';
 import { AdminInspect } from './dev/AdminInspect';
 
 interface HeaderProps {
+  onNavigate?: (tab: string) => void;
   onHome?: () => void;
   onOpenSettings?: () => void;
   onQuickAction?: () => void;
@@ -62,6 +64,7 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   currentUser,
   onHome,
+  onNavigate,
   onOpenSettings,
   onQuickAction,
   allMembers,
@@ -171,6 +174,7 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </button>
 
+          {onNavigate && <ThunderSearch onNavigate={onNavigate} />}
           {/* Right Actions: Device Preview Switcher & Profile */}
           <div className="flex items-center gap-2 sm:gap-3">
             
