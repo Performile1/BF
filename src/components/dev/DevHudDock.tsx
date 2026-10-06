@@ -191,7 +191,7 @@ export function DevHudDock({ onDataMutated }: { onDataMutated?: () => void }) {
   };
 
   return (
-    <div className="fixed bottom-4 right-4 z-[9999] flex items-center gap-2 bg-gray-900/95 backdrop-blur-md text-white px-3.5 py-2 rounded-2xl shadow-2xl border border-gray-700 text-xs font-medium">
+    <div className="fixed bottom-24 lg:bottom-4 left-4 right-4 lg:left-auto z-40 flex flex-wrap items-center gap-2 max-h-40 overflow-y-auto bg-gray-900/95 backdrop-blur-md text-white px-3.5 py-2 rounded-2xl shadow-2xl border border-gray-700 text-xs font-medium">
       <div className="flex items-center gap-2 border-r border-gray-700 pr-3">
         <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
         <span className="font-bold text-[11px] text-gray-300">ADMIN DEV HUD</span>

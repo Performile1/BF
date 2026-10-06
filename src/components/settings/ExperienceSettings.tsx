@@ -1,3 +1,4 @@
+import { AdminTools, AdminToolSettings } from './AdminToolSettings';
 import { AdminSettingsForm, HubSettingsForm } from './RoleSettingsForms';
 import { Hub, Member } from '../../types';
 import React, { useEffect, useState } from 'react';
@@ -34,9 +35,9 @@ export function useExperiencePreferences(userId: string, profileStart?: string) 
   } catch {} };
   return { preferences, update };
 }
-export function ExperienceSettings({ section, preferences, onChange, onNavigate, onGuide, isAdmin, isHubHost, hub, currentUser, onHubSaved }: {
+export function ExperienceSettings({ section, preferences, onChange, onNavigate, onGuide, isAdmin, isHubHost, hub, currentUser, onHubSaved, adminTools, onAdminToolsChange }: {
   section: string; preferences: ExperiencePreferences; onChange: (value: ExperiencePreferences) => void;
-  onNavigate: (tab: string) => void; onGuide: () => void; isAdmin: boolean; isHubHost: boolean; hub?: Hub; currentUser?: Member; onHubSaved?: (hub: Hub) => void;
+  onNavigate: (tab: string) => void; onGuide: () => void; isAdmin: boolean; isHubHost: boolean; hub?: Hub; currentUser?: Member; onHubSaved?: (hub: Hub) => void; adminTools?: AdminTools; onAdminToolsChange?: (tools: AdminTools) => void;
 }) {
   if ((section === 'admin_settings' && !isAdmin) || (section === 'hub_settings' && !isAdmin && !isHubHost)) return <p role="alert">Du saknar behörighet till dessa inställningar.</p>;
   const button = (label: string, tab: string) => <button onClick={() => onNavigate(tab)} className="block w-full text-left border rounded-xl p-4 hover:bg-gray-50">{label} →</button>;
@@ -55,7 +56,7 @@ export function ExperienceSettings({ section, preferences, onChange, onNavigate,
       ].map(([label, tab]) => <React.Fragment key={tab}>{button(label, tab)}</React.Fragment>)}</div></details>
       {isHubHost || isAdmin ? button('Hubbinställningar', 'hub_settings') : null}
       {isAdmin ? button('Admininställningar', 'admin_settings') : null}
-    </> : section === 'admin_settings' ? <div className="space-y-3"><AdminSettingsForm isAdmin={isAdmin} /><h2 className="font-semibold">Verktyg</h2><p>Genvägar till befintlig administration. Inga roller eller behörigheter ändras här.</p>{button('Medlemmar, regler & systemadministration', 'admin')}{button('Annonsering', 'advertise')}{button('Kravspecifikation & schema', 'architecture')}</div> : <div className="space-y-3">{hub && currentUser && onHubSaved ? <HubSettingsForm hub={hub} currentUser={currentUser} isAdmin={isAdmin} isHubHost={isHubHost} onSaved={onHubSaved} /> : <p>Välj en hubb för att läsa inställningar.</p>}<h2 className="font-semibold">Verktyg</h2><p>Hubbansvarigs arbetsyta. Välj aktuell hubb i sidhuvudet. Genvägarna ger inte nya administrativa behörigheter.</p>{button('Arbetsplatser & bokningar', 'coworking')}{button('Hubbkalender', 'calendar')}{button('Event', 'events')}{button('Hubbens community', 'community')}</div>}
+    </> : section === 'admin_settings' ? <div className="space-y-3">{adminTools && onAdminToolsChange && <AdminToolSettings tools={adminTools} onChange={onAdminToolsChange} />}<AdminSettingsForm isAdmin={isAdmin} /><h2 className="font-semibold">Verktyg</h2><p>Genvägar till befintlig administration. Inga roller eller behörigheter ändras här.</p>{button('Medlemmar, regler & systemadministration', 'admin')}{button('Annonsering', 'advertise')}{button('Kravspecifikation & schema', 'architecture')}</div> : <div className="space-y-3">{hub && currentUser && onHubSaved ? <HubSettingsForm hub={hub} currentUser={currentUser} isAdmin={isAdmin} isHubHost={isHubHost} onSaved={onHubSaved} /> : <p>Välj en hubb för att läsa inställningar.</p>}<h2 className="font-semibold">Verktyg</h2><p>Hubbansvarigs arbetsyta. Välj aktuell hubb i sidhuvudet. Genvägarna ger inte nya administrativa behörigheter.</p>{button('Arbetsplatser & bokningar', 'coworking')}{button('Hubbkalender', 'calendar')}{button('Event', 'events')}{button('Hubbens community', 'community')}</div>}
   </section>;
 }
 export const GUIDE_STEPS = [

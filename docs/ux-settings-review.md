@@ -41,3 +41,9 @@ Visual/browser acceptance and server-side role enforcement have not been verifie
 - Hub settings now directly edit name, city, address, regular meeting time and geofence. Admins can edit the selected hub; HUB_HOST can edit only their assigned primary hub/hub ID. Supabase permissions still determine whether the write is accepted. No role assignments or RLS policies are changed.
 - Existing shortcuts remain under Tools. No settings are changed just by opening the form.
 - Live Supabase persistence and role-policy enforcement must be acceptance-tested with real accounts before rollout; this workspace cannot validate the live database configuration. Source-only changes, not deployed to production by this follow-up.
+
+## Optional admin bottom tools
+- Admin Settings includes independently saved toggles for the desktop/responsive Quick Action launcher and Admin Dev HUD. Both default to hidden and visibility is additionally gated by existing admin access.
+- Existing HUD actions (Inspector, Clean Slate, seed/clear mock) remain intact. Showing or hiding the dock does not mutate demo data or change Clean Slate. Preferences are browser-local per account.
+- Dock wraps on small screens and stays above the responsive bottom navigation; quick action moves above the enabled dock. Existing legacy phone simulator controls are retained.
+- 5 additional server-rendered assertions for tool settings; browser visual acceptance still needed. No production deployment in this follow-up.

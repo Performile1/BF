@@ -1,3 +1,4 @@
+import { useAdminTools } from './components/settings/AdminToolSettings';
 import React, { useState, useEffect } from 'react';
 import { supabase, isSupabaseConfigured } from './lib/supabaseClient';
 import { 
@@ -173,6 +174,7 @@ export default function App() {
     currentUser?.email === 'wigrund81@gmail.com'
   );
 
+  const { tools: adminTools, update: updateAdminTools } = useAdminTools(currentUser?.id || 'guest');
   const { cleanSlateMode } = useInspector();
 
   // Application State
@@ -1961,7 +1963,7 @@ export default function App() {
             </nav>
 
             {/* Desktop Floating Action Button (FAB) in lower right corner */}
-            <div className="fixed bottom-24 lg:bottom-6 right-4 lg:right-8 z-40">
+            {hasAdminAccess && adminTools.quickAction && <div className={`fixed ${adminTools.hud ? 'bottom-56 lg:bottom-24' : 'bottom-24 lg:bottom-6'} right-4 lg:right-8 z-40`}>
               <button
                 onClick={() => {
                   setShowFabModal(true);
@@ -1974,7 +1976,7 @@ export default function App() {
                 </div>
                 <span>Snabbåtgärd / Logga (+BP)</span>
               </button>
-            </div>
+            </div>}
           </div>
         )}
 
@@ -2655,7 +2657,7 @@ export default function App() {
         )}
 
         {/* Admin Dev HUD & Inspector Dock - endast för administratörer */}
-        {hasAdminAccess && <DevHudDock />}
+        {hasAdminAccess && adminTools.hud && <DevHudDock />}
       </div>
     </div>
     </MaintenanceGate>
@@ -2689,7 +2691,7 @@ export default function App() {
       case 'settings':
       case 'hub_settings':
       case 'admin_settings':
-        return <ExperienceSettings section={activeTab} preferences={experience} onChange={value => { updateExperience(value); }} onNavigate={setActiveTab} onGuide={() => setShowWelcomeGuide(true)} isAdmin={hasAdminAccess} isHubHost={isHubHost} hub={selectedHub} currentUser={currentUser} onHubSaved={handleSaveHub} />;
+        return <ExperienceSettings section={activeTab} preferences={experience} onChange={value => { updateExperience(value); }} onNavigate={setActiveTab} onGuide={() => setShowWelcomeGuide(true)} isAdmin={hasAdminAccess} isHubHost={isHubHost} hub={selectedHub} currentUser={currentUser} onHubSaved={handleSaveHub} adminTools={adminTools} onAdminToolsChange={updateAdminTools} />;
       case 'dashboard_widgets':
         return (
           <DashboardGrid
