@@ -1,3 +1,4 @@
+import { normalizeWidgetIds } from './widgetIdentity';
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 import { 
   SystemSettings, 
@@ -218,7 +219,7 @@ export async function getUserWidgetPreferences(
     if (local) {
       const parsed = JSON.parse(local);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+        return normalizeWidgetIds(parsed);
       }
     }
   } catch (e) {
@@ -241,7 +242,7 @@ export async function getUserWidgetPreferences(
       const list = data.enabled_widgets || data.active_widget_ids;
       if (Array.isArray(list) && list.length > 0) {
         localStorage.setItem(`${LOCAL_WIDGET_PREF_KEY}_${userId}`, JSON.stringify(list));
-        return list;
+        return normalizeWidgetIds(list);
       }
     }
   } catch (err) {
@@ -260,7 +261,7 @@ export async function getUserWidgetPreferences(
       const list = data.widgets || data.active_widgets;
       if (Array.isArray(list) && list.length > 0) {
         localStorage.setItem(`${LOCAL_WIDGET_PREF_KEY}_${userId}`, JSON.stringify(list));
-        return list;
+        return normalizeWidgetIds(list);
       }
     }
   } catch (err) {
@@ -277,6 +278,7 @@ export async function saveUserWidgetPreferences(
   userId: string, 
   widgetIds: string[]
 ): Promise<{ success: boolean; error?: string }> {
+  widgetIds = normalizeWidgetIds(widgetIds);
   try {
     // Spara alltid direkt i localStorage för omedelbar tillförlitlighet
     localStorage.setItem(`${LOCAL_WIDGET_PREF_KEY}_${userId}`, JSON.stringify(widgetIds));

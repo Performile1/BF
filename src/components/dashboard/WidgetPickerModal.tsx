@@ -1,3 +1,4 @@
+import { WIDGET_ALIASES, normalizeWidgetIds } from '../../lib/widgetIdentity';
 import React, { useState } from 'react';
 import { 
   X, 
@@ -41,7 +42,7 @@ export const WidgetPickerModal: React.FC<WidgetPickerModalProps> = ({
   const { isSuperAdmin, isAdmin: hookIsAdmin } = usePermissions();
   const isAdmin = Boolean(propIsAdmin || isSuperAdmin || hookIsAdmin);
 
-  const [selectedIds, setSelectedIds] = useState<string[]>(activeWidgetIds);
+  const [selectedIds, setSelectedIds] = useState<string[]>(normalizeWidgetIds(activeWidgetIds));
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [saving, setSaving] = useState(false);
@@ -50,7 +51,7 @@ export const WidgetPickerModal: React.FC<WidgetPickerModalProps> = ({
   // Synka när modalen öppnas
   React.useEffect(() => {
     if (isOpen) {
-      setSelectedIds(activeWidgetIds);
+      setSelectedIds(normalizeWidgetIds(activeWidgetIds));
       setSearchQuery('');
       setSaveFeedback(false);
     }
@@ -60,6 +61,7 @@ export const WidgetPickerModal: React.FC<WidgetPickerModalProps> = ({
 
   // Säkerhetsregel: Alla widgets med adminOnly: true får aldrig visas eller aktiveras för icke-admins
   const allWidgets = Object.values(WIDGET_REGISTRY).filter(w => {
+    if (WIDGET_ALIASES[w.id]) return false;
     if (w.adminOnly && !isAdmin) return false;
     return true;
   });

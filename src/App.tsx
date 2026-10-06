@@ -2689,7 +2689,7 @@ export default function App() {
       case 'settings':
       case 'hub_settings':
       case 'admin_settings':
-        return <ExperienceSettings section={activeTab} preferences={experience} onChange={value => { updateExperience(value); }} onNavigate={setActiveTab} onGuide={() => setShowWelcomeGuide(true)} isAdmin={hasAdminAccess} isHubHost={isHubHost} />;
+        return <ExperienceSettings section={activeTab} preferences={experience} onChange={value => { updateExperience(value); }} onNavigate={setActiveTab} onGuide={() => setShowWelcomeGuide(true)} isAdmin={hasAdminAccess} isHubHost={isHubHost} hub={selectedHub} currentUser={currentUser} onHubSaved={handleSaveHub} />;
       case 'dashboard_widgets':
         return (
           <DashboardGrid

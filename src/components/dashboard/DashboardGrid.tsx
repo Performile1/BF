@@ -1,3 +1,4 @@
+import { canonicalWidgetId, normalizeWidgetIds } from '../../lib/widgetIdentity';
 import React, { useState, useEffect } from 'react';
 import { 
   Sliders, 
@@ -132,7 +133,7 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
   const [customWidths, setCustomWidths] = useState<Record<string, WidgetWidth>>(() => {
     try {
       const saved = localStorage.getItem(`bf_widget_widths_${currentUser.id}`);
-      if (saved) return JSON.parse(saved);
+      if (saved) return Object.fromEntries(Object.entries(JSON.parse(saved)).map(([id, width]) => [canonicalWidgetId(id), width]));
     } catch {}
     return {};
   });
@@ -171,7 +172,7 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
     setLoading(true);
     try {
       const ids = await getUserWidgetPreferences(currentUser.id, isAdmin);
-      setActiveWidgetIds(ids);
+      setActiveWidgetIds(normalizeWidgetIds(ids));
     } catch (err) {
       console.warn('Could not load widget prefs:', err);
       setActiveWidgetIds(isAdmin ? DEFAULT_ADMIN_WIDGET_IDS : DEFAULT_USER_WIDGET_IDS);
@@ -186,8 +187,8 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
 
   // Spara ändringar från WidgetPickerModal
   const handleSavePreferences = async (newActiveIds: string[]) => {
-    setActiveWidgetIds(newActiveIds);
-    await saveUserWidgetPreferences(currentUser.id, newActiveIds);
+    setActiveWidgetIds(normalizeWidgetIds(newActiveIds));
+    await saveUserWidgetPreferences(currentUser.id, normalizeWidgetIds(newActiveIds));
   };
 
   // Mappa widget ID till dess motsvarande React-komponent
@@ -306,7 +307,7 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
   };
 
   // Filtrera så att endast tillåtna widgets renderas
-  const visibleWidgets = activeWidgetIds
+  const visibleWidgets = normalizeWidgetIds(activeWidgetIds)
     .map(id => WIDGET_REGISTRY[id])
     .filter((w): w is WidgetDefinition => {
       if (!w) return false;

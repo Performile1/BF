@@ -34,3 +34,10 @@ Visual/browser acceptance and server-side role enforcement have not been verifie
 - Guide now contains 12 member steps, plus a hub workspace step and an admin workspace step for existing roles. A minimized resume panel allows exploration without losing the current step. No data mutations are triggered by the guide.
 - Updated verification: TypeScript, production build, 18 settings/guide assertions and 10 category-sidebar assertions passed. Browser interaction/visual acceptance remains unverified.
 - Source is published on the agent PR branch; production is deployed explicitly through Vercel CLI. Main still needs a GitHub merge to make future main-branch builds include these changes.
+
+## Widget identity and actual settings forms
+- All 11 legacy aliases remain recognized, but widget selection and modular rendering use canonical identities. Repeated IDs are also deduplicated, preserving first occurrence order. Saved width preferences are translated to canonical IDs on load. Mini status widgets remain as intentional compact summaries.
+- Admin settings now contain an explicit-save maintenance form. Save is only reported after a database response confirms the key/value write; there is no silent local success fallback. Legacy database schemas may need adjustment if they do not support the existing maintenance key/value model.
+- Hub settings now directly edit name, city, address, regular meeting time and geofence. Admins can edit the selected hub; HUB_HOST can edit only their assigned primary hub/hub ID. Supabase permissions still determine whether the write is accepted. No role assignments or RLS policies are changed.
+- Existing shortcuts remain under Tools. No settings are changed just by opening the form.
+- Live Supabase persistence and role-policy enforcement must be acceptance-tested with real accounts before rollout; this workspace cannot validate the live database configuration. Source-only changes, not deployed to production by this follow-up.
