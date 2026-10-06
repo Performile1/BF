@@ -1804,7 +1804,7 @@ export const MasterCalendarModule: React.FC<MasterCalendarModuleProps> = ({
           {/* 📢 Sponsrad Partner Banner Engine (CALENDAR_SIDEBAR) */}
           <AdBannerEngine
             zone="CALENDAR_SIDEBAR"
-            isAdmin={currentUser.membership_level === 'GOLD' || !!currentUser.is_admin}
+            isAdmin={Boolean(currentUser.is_admin || currentUser.role === 'SUPER_ADMIN' || currentUser.role === ('ADMIN' as any))}
           />
 
           {/* 💼 Boka Annonsplats & Nå Beslutsfattare */}

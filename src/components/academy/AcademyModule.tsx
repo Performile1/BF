@@ -22,7 +22,13 @@ import {
   CreditCard,
   Building,
   HelpCircle,
-  Trophy
+  Trophy,
+  Compass,
+  Globe,
+  Laptop,
+  Tag,
+  ShieldCheck,
+  Plus
 } from 'lucide-react';
 import { Course, Certificate, MentorSlot, QuizQuestion, Member, ActivityType } from '../../types';
 import { formatSek } from '../../utils/calendar';
@@ -34,6 +40,7 @@ interface AcademyModuleProps {
   certificates: Certificate[];
   mentorSlots: MentorSlot[];
   quizQuestions: QuizQuestion[];
+  initialTab?: 'COURSES' | 'CERTIFICATES' | 'MENTORS' | 'QUIZ' | 'PARTNERS';
   onBookMentorSlot: (slotId: string) => void;
   onAwardCertificate: (cert: Certificate) => void;
   onUnlockCourse: (courseId: string) => void;
@@ -46,16 +53,22 @@ export const AcademyModule: React.FC<AcademyModuleProps> = ({
   certificates = [],
   mentorSlots = [],
   quizQuestions = [],
+  initialTab = 'COURSES',
   onBookMentorSlot,
   onAwardCertificate,
   onUnlockCourse,
   onAwardPoints
 }) => {
-  const [activeTab, setActiveTab] = useState<'COURSES' | 'CERTIFICATES' | 'MENTORS' | 'QUIZ'>('COURSES');
+  const [activeTab, setActiveTab] = useState<'COURSES' | 'CERTIFICATES' | 'MENTORS' | 'QUIZ' | 'PARTNERS'>(initialTab);
   const [selectedCourseForQuiz, setSelectedCourseForQuiz] = useState<Course | null>(null);
   const [selectedCertificateModal, setSelectedCertificateModal] = useState<Certificate | null>(null);
   const [selectedCourseForUnlock, setSelectedCourseForUnlock] = useState<Course | null>(null);
   const [paymentSuccessNotice, setPaymentSuccessNotice] = useState<string | null>(null);
+  const [syncSuccessToast, setSyncSuccessToast] = useState<string | null>(null);
+  const [showSyncModal, setShowSyncModal] = useState(false);
+  const [syncPartner, setSyncPartner] = useState<'EDX' | 'COURSERA' | 'HYPER_ISLAND' | 'BERGHS' | 'HARVARD'>('EDX');
+  const [syncCourseTitle, setSyncCourseTitle] = useState('');
+  const [syncCertCode, setSyncCertCode] = useState('');
 
   // Quiz Engine State
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
@@ -194,6 +207,7 @@ export const AcademyModule: React.FC<AcademyModuleProps> = ({
         <div className="flex gap-1.5 border-t border-gray-100 pt-4 overflow-x-auto scrollbar-none">
           {[
             { id: 'COURSES', label: 'Kurskatalog & Booster Packs', icon: BookOpen },
+            { id: 'PARTNERS', label: 'Utbildningspartners (edX, Coursera m.fl.)', icon: Compass, badge: 'NY' },
             { id: 'CERTIFICATES', label: `Mina Certifikat (${certificates.length})`, icon: Award },
             { id: 'MENTORS', label: 'Mentor Matchmaking & Sparring', icon: Calendar },
             { id: 'QUIZ', label: 'Kunskapstest & Prov', icon: HelpCircle }
@@ -204,7 +218,7 @@ export const AcademyModule: React.FC<AcademyModuleProps> = ({
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
                   isActive
                     ? 'bg-[#800020] text-white shadow-xs'
                     : 'bg-[#F4F5F7] text-gray-700 hover:bg-gray-200'
@@ -212,11 +226,31 @@ export const AcademyModule: React.FC<AcademyModuleProps> = ({
               >
                 <Icon className="w-3.5 h-3.5" />
                 <span>{tab.label}</span>
+                {tab.badge && (
+                  <span className={`text-[9px] font-black px-1.5 py-0.2 rounded-full ${
+                    isActive ? 'bg-white text-[#800020]' : 'bg-emerald-100 text-emerald-800'
+                  }`}>
+                    {tab.badge}
+                  </span>
+                )}
               </button>
             );
           })}
         </div>
       </div>
+
+      {/* Sync Success Banner */}
+      {syncSuccessToast && (
+        <div className="bg-emerald-700 text-white p-4 rounded-2xl shadow-sm flex items-center justify-between animate-in fade-in">
+          <div className="flex items-center gap-2.5">
+            <CheckCircle2 className="w-5 h-5 text-emerald-200" />
+            <span className="text-xs font-bold">{syncSuccessToast}</span>
+          </div>
+          <button onClick={() => setSyncSuccessToast(null)} className="text-white/80 hover:text-white cursor-pointer">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* TAB 1: KURSKATALOG & BOOSTER PACKS */}
       {activeTab === 'COURSES' && (

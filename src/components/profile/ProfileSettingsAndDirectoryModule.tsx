@@ -113,6 +113,13 @@ export const ProfileSettingsAndDirectoryModule: React.FC<ProfileSettingsAndDirec
     case_studies: currentUser.case_studies || [],
     cv_summary: currentUser.cv_summary || '',
     cv_filename: currentUser.cv_filename || '',
+    preferred_start_page: currentUser.preferred_start_page || (() => {
+      try {
+        return localStorage.getItem('bf_preferred_start_page') || 'overview';
+      } catch {
+        return 'overview';
+      }
+    })(),
     linkedin_posts: currentUser.linkedin_posts || [
       {
         title: 'Hur vi skalade från 0 till 15 MSEK ARR med bootstrapping',
@@ -220,7 +227,12 @@ export const ProfileSettingsAndDirectoryModule: React.FC<ProfileSettingsAndDirec
       ...formData,
       linkedin_url: formattedLinkedIn
     });
-    setSavedSuccessNotice('Din profil och visitkortsuppgifter har uppdaterats!');
+    if (formData.preferred_start_page) {
+      try {
+        localStorage.setItem('bf_preferred_start_page', formData.preferred_start_page);
+      } catch {}
+    }
+    setSavedSuccessNotice('Din profil och inställningar har sparats!');
     setTimeout(() => setSavedSuccessNotice(null), 4000);
   };
 
@@ -2038,6 +2050,65 @@ export const ProfileSettingsAndDirectoryModule: React.FC<ProfileSettingsAndDirec
                   Inga kundcase registrerade än. Klicka på "Nytt kundcase" ovan för att visa upp dina framgångshistorier!
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* 🌟 VALD FÖRSTA SIDA / STARTVY PREFERENS */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-xs space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                  <span>Vald första sida vid start</span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900">
+                    Personlig vy
+                  </span>
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Välj vilken sektion som ska öppnas automatiskt när du loggar in eller besöker Booster Friends.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+              {[
+                { id: 'overview', title: 'Bento Översikt', desc: 'Hero-kort, radar & nyckeltal (Standard)', icon: '🏠' },
+                { id: 'community', title: 'Community & Forum', desc: 'Flöde, diskussioner & inlägg', icon: '💬' },
+                { id: 'academy', title: 'Akademin & Resurser', desc: 'Kurser, edX-partners & diplom', icon: '🎓' },
+                { id: 'coworking', title: 'Hubben & Flexplatser', desc: 'Boka skrivbord & hubbar', icon: '🏢' },
+                { id: 'dashboard_widgets', title: 'Modulär Dashboard', desc: 'Anpassningsbart widget-grid', icon: '🎛️' },
+                { id: 'pipeline', title: 'My Pipeline (CRM)', desc: 'Pågående affärer & prospekt', icon: '📈' },
+                { id: 'matchmaking', title: 'AI-Matchningar', desc: 'Veckans introduktionsförslag', icon: '✨' },
+                { id: 'calendar', title: 'Kalender & Träffar', desc: 'Månadsträffar & frukostar', icon: '📅' }
+              ].map(opt => {
+                const isSelected = formData.preferred_start_page === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, preferred_start_page: opt.id }))}
+                    className={`p-3.5 rounded-xl border text-left transition flex flex-col justify-between gap-2 cursor-pointer ${
+                      isSelected
+                        ? 'border-[#800020] bg-rose-50/50 shadow-2xs ring-1 ring-[#800020]'
+                        : 'border-gray-200 hover:border-gray-300 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <span className="text-xl">{opt.icon}</span>
+                      {isSelected ? (
+                        <span className="text-[10px] font-black uppercase text-[#800020] bg-[#800020]/10 px-2 py-0.5 rounded-full">
+                          Vald
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-gray-400">Klicka för val</span>
+                      )}
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-gray-900">{opt.title}</h4>
+                      <p className="text-[11px] text-gray-500 mt-0.5 leading-snug">{opt.desc}</p>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
 

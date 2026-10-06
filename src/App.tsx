@@ -176,7 +176,13 @@ export default function App() {
   // Application State
   const [hubs, setHubs] = useState<Hub[]>(INITIAL_HUBS);
   const [selectedHub, setSelectedHub] = useState<Hub>(INITIAL_HUBS[0]);
-  const [activeTab, setActiveTab] = useState<string>('overview');
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem('bf_preferred_start_page');
+      if (saved) return saved;
+    } catch {}
+    return currentUser?.preferred_start_page || 'overview';
+  });
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [deviceMode, setDeviceMode] = useState<'desktop' | 'ios' | 'android'>('desktop');
   const [quickChatInput, setQuickChatInput] = useState('');
@@ -1536,29 +1542,23 @@ export default function App() {
   // Standalone public routes for invitations and authentication
   if (activeTab === 'connect') {
     return (
-      <>
-        <InviteLandingPage
-          onGoToAuth={(mode) => {
-            setAuthMode(mode);
-            setActiveTab('auth');
-          }}
-          onBackToApp={() => setActiveTab('overview')}
-        />
-        <DevHudDock />
-      </>
+      <InviteLandingPage
+        onGoToAuth={(mode) => {
+          setAuthMode(mode);
+          setActiveTab('auth');
+        }}
+        onBackToApp={() => setActiveTab('overview')}
+      />
     );
   }
 
   // Om ingen profil finns eller om användaren loggat ut, visa inloggning/demo-väljaren
   if (activeTab === 'auth' || !currentUser) {
     return (
-      <>
-        <AuthPage
-          initialMode={authMode}
-          onBackToApp={() => setActiveTab('overview')}
-        />
-        <DevHudDock />
-      </>
+      <AuthPage
+        initialMode={authMode}
+        onBackToApp={() => setActiveTab('overview')}
+      />
     );
   }
 
@@ -1791,8 +1791,10 @@ export default function App() {
                     { id: 'promos', label: 'Kampanjer', icon: Tag },
                     { id: 'benefits', label: 'Förmåner', icon: Gift },
                     { id: 'profile_settings', label: 'Min Profil', icon: User },
-                    ...(hasAdminAccess ? [{ id: 'admin', label: 'Admin', icon: Shield }] : []),
-                    { id: 'architecture', label: 'Arkitektur', icon: ShieldCheck },
+                    ...(hasAdminAccess ? [
+                      { id: 'admin', label: 'Admin', icon: Shield },
+                      { id: 'architecture', label: 'Arkitektur', icon: ShieldCheck }
+                    ] : []),
                   ].map(item => {
                     const IconComponent = item.icon;
                     return (
@@ -2602,8 +2604,8 @@ export default function App() {
           </div>
         )}
 
-        {/* Admin Dev HUD & Inspector Dock */}
-        <DevHudDock />
+        {/* Admin Dev HUD & Inspector Dock - endast för administratörer */}
+        {hasAdminAccess && <DevHudDock />}
       </div>
     </div>
     </MaintenanceGate>
@@ -2776,6 +2778,22 @@ export default function App() {
           />
         );
 
+      case 'edx_partners':
+        return (
+          <AcademyModule
+            currentUser={currentUser}
+            courses={courses}
+            certificates={certificates}
+            mentorSlots={mentorSlots}
+            quizQuestions={quizQuestions}
+            initialTab="PARTNERS"
+            onBookMentorSlot={handleBookMentorSlot}
+            onAwardCertificate={handleAwardCertificate}
+            onUnlockCourse={handleUnlockCourse}
+            onAwardPoints={handleAwardPoints}
+          />
+        );
+
       case 'events':
         return (
           <EventBookingModule
@@ -2858,6 +2876,33 @@ export default function App() {
         );
 
       case 'architecture':
+        if (!hasAdminAccess) {
+          return (
+            <div className="max-w-2xl mx-auto my-12 bg-white rounded-3xl p-8 sm:p-10 border border-red-200 shadow-xl text-center space-y-6">
+              <div className="w-16 h-16 rounded-2xl bg-red-50 text-red-700 border border-red-200 flex items-center justify-center mx-auto shadow-inner">
+                <Shield className="w-8 h-8" />
+              </div>
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-100 text-red-800 text-xs font-black">
+                  Åtkomst Nekad • Endast Admin
+                </div>
+                <h2 className="text-2xl font-black text-gray-900 font-display">
+                  Behörighetskontroll: Systemarkitektur är stängd
+                </h2>
+                <p className="text-xs sm:text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
+                  Systemspecifikationen, OpenAPI-specifikationen och databasschemat är endast tillgängliga för administratörer.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab('overview')}
+                className="px-5 py-2.5 rounded-xl bg-[#800020] text-white text-xs font-bold hover:bg-[#600018] transition cursor-pointer"
+              >
+                Tillbaka till Översikt
+              </button>
+            </div>
+          );
+        }
         return (
           <SpecAndSchemaModule
             members={members}
@@ -2962,6 +3007,33 @@ export default function App() {
         );
 
       case 'admin':
+        if (!hasAdminAccess) {
+          return (
+            <div className="max-w-2xl mx-auto my-12 bg-white rounded-3xl p-8 sm:p-10 border border-red-200 shadow-xl text-center space-y-6">
+              <div className="w-16 h-16 rounded-2xl bg-red-50 text-red-700 border border-red-200 flex items-center justify-center mx-auto shadow-inner">
+                <Shield className="w-8 h-8" />
+              </div>
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-100 text-red-800 text-xs font-black">
+                  Åtkomst Nekad • Endast Super Admin
+                </div>
+                <h2 className="text-2xl font-black text-gray-900 font-display">
+                  Behörighetskontroll: Adminpanelen är stängd
+                </h2>
+                <p className="text-xs sm:text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
+                  Du saknar administratörsbehörighet för att visa denna panel.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab('overview')}
+                className="px-5 py-2.5 rounded-xl bg-[#800020] text-white text-xs font-bold hover:bg-[#600018] transition cursor-pointer"
+              >
+                Tillbaka till Översikt
+              </button>
+            </div>
+          );
+        }
         return (
           <AdminPortalModule
             currentUser={currentUser}
@@ -3016,7 +3088,7 @@ export default function App() {
         {/* 📢 SPONSRAD BANNER ENGINE (FEED_TOP) */}
         <AdBannerEngine 
           zone="FEED_TOP" 
-          isAdmin={currentUser.membership_level === 'GOLD' || currentUser.is_admin} 
+          isAdmin={hasAdminAccess} 
         />
 
         {/* Top 12-column Bento Grid */}

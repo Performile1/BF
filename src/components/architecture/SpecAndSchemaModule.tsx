@@ -17,6 +17,7 @@ import { POSTGRESQL_SCHEMA_SQL } from '../../data/initialData';
 import { POSTGRESQL_V6_V7_SCHEMA_SQL } from '../../data/calendarAndCoworkingData';
 import { Member, Webinar, ChatChannel } from '../../types';
 import { AdminInspect } from '../dev/AdminInspect';
+import { usePermissions } from '../../hooks/usePermissions';
 
 interface SpecAndSchemaModuleProps {
   members: Member[];
@@ -29,6 +30,35 @@ export const SpecAndSchemaModule: React.FC<SpecAndSchemaModuleProps> = ({
   webinars = [],
   channels = []
 }) => {
+  const { isSuperAdmin, currentUser } = usePermissions();
+  const hasAccess = Boolean(
+    isSuperAdmin || 
+    currentUser?.is_admin || 
+    currentUser?.role === 'SUPER_ADMIN' || 
+    currentUser?.role === ('ADMIN' as any)
+  );
+
+  if (!hasAccess) {
+    return (
+      <div className="max-w-2xl mx-auto my-12 bg-white rounded-3xl p-8 sm:p-10 border border-red-200 shadow-xl text-center space-y-6">
+        <div className="w-16 h-16 rounded-2xl bg-red-50 text-red-700 border border-red-200 flex items-center justify-center mx-auto shadow-inner">
+          <ShieldCheck className="w-8 h-8" />
+        </div>
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-100 text-red-800 text-xs font-black">
+            Åtkomst Nekad • Endast Admin
+          </div>
+          <h2 className="text-2xl font-black text-gray-900 font-display">
+            Systemarkitektur & Schema är skyddat
+          </h2>
+          <p className="text-xs sm:text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
+            Denna tekniska specifikation och databasschemat är endast tillgängliga för systemets administratörer.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const [activeTab, setActiveTab] = useState<'SCHEMA' | 'API' | 'PALETTE'>('SCHEMA');
   const [schemaVersion, setSchemaVersion] = useState<'ALL' | 'BASE' | 'V6_V7'>('ALL');
   const [copiedSql, setCopiedSql] = useState(false);

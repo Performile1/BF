@@ -11,11 +11,14 @@ export function DevHudDock({ onDataMutated }: { onDataMutated?: () => void }) {
 
   const shouldShow = Boolean(
     isSuperAdmin || 
-    inspectorEnabled ||
+    currentUser?.is_admin ||
+    currentUser?.role === 'SUPER_ADMIN' ||
+    currentUser?.role === ('ADMIN' as any) ||
     currentUser?.email === 'rickard@wigrund.se' ||
     currentUser?.email === 'admin@performile.com' ||
     currentUser?.email === 'wigrund81@gmail.com' ||
-    currentUser?.is_admin
+    currentUser?.id === 'usr_rickard_wigrund' ||
+    currentUser?.id === 'usr_rickard_performile'
   );
 
   if (!shouldShow) return null;

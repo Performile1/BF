@@ -441,7 +441,7 @@ export const CommunityAndBlogModule: React.FC<CommunityAndBlogModuleProps> = ({
       {/* 📢 Sponsrad Annonsmotor (COMMUNITY_FEED) */}
       <AdBannerEngine
         zone="COMMUNITY_FEED"
-        isAdmin={currentUser.membership_level === 'GOLD' || !!currentUser.is_admin}
+        isAdmin={Boolean(currentUser.is_admin || currentUser.role === 'SUPER_ADMIN' || currentUser.role === ('ADMIN' as any))}
       />
 
       {/* Posts Feed */}

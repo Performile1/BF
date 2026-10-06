@@ -94,6 +94,7 @@ export interface Member {
   };
   is_demo?: boolean;
   totp_settings?: TotpSecuritySettings;
+  preferred_start_page?: string;
 }
 
 export type UserRole = 'SUPER_ADMIN' | 'HUB_HOST' | 'MEMBER' | 'GUEST' | 'PROSPECT';
@@ -744,7 +745,7 @@ export interface GuestPass {
 export interface PartnerPerk {
   id: string;
   partner_name: string;
-  category: 'Hotell & Resor' | 'Restaurang & Möten' | 'B2B Tjänster' | 'Hälsa & Fritid';
+  category: 'Hotell & Resor' | 'Restaurang & Möten' | 'B2B Tjänster' | 'Hälsa & Fritid' | 'Utbildning & Akademi';
   discount_badge: string;
   description: string;
   terms: string;

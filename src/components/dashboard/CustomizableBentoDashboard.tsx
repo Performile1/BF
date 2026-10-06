@@ -61,6 +61,7 @@ import {
 } from '../../types';
 import { AdBannerEngine } from '../ads/AdBannerEngine';
 import { AdminInspect } from '../dev/AdminInspect';
+import { usePermissions } from '../../hooks/usePermissions';
 import { formatSek } from '../../utils/calendar';
 import { INITIAL_WEB_MEETINGS } from '../../data/calendarAndCoworkingData';
 import { INITIAL_COMMUNITY_POSTS } from '../../data/communityAndMatchmakingData';
@@ -475,6 +476,14 @@ export const CustomizableBentoDashboard: React.FC<CustomizableBentoDashboardProp
   onUpdateLocationStatus,
   onOpenLocationPingModal
 }) => {
+  const { isSuperAdmin } = usePermissions();
+  const isAdmin = Boolean(
+    isSuperAdmin || 
+    currentUser?.is_admin || 
+    currentUser?.role === 'SUPER_ADMIN' || 
+    currentUser?.role === ('ADMIN' as any)
+  );
+
   // Dashboard Grid configuration (Punkt 29 & 30)
   const [gridLayout, setGridLayout] = useState<DashboardGridLayout>(() => {
     try {
@@ -1976,18 +1985,23 @@ export const CustomizableBentoDashboard: React.FC<CustomizableBentoDashboardProp
         return <TagSubscriptionsWidget currentUser={currentUser} onNavigateTab={onNavigateTab} />;
 
       case 'admin_deals_pipeline':
+        if (!isAdmin) return null;
         return <AdminDealsPipelineWidget currentUser={currentUser} onNavigateTab={onNavigateTab} />;
 
       case 'admin_invoices':
+        if (!isAdmin) return null;
         return <AdminInvoicesWidget currentUser={currentUser} onNavigateTab={onNavigateTab} />;
 
       case 'admin_broadcast_sender':
+        if (!isAdmin) return null;
         return <AdminBroadcastSenderWidget currentUser={currentUser} onNavigateTab={onNavigateTab} />;
 
       case 'admin_account_lifecycle':
+        if (!isAdmin) return null;
         return <AdminAccountLifecycleWidget currentUser={currentUser} onNavigateTab={onNavigateTab} />;
 
       case 'admin_maintenance_toggle':
+        if (!isAdmin) return null;
         return <AdminMaintenanceWidget currentUser={currentUser} onNavigateTab={onNavigateTab} />;
 
       default:
@@ -2006,7 +2020,7 @@ export const CustomizableBentoDashboard: React.FC<CustomizableBentoDashboardProp
       {/* 📢 SPONSRAD BANNER ENGINE (FEED_TOP) */}
       <AdBannerEngine 
         zone="FEED_TOP" 
-        isAdmin={currentUser.membership_level === 'GOLD' || currentUser.is_admin} 
+        isAdmin={isAdmin} 
       />
 
       {/* Dashboard Top Control Toolbar */}
@@ -2178,6 +2192,7 @@ export const CustomizableBentoDashboard: React.FC<CustomizableBentoDashboardProp
         {activeWidgets.map((widgetId, index) => {
           const def = ALL_AVAILABLE_WIDGETS.find(w => w.id === widgetId);
           if (!def) return null;
+          if (def.adminOnly && !isAdmin) return null;
           const dim = widgetDimensions[widgetId] || { colSpan: 1, rowSpan: 1 };
           const spanClasses = getCardSpanClasses(widgetId);
           const isDragging = draggedWidgetId === widgetId;
@@ -2376,7 +2391,7 @@ export const CustomizableBentoDashboard: React.FC<CustomizableBentoDashboardProp
 
             <div className="space-y-2 overflow-y-auto flex-1 pr-1">
               {ALL_AVAILABLE_WIDGETS
-                .filter(w => pickerCategory === 'ALL' || w.category === pickerCategory)
+                .filter(w => (pickerCategory === 'ALL' || w.category === pickerCategory) && (!w.adminOnly || isAdmin))
                 .map(widget => {
                   const isAlreadyActive = activeWidgets.includes(widget.id);
                   return (

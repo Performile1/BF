@@ -614,38 +614,40 @@ export const Header: React.FC<HeaderProps> = ({
                     )}
                   </div>
 
-                  <div className="px-4 pt-2">
-                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">
-                      Byt test-persona (Rättigheter & Nivå)
-                    </p>
-                    <div className="space-y-1">
-                      {allMembers.map(member => (
-                        <button
-                          key={member.id}
-                          onClick={() => {
-                            onSelectUser(member);
-                            setShowUserMenu(false);
-                          }}
-                          className={`w-full flex items-center justify-between p-2 rounded-xl text-left text-xs transition ${
-                            member.id === currentUser.id
-                              ? 'bg-[#800020]/10 text-[#800020] font-bold'
-                              : 'hover:bg-[#F4F5F7] text-gray-700'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <img src={member.avatar} alt={member.full_name} className="w-7 h-7 rounded-lg object-cover" />
-                            <div>
-                              <div className="font-semibold text-gray-900">{member.full_name}</div>
-                              <div className="text-[10px] text-gray-500">{member.company_name}</div>
+                  {isAdmin && (
+                    <div className="px-4 pt-2 border-t border-gray-100 mt-2">
+                      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">
+                        Byt test-persona (Admin-verktyg)
+                      </p>
+                      <div className="space-y-1">
+                        {allMembers.map(member => (
+                          <button
+                            key={member.id}
+                            onClick={() => {
+                              onSelectUser(member);
+                              setShowUserMenu(false);
+                            }}
+                            className={`w-full flex items-center justify-between p-2 rounded-xl text-left text-xs transition ${
+                              member.id === currentUser.id
+                                ? 'bg-[#800020]/10 text-[#800020] font-bold'
+                                : 'hover:bg-[#F4F5F7] text-gray-700'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <img src={member.avatar} alt={member.full_name} className="w-7 h-7 rounded-lg object-cover" />
+                              <div>
+                                <div className="font-semibold text-gray-900">{member.full_name}</div>
+                                <div className="text-[10px] text-gray-500">{member.company_name}</div>
+                              </div>
                             </div>
-                          </div>
-                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${getBadgeStyle(member.membership_level)}`}>
-                            {member.membership_level}
-                          </span>
-                        </button>
-                      ))}
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${getBadgeStyle(member.membership_level)}`}>
+                              {member.membership_level}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
             </div>

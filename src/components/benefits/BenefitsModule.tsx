@@ -26,12 +26,20 @@ export const BenefitsModule: React.FC<BenefitsModuleProps> = ({
 }) => {
   const [activePerkModal, setActivePerkModal] = useState<PartnerPerk | null>(null);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
 
   const handleCopy = (code: string) => {
     navigator.clipboard?.writeText(code);
     setCopiedCode(code);
     setTimeout(() => setCopiedCode(null), 2000);
   };
+
+  const categories = ['ALL', 'Utbildning & Akademi', 'Hotell & Resor', 'Restaurang & Möten', 'B2B Tjänster'];
+
+  const filteredPerks = perks.filter(p => {
+    if (selectedCategory === 'ALL') return true;
+    return p.category === selectedCategory;
+  });
 
   return (
     <AdminInspect
@@ -73,9 +81,26 @@ export const BenefitsModule: React.FC<BenefitsModuleProps> = ({
         </div>
       </div>
 
+      {/* Category Filter Pills */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        {categories.map(cat => (
+          <button
+            key={cat}
+            onClick={() => setSelectedCategory(cat)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+              selectedCategory === cat
+                ? 'bg-[#800020] text-white shadow-xs'
+                : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            {cat === 'ALL' ? 'Alla Förmåner & Partners' : cat}
+          </button>
+        ))}
+      </div>
+
       {/* Partner Perks Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {perks.map(perk => (
+        {filteredPerks.map(perk => (
           <div
             key={perk.id}
             className="bg-white rounded-3xl border border-gray-200 shadow-xs overflow-hidden flex flex-col justify-between transition hover:shadow-md"
