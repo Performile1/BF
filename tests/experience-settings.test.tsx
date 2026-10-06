@@ -21,5 +21,11 @@ assert.match(render('settings', true), /Admininställningar/);
 const guide = renderToStaticMarkup(<WelcomeGuide onClose={() => {}} onNavigate={() => {}} />);
 assert.match(guide, /role="dialog"/);
 assert.match(guide, /Hoppa över/);
-assert.match(guide, /Steg 1 av 4/);
-console.log('15 experience settings / role visibility / guide assertions passed.');
+assert.match(guide, /Steg 1 av 12/);
+
+
+assert.match(render('settings'), /Kompakt ikonmeny/);
+assert.match(renderToStaticMarkup(<WelcomeGuide onClose={() => {}} onNavigate={() => {}} isHubHost />), /Steg 1 av 13/);
+assert.match(renderToStaticMarkup(<WelcomeGuide onClose={() => {}} onNavigate={() => {}} isAdmin />), /Steg 1 av 14/);
+
+console.log('18 settings / role visibility / guide assertions passed.');

@@ -26,3 +26,11 @@
 - Verify reduced motion with OS preference and the appearance setting.
 
 Visual/browser acceptance and server-side role enforcement have not been verified by the automated checks above.
+
+## Expanded categories, compact menu and detailed tour
+- Categories now expand on click; active category opens in full mode. Search reveals matching destinations.
+- Compact desktop rail shows accessible category icons with labelled flyouts; clicking outside or Escape closes them. Full/mobile modes retain labels.
+- Preference can be changed in Settings or with the sidebar toggle.
+- Guide now contains 12 member steps, plus a hub workspace step and an admin workspace step for existing roles. A minimized resume panel allows exploration without losing the current step. No data mutations are triggered by the guide.
+- Updated verification: TypeScript, production build, 18 settings/guide assertions and 10 category-sidebar assertions passed. Browser interaction/visual acceptance remains unverified.
+- Source is published on the agent PR branch; production is deployed explicitly through Vercel CLI. Main still needs a GitHub merge to make future main-branch builds include these changes.

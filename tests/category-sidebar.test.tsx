@@ -1,0 +1,18 @@
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import assert from 'node:assert/strict';
+import { Home } from 'lucide-react';
+import { CategorySidebar } from '../src/components/CategorySidebar';
+const categories = [{ id: 'home', title: 'Hem', icon: Home, subtabs: [{ id: 'overview', label: 'Översikt', icon: Home }, { id: 'admin', label: 'Privat admin', icon: Home, adminOnly: true }] }];
+const render = (compact: boolean, isAdmin = false, isHubHost = false) => renderToStaticMarkup(<CategorySidebar categories={categories} activeTab="overview" onNavigate={() => {}} compact={compact} onCompactChange={() => {}} isAdmin={isAdmin} isHubHost={isHubHost} unreadChatCount={0} />);
+assert.match(render(false), /aria-expanded="true"/);
+assert.match(render(false), /aria-controls="desktop-category-home"/);
+assert.match(render(false), /aria-current="page"/);
+assert.doesNotMatch(render(false), /Privat admin/);
+assert.match(render(false, true), /Privat admin/);
+assert.match(render(true), /aria-expanded="false"/);
+assert.match(render(true), /title="Hem"/);
+assert.match(render(true), /aria-label="Inställningar"/);
+assert.match(render(false, false, true), /Hubbinställningar/);
+assert.doesNotMatch(render(false, false, true), /Admininställningar/);
+console.log('10 category sidebar assertions passed.');

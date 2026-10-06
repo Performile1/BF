@@ -33,6 +33,7 @@ import {
   LayoutGrid,
   Bookmark
 } from 'lucide-react';
+import { CategorySidebar } from './CategorySidebar';
 import { AdminInspect } from './dev/AdminInspect';
 
 export type MainCategory = 
@@ -101,8 +102,9 @@ interface NavigationProps {
   unreadChatCount: number;
   isAdmin?: boolean;
   isHubHost?: boolean;
-  layout?: 'sidebar' | 'top';
+  layout?: 'sidebar' | 'compact' | 'top';
   homeTab?: string;
+  onLayoutChange?: (layout: 'sidebar' | 'compact' | 'top') => void;
 }
 
 export const Navigation: React.FC<NavigationProps> = ({
@@ -112,7 +114,8 @@ export const Navigation: React.FC<NavigationProps> = ({
   isAdmin = false,
   isHubHost = false,
   layout = 'sidebar',
-  homeTab = 'overview'
+  homeTab = 'overview',
+  onLayoutChange
 }) => {
   const [search, setSearch] = useState('');
   const matches = (label: string) => label.toLocaleLowerCase('sv').includes(search.toLocaleLowerCase('sv'));
@@ -452,27 +455,7 @@ export const Navigation: React.FC<NavigationProps> = ({
     ...(isAdmin ? [{ id: 'admin_settings', label: 'Admininställningar' }] : [])
   ];
   const sidebarCategories = mainCategories.map(cat => ({ ...cat, subtabs: cat.subtabs.filter(tab => tab.id !== 'dashboard_widgets').map(tab => tab.id === 'overview' ? { ...tab, id: homeTab, label: 'Hem' } : tab) }));
-  if (layout === 'sidebar') return (
-    <nav aria-label="Huvudnavigation" className="bg-white border rounded-2xl p-3 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto">
-      <label className="hidden lg:block mb-3 text-sm">Hitta funktion<input type="search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Sök i menyn" className="mt-2 border rounded-lg p-3 w-full" /></label>
-      <details className="lg:hidden" open={undefined}>
-        <summary className="p-3 font-semibold cursor-pointer">Alla funktioner & inställningar</summary>
-        {sidebarCategories.map(cat => <div key={cat.id} className="mb-3">
-          <h2 className="text-sm font-semibold text-gray-500 px-3 py-2">{cat.title}</h2>
-          {cat.subtabs.filter(tab => (!tab.adminOnly || isAdmin) && matches(tab.label)).map(tab => <button key={tab.id} onClick={event => { setActiveTab(tab.id); event.currentTarget.closest('details')?.removeAttribute('open'); }} aria-current={activeTab === tab.id ? 'page' : undefined} className={`block w-full text-left rounded-lg px-3 py-3 text-sm ${activeTab === tab.id ? 'bg-[#800020] text-white' : 'hover:bg-gray-100'}`}>{tab.label}</button>)}
-        </div>)}
-        {settingsLinks.map(link => <button key={link.id} onClick={event => { setActiveTab(link.id); event.currentTarget.closest('details')?.removeAttribute('open'); }} className="block w-full text-left p-3 text-sm">{link.label}</button>)}
-      </details>
-      <div className="hidden lg:block">
-        {search && !sidebarCategories.some(cat => cat.subtabs.some(tab => (!tab.adminOnly || isAdmin) && matches(tab.label))) && <p role="status" className="p-3 text-sm">Ingen funktion matchar sökningen.</p>}
-        {sidebarCategories.map(cat => <div key={cat.id} className="mb-3">
-          <h2 className="text-xs font-semibold text-gray-500 px-3 py-2">{cat.title}</h2>
-          {cat.subtabs.filter(tab => (!tab.adminOnly || isAdmin) && matches(tab.label)).map(tab => <button key={tab.id} onClick={event => { setActiveTab(tab.id); event.currentTarget.closest('details')?.removeAttribute('open'); }} aria-current={activeTab === tab.id ? 'page' : undefined} className={`flex gap-2 items-center w-full text-left rounded-lg px-3 py-2.5 text-sm ${activeTab === tab.id ? 'bg-[#800020] text-white' : 'hover:bg-gray-100'}`}><tab.icon className="w-4 h-4 shrink-0" />{tab.label}{tab.id === 'chat' && unreadChatCount > 0 ? ` (${unreadChatCount})` : ''}</button>)}
-        </div>)}
-        <div className="border-t pt-3">{settingsLinks.map(link => <button key={link.id} onClick={event => { setActiveTab(link.id); event.currentTarget.closest('details')?.removeAttribute('open'); }} aria-current={activeTab === link.id ? 'page' : undefined} className={`block w-full text-left p-3 rounded-lg text-sm ${activeTab === link.id ? 'bg-[#800020] text-white' : 'hover:bg-gray-100'}`}>{link.label}</button>)}</div>
-      </div>
-    </nav>
-  );
+  if (layout !== 'top') return <CategorySidebar categories={sidebarCategories} activeTab={activeTab} onNavigate={setActiveTab} compact={layout === 'compact'} onCompactChange={value => onLayoutChange?.(value ? 'compact' : 'sidebar')} isAdmin={isAdmin} isHubHost={isHubHost} unreadChatCount={unreadChatCount} />;
 
   return (
     <AdminInspect

@@ -1604,7 +1604,7 @@ export default function App() {
       onOpenAuth={() => setActiveTab('auth')}
     >
       <div className={`min-h-screen bg-[#F4F5F7] text-[#1F2937] font-sans antialiased ${experience.reducedMotion ? 'reduce-motion' : ''}`}>
-      {showWelcomeGuide && <WelcomeGuide onClose={closeWelcomeGuide} onNavigate={setActiveTab} />}
+      {showWelcomeGuide && <WelcomeGuide onClose={closeWelcomeGuide} onNavigate={setActiveTab} isAdmin={hasAdminAccess} isHubHost={isHubHost} />}
       
       <a href="#main-content" className="sr-only focus:not-sr-only focus:block focus:p-4 focus:bg-white">Hoppa till innehåll</a>
       {/* Top Main Navigation & Hub Header */}
@@ -1936,7 +1936,7 @@ export default function App() {
           </div>
         ) : (
           /* Desktop Portal Layout */
-          <div className={`relative ${experience.navigation === 'sidebar' ? 'lg:grid lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-6 items-start space-y-4 lg:space-y-0' : 'space-y-6'}`}>
+          <div className={`relative ${experience.navigation !== 'top' ? `${experience.navigation === 'compact' ? 'lg:grid-cols-[76px_minmax(0,1fr)]' : 'lg:grid-cols-[260px_minmax(0,1fr)]'} lg:grid lg:gap-6 items-start space-y-4 lg:space-y-0` : 'space-y-6'}`}>
             <Navigation
               activeTab={activeTab}
               setActiveTab={setActiveTab}
@@ -1945,6 +1945,7 @@ export default function App() {
               isHubHost={isHubHost}
               layout={experience.navigation}
               homeTab={experience.home}
+              onLayoutChange={navigation => updateExperience({ ...experience, navigation })}
             />
 
             <main id="main-content" className="min-w-0 pb-24 lg:pb-0">
