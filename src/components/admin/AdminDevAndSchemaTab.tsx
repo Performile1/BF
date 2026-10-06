@@ -1,3 +1,4 @@
+import { confirmDemoCleanup } from '../../lib/demoCleanup';
 import React, { useState, useEffect } from 'react';
 import { 
   Terminal, 
@@ -161,22 +162,9 @@ export const AdminDevAndSchemaTab: React.FC = () => {
     setStatusType('info');
 
     try {
+      if (!await confirmDemoCleanup()) { setStatusMessage('Rensning avbruten.'); return; }
       setCleanSlateMode(true);
-      const { error: rpcErr } = await supabase.rpc('purge_demo_data', {
-        p_target_user_id: targetUserId,
-      });
-
-      if (rpcErr) {
-        console.warn('RPC purge_demo_data ej registrerad i SQL, kör resilient delete-fallback:', rpcErr.message);
-        try {
-          await supabase.from('community_posts').delete().eq('author_id', targetUserId).eq('is_demo', true);
-          await supabase.from('crm_pipeline_deals').delete().eq('owner_member_id', targetUserId).eq('is_demo', true);
-        } catch (delErr) {
-          console.warn('Fallback delete warning:', delErr);
-        }
-      }
-
-      setStatusMessage('✓ All mockdata har rensats och Clean Slate är aktiverat.');
+      setStatusMessage('✓ Demoaktiviteter rensade. Profiler och CV behålls.');
       setStatusType('success');
       setTimeout(() => setStatusMessage(null), 5000);
     } catch (err: any) {
@@ -369,7 +357,7 @@ export const AdminDevAndSchemaTab: React.FC = () => {
               Rensa & Clean Slate
             </h3>
             <p className="text-xs text-gray-500 leading-relaxed">
-              Raderar omedelbart alla poster med <code className="text-rose-700 font-bold">is_demo = true</code> och nollställer till en ren start för lansering.
+              Förhandsgranskar och rensar endast aktivitetsposter med <code className="text-rose-700 font-bold">is_demo = true</code> efter bekräftelse. Profiler, CV, hubbar och fakturor behålls.
             </p>
           </div>
 
