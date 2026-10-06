@@ -1611,10 +1611,13 @@ export default function App() {
       <a href="#main-content" className="sr-only focus:not-sr-only focus:block focus:p-4 focus:bg-white">Hoppa till innehåll</a>
       {/* Top Main Navigation & Hub Header */}
       <Header
+        onHome={() => setActiveTab(experience.home)}
+        onOpenSettings={() => setActiveTab('settings')}
+        onQuickAction={() => { setShowFabModal(true); setActiveFabAction(null); }}
         currentUser={currentUser}
         allMembers={members}
         selectedHub={selectedHub}
-        allHubs={INITIAL_HUBS}
+        allHubs={hubs}
         onSelectHub={setSelectedHub}
         deviceMode={deviceMode}
         setDeviceMode={setDeviceMode}
