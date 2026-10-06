@@ -1,3 +1,4 @@
+import { confirmDemoCleanup } from '../../lib/demoCleanup';
 import React, { useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -161,26 +162,9 @@ export function DevHudDock({ onDataMutated }: { onDataMutated?: () => void }) {
   const handlePurge = async () => {
     try {
       setLoadingAction(true);
+      if (!await confirmDemoCleanup()) return;
       setCleanSlateMode(true);
-      const { data: { session } } = await supabase.auth.getSession();
-      const targetUserId = session?.user?.id || currentUser?.id;
-      if (targetUserId) {
-        const { error: rpcError } = await supabase.rpc('purge_demo_data', {
-          p_target_user_id: targetUserId,
-        });
-
-        if (rpcError) {
-          console.warn('purge_demo_data RPC fel, provar direkt delete:', rpcError.message);
-          try {
-            await supabase.from('crm_pipeline_deals').delete().eq('owner_member_id', targetUserId).eq('is_demo', true);
-            await supabase.from('community_posts').delete().eq('author_id', targetUserId).eq('is_demo', true);
-          } catch (delErr) {
-            console.warn('Direct delete warning:', delErr);
-          }
-        }
-      }
-
-      setStatusMsg('Clean Slate aktiverat & Mockup rensad! ✓');
+      setStatusMsg('Demoaktiviteter rensade. Profiler och CV behålls. ✓');
       setTimeout(() => setStatusMsg(null), 3500);
       if (onDataMutated) onDataMutated();
     } catch (err: any) {
