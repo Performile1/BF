@@ -182,7 +182,7 @@ export default function App() {
   const [selectedHub, setSelectedHub] = useState<Hub>(INITIAL_HUBS[0]);
   const { preferences: experience, update: updateExperience } = useExperiencePreferences(currentUser?.id || 'guest', currentUser?.preferred_start_page);
   const isHubHost = currentUser?.role === 'HUB_HOST';
-  const [activeTab, setActiveTab] = useState<string>(() => { const tab = window.location.hash.slice(1); return ['overview', 'home', 'dashboard_widgets', 'settings', 'hub_settings', 'admin_settings', 'matchmaking', 'coworking', 'calendar', 'events', 'community', 'directory', 'blog', 'chat', 'skills', 'academy', 'edx_partners', 'webinars', 'benefits', 'promos', 'advertise', 'pipeline', 'gamification', 'profile_settings', 'membership', 'admin', 'architecture'].includes(tab) ? tab : experience.home; });
+  const [activeTab, setActiveTab] = useState<string>(() => { const tab = window.location.hash.slice(1); return ['overview', 'home', 'dashboard_widgets', 'settings', 'hub_settings', 'admin_settings', 'matchmaking', 'coworking', 'calendar', 'events', 'community', 'directory', 'blog', 'chat', 'skills', 'academy', 'edx_partners', 'webinars', 'benefits', 'promos', 'advertise', 'pipeline', 'gamification', 'profile_settings', 'membership', 'admin', 'admin_hubs', 'admin_members', 'architecture'].includes(tab) ? tab : experience.home; });
   const initialDeepLink = React.useRef(window.location.hash !== '');
   const homeAccount = React.useRef(currentUser?.id);
   useEffect(() => {
@@ -194,7 +194,7 @@ export default function App() {
     }
   }, [currentUser?.id]);
   const [showWelcomeGuide, setShowWelcomeGuide] = useState(false);
-  const allowedTabs = ['overview', 'home', 'dashboard_widgets', 'settings', 'hub_settings', 'admin_settings', 'matchmaking', 'coworking', 'calendar', 'events', 'community', 'directory', 'blog', 'chat', 'skills', 'academy', 'edx_partners', 'webinars', 'benefits', 'promos', 'advertise', 'pipeline', 'gamification', 'profile_settings', 'membership', 'admin', 'architecture'];
+  const allowedTabs = ['overview', 'home', 'dashboard_widgets', 'settings', 'hub_settings', 'admin_settings', 'matchmaking', 'coworking', 'calendar', 'events', 'community', 'directory', 'blog', 'chat', 'skills', 'academy', 'edx_partners', 'webinars', 'benefits', 'promos', 'advertise', 'pipeline', 'gamification', 'profile_settings', 'membership', 'admin', 'admin_hubs', 'admin_members', 'architecture'];
   // Hash routes preserve invite/auth paths and let Back/Forward restore a view.
   useEffect(() => {
     const restore = () => {
@@ -3062,6 +3062,8 @@ export default function App() {
           />
         );
 
+      case 'admin_hubs':
+      case 'admin_members':
       case 'admin':
         if (!hasAdminAccess) {
           return (
@@ -3092,6 +3094,7 @@ export default function App() {
         }
         return (
           <AdminPortalModule
+            initialTab={activeTab === 'admin_hubs' ? 'HUBS' : activeTab === 'admin_members' ? 'MEMBERS' : 'KPIS'}
             currentUser={currentUser}
             allMembers={members}
             hubs={hubs}

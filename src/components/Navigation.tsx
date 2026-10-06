@@ -70,6 +70,8 @@ export type SubTabId =
   | 'gamification'
   | 'profile_settings'
   | 'membership'
+  | 'admin_hubs'
+  | 'admin_members'
   | 'admin'
   | 'architecture';
 
@@ -225,7 +227,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   };
 
   // Define the 5 primary main categories with rich descriptions for the dropdowns
-  const mainCategories: CategoryItem[] = useMemo(() => [
+  const sourceCategories: CategoryItem[] = useMemo(() => [
     {
       id: 'home',
       number: '1',
@@ -423,6 +425,8 @@ export const Navigation: React.FC<NavigationProps> = ({
     }
   ], [unreadChatCount]);
 
+  const mainCategories = [...sourceCategories];
+
   // Current category based on active tab
   const currentCategory = useMemo(() => {
     const found = mainCategories.find(cat => 
@@ -454,6 +458,16 @@ export const Navigation: React.FC<NavigationProps> = ({
     ...(isHubHost || isAdmin ? [{ id: 'hub_settings', label: 'Hubbinställningar' }] : []),
     ...(isAdmin ? [{ id: 'admin_settings', label: 'Admininställningar' }] : [])
   ];
+  if (isAdmin && !mainCategories.some(cat => cat.id === ('admin_tools' as any))) {
+    // Add an explicit admin category while preserving the existing portal destinations.
+    mainCategories.push({ id: 'admin_tools' as any, number: '6', title: 'ADMIN', subtitle: 'Hubbar, medlemmar & inställningar', icon: Shield, defaultTab: 'admin', subtabs: [
+      { id: 'admin', label: 'Adminöversikt', description: 'Översikt och befintliga verktyg', icon: Shield, adminOnly: true },
+      { id: 'admin_hubs', label: 'Hantera hubbar', description: 'Skapa och redigera hubbar', icon: Building2, adminOnly: true },
+      { id: 'admin_members', label: 'Hantera medlemmar', description: 'Medlemmar och medlemsnivåer', icon: Users, adminOnly: true },
+      { id: 'admin_settings' as any, label: 'Admininställningar', description: 'Drift och adminverktyg', icon: Settings, adminOnly: true },
+      { id: 'hub_settings' as any, label: 'Hubbinställningar', description: 'Inställningar för vald hubb', icon: Building2, adminOnly: true }
+    ] });
+  }
   const sidebarCategories = mainCategories.map(cat => ({ ...cat, subtabs: cat.subtabs.filter(tab => tab.id !== 'dashboard_widgets').map(tab => tab.id === 'overview' ? { ...tab, id: homeTab, label: 'Hem' } : tab) }));
   if (layout !== 'top') return <CategorySidebar categories={sidebarCategories} activeTab={activeTab} onNavigate={setActiveTab} compact={layout === 'compact'} onCompactChange={value => onLayoutChange?.(value ? 'compact' : 'sidebar')} isAdmin={isAdmin} isHubHost={isHubHost} unreadChatCount={unreadChatCount} />;
 
