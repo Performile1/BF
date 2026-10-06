@@ -23,12 +23,18 @@ import {
   LogIn,
   LogOut,
   UserPlus,
-  Shield
+  Shield,
+  Settings,
+  Home,
+  Plus
 } from 'lucide-react';
 import { Member, Hub, ChatChannel } from '../types';
 import { AdminInspect } from './dev/AdminInspect';
 
 interface HeaderProps {
+  onHome?: () => void;
+  onOpenSettings?: () => void;
+  onQuickAction?: () => void;
   currentUser: Member;
   allMembers: Member[];
   onSelectUser: (user: Member) => void;
@@ -55,6 +61,9 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
   currentUser,
+  onHome,
+  onOpenSettings,
+  onQuickAction,
   allMembers,
   onSelectUser,
   selectedHub,
@@ -78,7 +87,13 @@ export const Header: React.FC<HeaderProps> = ({
   onSignOut
 }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [showHubMenu, setShowHubMenu] = useState(false);
+  const headerRef = React.useRef<HTMLElement>(null);
+  React.useEffect(() => {
+    const outside = (event: MouseEvent) => { if (!headerRef.current?.contains(event.target as Node)) { setShowUserMenu(false); setShowNotificationMenu(false); } };
+    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') { setShowUserMenu(false); setShowNotificationMenu(false); } };
+    document.addEventListener('mousedown', outside); document.addEventListener('keydown', escape);
+    return () => { document.removeEventListener('mousedown', outside); document.removeEventListener('keydown', escape); };
+  }, []);
   const [showNotificationMenu, setShowNotificationMenu] = useState(false);
   const [activeNotifTab, setActiveNotifTab] = useState<'dms' | 'alerts'>('dms');
 
@@ -134,12 +149,12 @@ export const Header: React.FC<HeaderProps> = ({
       notes="Hämtar aktiv inloggad användare och aviseringsräknare"
       className="w-full sticky top-0 z-40"
     >
-      <header className="bg-white border-b border-gray-200 shadow-xs">
+      <header ref={headerRef} className="bg-white border-b border-gray-200 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 sm:h-20 gap-2 sm:gap-4">
           
           {/* Logo & Platform Info */}
-          <div className="flex items-center gap-3">
+          <button type="button" onClick={onHome} aria-label="Booster Friends — Hem" className="flex items-center gap-3 text-left rounded-lg">
             <div className="bg-[#800020] w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 shadow-xs">
               <span className="text-white font-bold text-xl">B</span>
             </div>
@@ -148,115 +163,21 @@ export const Header: React.FC<HeaderProps> = ({
                 <h1 className="text-lg sm:text-xl font-extrabold tracking-tight text-[#800020] uppercase font-display">
                   Booster  <span className="text-gray-400 font-light ml-1">Friends</span>
                 </h1>
-                <span className="hidden xl:inline-flex text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-gray-100 text-gray-600 border border-gray-200">
-                  Bento Edition
-                </span>
+
               </div>
               <p className="text-xs text-gray-500 hidden sm:block">
               
               </p>
             </div>
-          </div>
-
-          {/* Quick Hub Selector */}
-          <div className="relative hidden lg:block">
-            <button
-              onClick={() => setShowHubMenu(!showHubMenu)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 bg-[#F4F5F7] hover:bg-gray-100 text-xs font-medium text-gray-700 transition"
-              id="hub-selector-button"
-            >
-              <MapPin className="w-3.5 h-3.5 text-[#800020]" />
-              <span className="font-semibold text-gray-900">{selectedHub.name}</span>
-              <span className="text-gray-400">({selectedHub.member_count} medlemmar)</span>
-              <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
-            </button>
-
-            {showHubMenu && (
-              <div className="absolute left-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50 animate-in fade-in">
-                <div className="px-3 py-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                  Välj Hubb-nätverk
-                </div>
-                {allHubs.map(hub => (
-                  <button
-                    key={hub.id}
-                    onClick={() => {
-                      onSelectHub(hub);
-                      setShowHubMenu(false);
-                    }}
-                    className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-[#F4F5F7] transition ${
-                      hub.id === selectedHub.id ? 'bg-[#800020]/5 font-bold text-[#800020]' : 'text-gray-700'
-                    }`}
-                  >
-                    <div>
-                      <div className="font-medium text-gray-900">{hub.name}</div>
-                      <div className="text-[11px] text-gray-500">{hub.address}</div>
-                    </div>
-                    {hub.id === selectedHub.id && <Check className="w-4 h-4 text-[#800020]" />}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          </button>
 
           {/* Right Actions: Device Preview Switcher & Profile */}
           <div className="flex items-center gap-2 sm:gap-3">
             
-            {/* Quick Device Mode Switcher (Desktop / iOS / Android) */}
-            {setDeviceMode && (
-              <div className="hidden md:flex items-center bg-gray-100 p-0.5 rounded-xl border border-gray-200">
-                <button
-                  type="button"
-                  onClick={() => setDeviceMode('desktop')}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition ${
-                    deviceMode === 'desktop'
-                      ? 'bg-white text-[#800020] shadow-xs'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                  title="Desktop Portal"
-                >
-                  <Monitor className="w-3.5 h-3.5" />
-                  <span>Desktop</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDeviceMode('ios')}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition ${
-                    deviceMode === 'ios'
-                      ? 'bg-white text-[#800020] shadow-xs'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                  title="Apple iOS Simulator"
-                >
-                  <Smartphone className="w-3.5 h-3.5" />
-                  <span>iOS</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDeviceMode('android')}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition ${
-                    deviceMode === 'android'
-                      ? 'bg-white text-[#800020] shadow-xs'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                  title="Google Android Simulator"
-                >
-                  <Smartphone className="w-3.5 h-3.5" />
-                  <span>Android</span>
-                </button>
-              </div>
-            )}
-
-            {/* Booster Score Badge */}
-            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold">
-              <Award className="w-3.5 h-3.5 text-amber-600" />
-              <span>{currentUser.booster_score}</span>
-              <span className="text-[10px] text-amber-700 font-normal">Score</span>
-            </div>
-
             {/* Notification & Direct Messaging Bell Menu */}
             <div className="relative">
               <button
-                onClick={() => setShowNotificationMenu(prev => !prev)}
+                onClick={() => { setShowNotificationMenu(prev => !prev); setShowUserMenu(false); }}
                 className="relative p-2 rounded-xl text-gray-600 hover:bg-[#F4F5F7] hover:text-gray-900 transition"
                 title="Notiser & Direktmeddelanden"
                 id="btn-notifications"
@@ -439,19 +360,6 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </div>
 
-            {/* Quick Admin Portal Button (Desktop) */}
-            {isAdmin && (
-              <button
-                type="button"
-                onClick={onOpenAdmin}
-                className="hidden md:flex items-center gap-1.5 py-1.5 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold transition shadow-2xs cursor-pointer"
-                title="Öppna Adminpanelen, Dev HUD och schema-inspektorn"
-              >
-                <Shield className="w-3.5 h-3.5 text-amber-700" />
-                <span>Admin & Dev</span>
-              </button>
-            )}
-
             {/* User Profile & Persona Switcher */}
             <div className="relative">
               {isGuest ? (
@@ -465,14 +373,13 @@ export const Header: React.FC<HeaderProps> = ({
                 </button>
               ) : (
                 <button
-                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  onClick={() => { setShowUserMenu(!showUserMenu); setShowNotificationMenu(false); }}
+                  aria-expanded={showUserMenu}
+                  aria-controls="profile-quick-menu"
+                  aria-label="Profil och snabbåtgärder"
                   className="flex items-center gap-3 border-l pl-3 sm:pl-4 border-gray-200 hover:opacity-95 transition"
                   id="btn-user-profile-menu"
                 >
-                  <div className="text-right hidden sm:block">
-                    <p className="text-xs font-bold text-gray-900 leading-tight">{currentUser.full_name}</p>
-                    <p className="text-[10px] text-[#800020] font-bold uppercase tracking-wider">{currentUser.membership_level} Member</p>
-                  </div>
                   <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gray-200 border-2 border-[#800020] overflow-hidden flex-shrink-0 shadow-2xs">
                     <img
                       src={currentUser.avatar}
@@ -486,7 +393,7 @@ export const Header: React.FC<HeaderProps> = ({
 
               {/* Persona switcher dropdown */}
               {showUserMenu && (
-                <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-gray-200 py-3 z-50 animate-in fade-in">
+                <div id="profile-quick-menu" className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-6rem)] overflow-y-auto bg-white rounded-2xl shadow-xl border border-gray-200 py-3 z-50 animate-in fade-in">
                   <div className="px-4 pb-2 border-b border-gray-100">
                     <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Inloggad profil</p>
                     <p className="text-sm font-bold text-gray-900">{currentUser.full_name}</p>
@@ -494,6 +401,17 @@ export const Header: React.FC<HeaderProps> = ({
                     <div className="mt-2 flex items-center justify-between text-xs bg-[#F4F5F7] p-2 rounded-lg">
                       <span className="text-gray-600">Booster Score:</span>
                       <span className="font-bold text-[#800020]">{currentUser.booster_score} poäng (Topp 5%)</span>
+                    </div>
+
+                    <div className="space-y-2 mt-3">
+                      <h2 className="text-xs font-semibold text-gray-500">Snabbinställningar & åtgärder</h2>
+                      <button type="button" onClick={() => { onHome?.(); setShowUserMenu(false); }} className="flex gap-2 items-center w-full p-3 rounded-lg text-[#800020] hover:bg-rose-50"><Home className="w-4 h-4" />Hem</button>
+                      <button type="button" onClick={() => { onOpenSettings?.(); setShowUserMenu(false); }} className="flex gap-2 items-center w-full p-3 rounded-lg text-[#800020] hover:bg-rose-50"><Settings className="w-4 h-4" />Alla användarinställningar</button>
+                      <button type="button" onClick={() => { onOpenFullChat?.(); setShowUserMenu(false); }} className="flex gap-2 items-center w-full p-3 rounded-lg text-[#800020] hover:bg-rose-50"><MessageSquare className="w-4 h-4" />Meddelanden</button>
+                      <button type="button" onClick={() => { onQuickAction?.(); setShowUserMenu(false); }} className="flex gap-2 items-center w-full p-3 rounded-lg text-[#800020] hover:bg-rose-50"><Plus className="w-4 h-4" />Snabbåtgärd / Logga (+BP)</button>
+                      <button type="button" onClick={() => { onOpenCheckInModal(); setShowUserMenu(false); }} className="flex gap-2 items-center w-full p-3 rounded-lg text-[#800020] hover:bg-rose-50"><MapPin className="w-4 h-4" />Checka in</button>
+                      <button type="button" onClick={() => { onOpenQrModal?.(); setShowUserMenu(false); }} className="flex gap-2 items-center w-full p-3 rounded-lg text-[#800020] hover:bg-rose-50"><QrCode className="w-4 h-4" />Mitt QR-visitkort</button>
+                      <label className="block text-xs font-semibold">Aktuell hubb<select className="block mt-2 w-full border rounded-lg p-3 text-sm" value={selectedHub.id} onChange={event => { const hub = allHubs.find(item => item.id === event.target.value); if (hub) onSelectHub(hub); }}>{allHubs.map(hub => <option key={hub.id} value={hub.id}>{hub.name}</option>)}</select></label>
                     </div>
 
                     <button
@@ -507,7 +425,7 @@ export const Header: React.FC<HeaderProps> = ({
                         <CreditCard className="w-3.5 h-3.5 text-[#800020] group-hover:text-white transition" />
                         <span>Medlemskap & Fakturor</span>
                       </div>
-                      <span className="text-[10px] font-semibold text-[#800020]/70 group-hover:text-white/90">/profile/membership</span>
+                      <span className="text-[10px] font-semibold text-[#800020]/70 group-hover:text-white/90"></span>
                     </button>
 
                     {isAdmin && (
@@ -520,7 +438,7 @@ export const Header: React.FC<HeaderProps> = ({
                       >
                         <div className="flex items-center gap-2">
                           <Shield className="w-3.5 h-3.5 text-amber-700" />
-                          <span>Adminpanel & Dev HUD</span>
+                          <span>Adminpanel</span>
                         </div>
                         <span className="text-[10px] font-black bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded">
                           DEV
