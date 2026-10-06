@@ -58,6 +58,7 @@ import { AdminDevAndSchemaTab } from './AdminDevAndSchemaTab';
 import { AdminInspect } from '../dev/AdminInspect';
 
 interface AdminPortalModuleProps {
+  initialTab?: 'KPIS' | 'HUBS' | 'MEMBERS';
   currentUser: Member;
   allMembers: Member[];
   hubs: Hub[];
@@ -71,6 +72,7 @@ interface AdminPortalModuleProps {
 
 export const AdminPortalModule: React.FC<AdminPortalModuleProps> = ({
   currentUser,
+  initialTab = 'KPIS',
   allMembers = [],
   hubs = [],
   onUpdateMemberLevel,
@@ -122,7 +124,8 @@ export const AdminPortalModule: React.FC<AdminPortalModuleProps> = ({
     );
   }
 
-  const [activeAdminTab, setActiveAdminTab] = useState<'KPIS' | 'DEV_SCHEMA' | 'PROSPECTS' | 'BILLING' | 'RULES' | 'APPLICATIONS' | 'BANNERS' | 'HUBS' | 'MEMBERS' | 'QUIZ' | 'TRIAL'>('KPIS');
+  const [activeAdminTab, setActiveAdminTab] = useState<'KPIS' | 'DEV_SCHEMA' | 'PROSPECTS' | 'BILLING' | 'RULES' | 'APPLICATIONS' | 'BANNERS' | 'HUBS' | 'MEMBERS' | 'QUIZ' | 'TRIAL'>(initialTab);
+  React.useEffect(() => { setActiveAdminTab(initialTab); }, [initialTab]);
   const [applications, setApplications] = useState<AdminMemberApplication[]>(INITIAL_ADMIN_APPLICATIONS);
   const [bannerAds, setBannerAds] = useState<BannerAd[]>(INITIAL_BANNER_ADS);
   const [feedbackNotice, setFeedbackNotice] = useState<string | null>(null);
