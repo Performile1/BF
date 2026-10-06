@@ -5,6 +5,12 @@ import { getConnectUrl, downloadVCard } from '../../../utils/vcard';
 import { AdminInspect } from '../../dev/AdminInspect';
 
 export const VCardQrWidget: React.FC<WidgetComponentProps> = ({ currentUser }) => {
+  const [theme, setTheme] = useState('burgundy');
+  React.useEffect(() => {
+    const sync = () => { try { setTheme(localStorage.getItem(`bf_visitcard_${currentUser.id}`) || 'burgundy'); } catch {} };
+    sync(); window.addEventListener('bf_visitcard_changed', sync);
+    return () => window.removeEventListener('bf_visitcard_changed', sync);
+  }, [currentUser.id]);
   const [copied, setCopied] = useState(false);
   const connectUrl = getConnectUrl(currentUser.id);
 
@@ -26,7 +32,7 @@ export const VCardQrWidget: React.FC<WidgetComponentProps> = ({ currentUser }) =
       notes="Digitalt vCard och dynamisk QR-kod för kontaktutbyte"
       className="h-full"
     >
-      <div className="bg-white rounded-3xl p-5 border border-gray-200/80 shadow-xs flex flex-col justify-between h-full hover:border-gray-300 transition-all">
+      <div className={`bg-white rounded-3xl p-5 border shadow-xs flex flex-col justify-between h-full transition-all ${theme === 'dark' ? 'border-slate-700 border-t-8' : theme === 'light' ? 'border-gray-200' : 'border-[#800020] border-t-8'}`}>
       <div>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
