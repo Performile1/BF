@@ -36,7 +36,7 @@ export function CategorySidebar({ categories, activeTab, onNavigate, compact, on
     </div>;
   });
   const renderSettings = (mini: boolean) => <div className="border-t pt-3 mt-3">{links.map(link => <button type="button" key={link.id} title={mini ? link.label : undefined} aria-label={link.label} aria-current={activeTab === link.id ? 'page' : undefined} onClick={() => onNavigate(link.id)} className={`flex items-center gap-3 p-3 rounded-xl min-h-12 ${mini ? 'w-12 justify-center' : 'w-full text-left'} ${activeTab === link.id ? 'bg-[#800020] text-white' : 'hover:bg-gray-100'}`}><link.icon className="w-5 h-5 shrink-0" />{!mini && <span className="text-sm">{link.label}</span>}</button>)}</div>;
-  return <nav ref={root} aria-label="Huvudnavigation" className="bg-white border rounded-2xl p-3 lg:sticky lg:top-4">
+  return <nav ref={root} aria-label="Huvudnavigation" className="bg-white rounded-2xl p-3 lg:sticky lg:top-4">
     <div className="hidden lg:block">
       <button type="button" onClick={() => { onCompactChange(!compact); setSearch(''); setExpanded([]); }} aria-label={compact ? 'Visa fullständig meny' : 'Visa kompakt ikonmeny'} title={compact ? 'Visa fullständig meny' : 'Visa kompakt ikonmeny'} className="flex gap-3 items-center p-3 mb-3 rounded-xl hover:bg-gray-100 min-h-12">{compact ? <PanelLeftOpen className="w-5 h-5" /> : <><PanelLeftClose className="w-5 h-5" /><span className="text-sm">Minimera meny</span></>}</button>
       {!compact && <label className="block text-sm mb-3">Hitta funktion<input type="search" value={search} onChange={e => setSearch(e.target.value)} className="mt-2 border rounded-lg p-3 w-full" placeholder="Sök i menyn" /></label>}
