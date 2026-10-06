@@ -1963,7 +1963,7 @@ export default function App() {
             </nav>
 
             {/* Desktop Floating Action Button (FAB) in lower right corner */}
-            {hasAdminAccess && adminTools.quickAction && <div className={`fixed ${adminTools.hud ? 'bottom-56 lg:bottom-24' : 'bottom-24 lg:bottom-6'} right-4 lg:right-8 z-40`}>
+            {adminTools.quickAction && <div className={`fixed ${adminTools.hud ? 'bottom-56 lg:bottom-24' : 'bottom-24 lg:bottom-6'} right-4 lg:right-8 z-40`}>
               <button
                 onClick={() => {
                   setShowFabModal(true);
