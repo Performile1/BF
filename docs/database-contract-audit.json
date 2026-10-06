@@ -1,0 +1,204 @@
+{
+  "scope": "Repository-only; live Supabase schema not accessible or verified",
+  "tables": [
+    {
+      "name": "advertiser_settings",
+      "present_in_sql": true,
+      "files": [
+        "src/components/settings/OperationalSettings.tsx"
+      ]
+    },
+    {
+      "name": "community_posts",
+      "present_in_sql": true,
+      "files": [
+        "src/components/admin/AdminDevAndSchemaTab.tsx",
+        "src/components/community/CommunityPage.tsx",
+        "src/components/community/PostCard.tsx",
+        "src/components/community/PostComposer.tsx",
+        "src/components/dev/DevHudDock.tsx"
+      ]
+    },
+    {
+      "name": "coworking_desk_bookings",
+      "present_in_sql": true,
+      "files": [
+        "src/lib/widgetServices.ts"
+      ]
+    },
+    {
+      "name": "crm_pipeline_deals",
+      "present_in_sql": true,
+      "files": [
+        "src/App.tsx",
+        "src/components/admin/AdminDevAndSchemaTab.tsx",
+        "src/components/dev/DevHudDock.tsx",
+        "src/lib/widgetServices.ts"
+      ]
+    },
+    {
+      "name": "hub_operational_settings",
+      "present_in_sql": true,
+      "files": [
+        "src/components/settings/OperationalSettings.tsx"
+      ]
+    },
+    {
+      "name": "hubs",
+      "present_in_sql": true,
+      "files": [
+        "src/App.tsx",
+        "src/components/settings/RoleSettingsForms.tsx"
+      ]
+    },
+    {
+      "name": "invoices",
+      "present_in_sql": true,
+      "files": [
+        "src/lib/widgetServices.ts"
+      ]
+    },
+    {
+      "name": "member_active_locations",
+      "present_in_sql": true,
+      "files": [
+        "src/App.tsx"
+      ]
+    },
+    {
+      "name": "notification_subscriptions",
+      "present_in_sql": false,
+      "files": [
+        "src/lib/apiServices.ts"
+      ]
+    },
+    {
+      "name": "profiles",
+      "present_in_sql": true,
+      "files": [
+        "src/components/admin/AdminTrialSettings.tsx",
+        "src/components/community/CommunityPage.tsx",
+        "src/context/AuthContext.tsx",
+        "src/hooks/useAccountSecurityEnforcer.ts",
+        "src/pages/InviteLandingPage.tsx"
+      ]
+    },
+    {
+      "name": "proximity_pings",
+      "present_in_sql": true,
+      "files": [
+        "src/App.tsx"
+      ]
+    },
+    {
+      "name": "system_activity_ticker_events",
+      "present_in_sql": true,
+      "files": [
+        "src/App.tsx"
+      ]
+    },
+    {
+      "name": "system_rule_configs",
+      "present_in_sql": true,
+      "files": [
+        "src/components/admin/AdminTrialSettings.tsx"
+      ]
+    },
+    {
+      "name": "system_settings",
+      "present_in_sql": true,
+      "files": [
+        "src/components/settings/RoleSettingsForms.tsx",
+        "src/lib/widgetServices.ts"
+      ]
+    },
+    {
+      "name": "user_dashboard_layouts",
+      "present_in_sql": true,
+      "files": [
+        "src/lib/widgetServices.ts"
+      ]
+    },
+    {
+      "name": "user_dashboard_widgets",
+      "present_in_sql": true,
+      "files": [
+        "src/lib/widgetServices.ts"
+      ]
+    },
+    {
+      "name": "user_mfa_settings",
+      "present_in_sql": false,
+      "files": [
+        "src/lib/mfaService.ts"
+      ]
+    },
+    {
+      "name": "v_who_is_at_hub_today",
+      "present_in_sql": false,
+      "files": [
+        "src/lib/widgetServices.ts"
+      ]
+    }
+  ],
+  "rpc": [
+    {
+      "name": "connect_vcard_friend",
+      "present_in_sql": false,
+      "files": [
+        "src/lib/apiServices.ts"
+      ]
+    },
+    {
+      "name": "delete_user_account",
+      "present_in_sql": false,
+      "files": [
+        "src/lib/apiServices.ts"
+      ]
+    },
+    {
+      "name": "get_admin_dashboard_kpis",
+      "present_in_sql": true,
+      "files": [
+        "src/lib/widgetServices.ts"
+      ]
+    },
+    {
+      "name": "process_referral_signup",
+      "present_in_sql": false,
+      "files": [
+        "src/lib/apiServices.ts"
+      ]
+    },
+    {
+      "name": "purge_demo_data",
+      "present_in_sql": true,
+      "files": [
+        "src/components/admin/AdminDevAndSchemaTab.tsx",
+        "src/components/dev/DevHudDock.tsx"
+      ]
+    },
+    {
+      "name": "seed_demo_data",
+      "present_in_sql": true,
+      "files": [
+        "src/components/admin/AdminDevAndSchemaTab.tsx",
+        "src/components/dev/DevHudDock.tsx"
+      ]
+    },
+    {
+      "name": "send_broadcast",
+      "present_in_sql": false,
+      "files": [
+        "src/lib/apiServices.ts"
+      ]
+    },
+    {
+      "name": "update_profile_avatar",
+      "present_in_sql": false,
+      "files": [
+        "src/lib/apiServices.ts"
+      ]
+    }
+  ]
+}
