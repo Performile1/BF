@@ -1,3 +1,4 @@
+import { AiWritingAssistant } from '../common/AiWritingAssistant';
 import React, { useState } from 'react';
 import { 
   Send, 
@@ -598,6 +599,7 @@ export const ChatModule: React.FC<ChatModuleProps> = ({
         {/* Message Input & Attachments Bar */}
         <div className="p-3 sm:p-4 border-t border-gray-200 bg-white relative">
           
+          <AiWritingAssistant scope={activeChannel?.id} text={inputText} onApply={setInputText} />
           {/* Attach Menu Popover */}
           {showAttachMenu && (
             <div className="absolute bottom-20 left-4 bg-white rounded-2xl shadow-xl border border-gray-200 p-2 z-30 w-64 animate-in fade-in slide-in-from-bottom-2">
