@@ -41,6 +41,7 @@ import {
   CalendarAttendee,
   MembershipLevel
 } from './types';
+import { ExperienceSettings, WelcomeGuide, useExperiencePreferences } from './components/settings/ExperienceSettings';
 import { Header } from './components/Header';
 import { Navigation, ActiveTab } from './components/Navigation';
 import { ChatModule } from './components/chat/ChatModule';
@@ -132,6 +133,7 @@ import {
   Home,
   QrCode,
   Bell,
+  MessageSquare,
   Briefcase,
   Layers,
   BookOpen,
@@ -176,13 +178,47 @@ export default function App() {
   // Application State
   const [hubs, setHubs] = useState<Hub[]>(INITIAL_HUBS);
   const [selectedHub, setSelectedHub] = useState<Hub>(INITIAL_HUBS[0]);
-  const [activeTab, setActiveTab] = useState<string>(() => {
-    try {
-      const saved = localStorage.getItem('bf_preferred_start_page');
-      if (saved) return saved;
-    } catch {}
-    return currentUser?.preferred_start_page || 'overview';
-  });
+  const { preferences: experience, update: updateExperience } = useExperiencePreferences(currentUser?.id || 'guest', currentUser?.preferred_start_page);
+  const isHubHost = currentUser?.role === 'HUB_HOST';
+  const [activeTab, setActiveTab] = useState<string>(() => { const tab = window.location.hash.slice(1); return ['overview', 'home', 'dashboard_widgets', 'settings', 'hub_settings', 'admin_settings', 'matchmaking', 'coworking', 'calendar', 'events', 'community', 'directory', 'blog', 'chat', 'skills', 'academy', 'edx_partners', 'webinars', 'benefits', 'promos', 'advertise', 'pipeline', 'gamification', 'profile_settings', 'membership', 'admin', 'architecture'].includes(tab) ? tab : experience.home; });
+  const initialDeepLink = React.useRef(window.location.hash !== '');
+  const homeAccount = React.useRef(currentUser?.id);
+  useEffect(() => {
+    if (homeAccount.current !== currentUser?.id) {
+      homeAccount.current = currentUser?.id;
+      if (!initialDeepLink.current && (activeTab === 'overview' || activeTab === 'dashboard_widgets')) {
+        try { const saved = JSON.parse(localStorage.getItem(`bf_experience_${currentUser?.id}`) || '{}'); const start = saved.home || localStorage.getItem('bf_preferred_start_page') || localStorage.getItem('bf_user_landing_page') || currentUser?.preferred_start_page; setActiveTab(allowedTabs.includes(start) ? start : 'overview'); } catch {}
+      }
+    }
+  }, [currentUser?.id]);
+  const [showWelcomeGuide, setShowWelcomeGuide] = useState(false);
+  const allowedTabs = ['overview', 'home', 'dashboard_widgets', 'settings', 'hub_settings', 'admin_settings', 'matchmaking', 'coworking', 'calendar', 'events', 'community', 'directory', 'blog', 'chat', 'skills', 'academy', 'edx_partners', 'webinars', 'benefits', 'promos', 'advertise', 'pipeline', 'gamification', 'profile_settings', 'membership', 'admin', 'architecture'];
+  // Hash routes preserve invite/auth paths and let Back/Forward restore a view.
+  useEffect(() => {
+    const restore = () => {
+      const tab = window.location.hash.slice(1);
+      if (allowedTabs.includes(tab)) setActiveTab(tab);
+    };
+    restore();
+    window.addEventListener('hashchange', restore);
+    return () => window.removeEventListener('hashchange', restore);
+  }, []);
+  useEffect(() => {
+    if (!allowedTabs.includes(activeTab)) return;
+    // Supabase owns authentication callback fragments until they are consumed.
+    if (/access_token=|refresh_token=|error_description=/.test(window.location.hash)) return;
+    if (window.location.hash.slice(1) !== activeTab) window.location.hash = activeTab;
+  }, [activeTab]);
+  useEffect(() => {
+    if (isGuest || !currentUser?.id) return;
+    const key = `bf_guide_seen_${currentUser.id}`;
+    try { setShowWelcomeGuide(localStorage.getItem(key) !== '1'); } catch { setShowWelcomeGuide(false); }
+  }, [currentUser?.id, isGuest]);
+  const closeWelcomeGuide = React.useCallback(() => {
+    setShowWelcomeGuide(false);
+    try { localStorage.setItem(`bf_guide_seen_${currentUser?.id}`, '1'); } catch {}
+  }, [currentUser?.id]);
+
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [deviceMode, setDeviceMode] = useState<'desktop' | 'ios' | 'android'>('desktop');
   const [quickChatInput, setQuickChatInput] = useState('');
@@ -1567,8 +1603,10 @@ export default function App() {
       currentUser={currentUser}
       onOpenAuth={() => setActiveTab('auth')}
     >
-      <div className="min-h-screen bg-[#F4F5F7] text-[#1F2937] font-sans antialiased">
+      <div className={`min-h-screen bg-[#F4F5F7] text-[#1F2937] font-sans antialiased ${experience.reducedMotion ? 'reduce-motion' : ''}`}>
+      {showWelcomeGuide && <WelcomeGuide onClose={closeWelcomeGuide} onNavigate={setActiveTab} />}
       
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:block focus:p-4 focus:bg-white">Hoppa till innehåll</a>
       {/* Top Main Navigation & Hub Header */}
       <Header
         currentUser={currentUser}
@@ -1898,20 +1936,31 @@ export default function App() {
           </div>
         ) : (
           /* Desktop Portal Layout */
-          <div className="space-y-6 relative">
+          <div className={`relative ${experience.navigation === 'sidebar' ? 'lg:grid lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-6 items-start space-y-4 lg:space-y-0' : 'space-y-6'}`}>
             <Navigation
               activeTab={activeTab}
               setActiveTab={setActiveTab}
               unreadChatCount={unreadChatCount}
               isAdmin={hasAdminAccess}
+              isHubHost={isHubHost}
+              layout={experience.navigation}
+              homeTab={experience.home}
             />
 
-            <main>
+            <main id="main-content" className="min-w-0 pb-24 lg:pb-0">
+              <div className="flex flex-wrap gap-2 mb-4">
+                <button className="bg-[#800020] text-white px-4 py-3 rounded-xl text-sm" onClick={() => setActiveTab('coworking')}>Boka arbetsplats</button>
+                <button className="bg-white border px-4 py-3 rounded-xl text-sm" onClick={() => setActiveTab('directory')}>Hitta medlem</button>
+                <button className="bg-white border px-4 py-3 rounded-xl text-sm" onClick={() => setActiveTab('settings')}>Inställningar</button>
+              </div>
               {renderActiveContent()}
             </main>
+            <nav aria-label="Mobilnavigation" className="lg:hidden fixed bottom-0 inset-x-0 bg-white border-t z-40 flex justify-around pb-[env(safe-area-inset-bottom)]">
+              {[{ tab: experience.home, label: 'Hem', icon: Home }, { tab: 'directory', label: 'Nätverk', icon: Users }, { tab: 'coworking', label: 'Boka', icon: Building2 }, { tab: 'chat', label: 'Meddelanden', icon: MessageSquare }, { tab: 'settings', label: 'Mer', icon: Layers }].map(item => <button key={item.label} aria-current={activeTab === item.tab ? 'page' : undefined} onClick={() => setActiveTab(item.tab)} className={`flex flex-col items-center justify-center gap-1 py-3 px-2 text-xs min-h-14 ${activeTab === item.tab ? 'text-[#800020] font-bold' : 'text-gray-600'}`}><item.icon className="w-5 h-5" />{item.label}</button>)}
+            </nav>
 
             {/* Desktop Floating Action Button (FAB) in lower right corner */}
-            <div className="fixed bottom-6 right-8 z-40">
+            <div className="fixed bottom-24 lg:bottom-6 right-4 lg:right-8 z-40">
               <button
                 onClick={() => {
                   setShowFabModal(true);
@@ -2636,6 +2685,10 @@ export default function App() {
     }
 
     switch (activeTab) {
+      case 'settings':
+      case 'hub_settings':
+      case 'admin_settings':
+        return <ExperienceSettings section={activeTab} preferences={experience} onChange={value => { updateExperience(value); }} onNavigate={setActiveTab} onGuide={() => setShowWelcomeGuide(true)} isAdmin={hasAdminAccess} isHubHost={isHubHost} />;
       case 'dashboard_widgets':
         return (
           <DashboardGrid

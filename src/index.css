@@ -98,3 +98,17 @@
 .mobile-simulator button {
   flex-shrink: 0;
 }
+
+/* Opt-in and operating-system motion preferences apply to tickers too. */
+.reduce-motion *, .reduce-motion *::before, .reduce-motion *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible, summary:focus-visible {
+  outline: 3px solid #800020;
+  outline-offset: 3px;
+}

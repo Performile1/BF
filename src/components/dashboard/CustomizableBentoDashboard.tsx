@@ -399,17 +399,17 @@ export const ALL_AVAILABLE_WIDGETS: WidgetDefinition[] = [
 ];
 
 export const DEFAULT_WIDGET_ORDER = [
-  'system_ticker_widget',
-  'mini_widgets_bar',
-  'profile_gamification',
-  'coffee_ping_radar',
   'my_meetings',
-  'pipeline',
   'who_is_at_hub',
   'matchmaking',
-  'geofencing',
   'forum_activity',
-  'guest_pass'
+  'mini_widgets_bar',
+  'coffee_ping_radar',
+  'pipeline',
+  'guest_pass',
+  'profile_gamification',
+  'geofencing',
+  'system_ticker_widget'
 ];
 
 export const SIZE_TO_CLASS: Record<WidgetSize, string> = {
