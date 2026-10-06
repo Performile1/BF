@@ -33,6 +33,7 @@ import {
   LayoutGrid,
   Bookmark
 } from 'lucide-react';
+import { CategorySidebar } from './CategorySidebar';
 import { AdminInspect } from './dev/AdminInspect';
 
 export type MainCategory = 
@@ -100,14 +101,24 @@ interface NavigationProps {
   setActiveTab: (tab: any) => void;
   unreadChatCount: number;
   isAdmin?: boolean;
+  isHubHost?: boolean;
+  layout?: 'sidebar' | 'compact' | 'top';
+  homeTab?: string;
+  onLayoutChange?: (layout: 'sidebar' | 'compact' | 'top') => void;
 }
 
 export const Navigation: React.FC<NavigationProps> = ({
   activeTab,
   setActiveTab,
   unreadChatCount,
-  isAdmin = false
+  isAdmin = false,
+  isHubHost = false,
+  layout = 'sidebar',
+  homeTab = 'overview',
+  onLayoutChange
 }) => {
+  const [search, setSearch] = useState('');
+  const matches = (label: string) => label.toLocaleLowerCase('sv').includes(search.toLocaleLowerCase('sv'));
   // Start page preference
   const [preferredStartPage, setPreferredStartPage] = useState<string>(() => {
     try {
@@ -116,12 +127,18 @@ export const Navigation: React.FC<NavigationProps> = ({
       return 'overview';
     }
   });
+  useEffect(() => {
+    const sync = (event: Event) => setPreferredStartPage((event as CustomEvent<string>).detail);
+    window.addEventListener('bf_start_page_changed', sync);
+    return () => window.removeEventListener('bf_start_page_changed', sync);
+  }, []);
   const [startPageToast, setStartPageToast] = useState<string | null>(null);
 
   const handleSetPreferredStartPage = (tabId: string, label: string) => {
     setPreferredStartPage(tabId);
     try {
       localStorage.setItem('bf_preferred_start_page', tabId);
+      window.dispatchEvent(new CustomEvent('bf_start_page_changed', { detail: tabId }));
     } catch {}
     setStartPageToast(`"${label}" har sparats som din valda första sida!`);
     setTimeout(() => setStartPageToast(null), 3000);
@@ -366,7 +383,7 @@ export const Navigation: React.FC<NavigationProps> = ({
       subtabs: [
         { 
           id: 'pipeline', 
-          label: 'My Pipeline (CRM)', 
+          label: 'Pipeline', 
           description: 'Pågående B2B-affärer, prospekt och ordervärde', 
           icon: TrendingUp 
         },
@@ -384,7 +401,7 @@ export const Navigation: React.FC<NavigationProps> = ({
         },
         { 
           id: 'membership', 
-          label: 'Medlemskap (/membership)', 
+          label: 'Medlemskap', 
           description: 'Nivåer (Gold/Silver), kvitton och uppgradering', 
           icon: CreditCard 
         },
@@ -432,6 +449,14 @@ export const Navigation: React.FC<NavigationProps> = ({
     return 'right-0';
   };
 
+  const settingsLinks = [
+    { id: 'settings', label: 'Inställningar' },
+    ...(isHubHost || isAdmin ? [{ id: 'hub_settings', label: 'Hubbinställningar' }] : []),
+    ...(isAdmin ? [{ id: 'admin_settings', label: 'Admininställningar' }] : [])
+  ];
+  const sidebarCategories = mainCategories.map(cat => ({ ...cat, subtabs: cat.subtabs.filter(tab => tab.id !== 'dashboard_widgets').map(tab => tab.id === 'overview' ? { ...tab, id: homeTab, label: 'Hem' } : tab) }));
+  if (layout !== 'top') return <CategorySidebar categories={sidebarCategories} activeTab={activeTab} onNavigate={setActiveTab} compact={layout === 'compact'} onCompactChange={value => onLayoutChange?.(value ? 'compact' : 'sidebar')} isAdmin={isAdmin} isHubHost={isHubHost} unreadChatCount={unreadChatCount} />;
+
   return (
     <AdminInspect
       component="Navigation.tsx"
@@ -440,6 +465,7 @@ export const Navigation: React.FC<NavigationProps> = ({
       notes="5-kategoriers navigation med dropdown-meny och kontextremsa (Klient-hanterat UI-state)"
     >
       <div ref={navContainerRef} className="space-y-2.5 relative" onMouseLeave={handleMouseLeave}>
+        <div className="flex flex-wrap gap-2">{settingsLinks.map(link => <button key={link.id} onClick={() => setActiveTab(link.id)} className="px-3 py-2 rounded-lg bg-white border text-sm">{link.label}</button>)}</div>
         {/* Start page saved notification banner */}
         {startPageToast && (
           <div className="bg-amber-500 text-gray-950 font-bold px-3 py-1.5 rounded-xl text-xs flex items-center justify-between shadow-md border border-amber-400 animate-in fade-in slide-in-from-top-1">

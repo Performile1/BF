@@ -1,0 +1,11 @@
+import React from 'react';
+import assert from 'node:assert/strict';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { AdminToolSettings } from '../src/components/settings/AdminToolSettings';
+const render = (hud: boolean, quickAction: boolean) => renderToStaticMarkup(<AdminToolSettings tools={{ hud, quickAction }} onChange={() => {}} />);
+assert.equal((render(false, false).match(/checked=""/g) || []).length, 0);
+assert.equal((render(true, true).match(/checked=""/g) || []).length, 2);
+assert.equal((render(true, false).match(/checked=""/g) || []).length, 1);
+assert.match(render(false, false), /Hover Inspector, Clean Slate, Ladda Mock och Rensa Mock/);
+assert.match(render(false, false), /laddar eller rensar inga data/);
+console.log('5 admin tool visibility assertions passed');
