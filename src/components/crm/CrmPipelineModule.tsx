@@ -26,7 +26,9 @@ import {
   Check,
   Zap,
   Info,
-  Layers
+  Layers,
+  Edit3,
+  Trash2
 } from 'lucide-react';
 import { DealPipelineItem, Member, PipelineStage, ActivityType } from '../../types';
 import { formatSek } from '../../utils/calendar';
@@ -37,6 +39,8 @@ interface CrmPipelineModuleProps {
   pipelineItems: DealPipelineItem[];
   onUpdateStage: (dealId: string, newStage: PipelineStage) => void;
   onAddDeal: (deal: Omit<DealPipelineItem, 'id'>) => void;
+  onEditDeal?: (deal: DealPipelineItem) => void;
+  onDeleteDeal?: (dealId: string) => void;
   onAwardBoosterPoints?: (points: number, title: string, activityType: ActivityType) => void;
 }
 
@@ -45,6 +49,8 @@ export const CrmPipelineModule: React.FC<CrmPipelineModuleProps> = ({
   pipelineItems = [],
   onUpdateStage,
   onAddDeal,
+  onEditDeal,
+  onDeleteDeal,
   onAwardBoosterPoints
 }) => {
   const [activeView, setActiveView] = useState<'kanban' | 'cards' | 'table'>('kanban');
@@ -54,16 +60,63 @@ export const CrmPipelineModule: React.FC<CrmPipelineModuleProps> = ({
   const [selectedStageFilter, setSelectedStageFilter] = useState<string>('ALL');
   const [wonDealCelebration, setWonDealCelebration] = useState<{ title: string; value: number } | null>(null);
   
-  // New deal form state
+  // New deal form state - initial empty
   const [title, setTitle] = useState('');
   const [clientCompany, setClientCompany] = useState('');
   const [contactPerson, setContactPerson] = useState('');
-  const [referralSource, setReferralSource] = useState('Nätverksintroduktion');
-  const [valueSek, setValueSek] = useState('350000');
+  const [referralSource, setReferralSource] = useState('');
+  const [valueSek, setValueSek] = useState('');
   const [stage, setStage] = useState<PipelineStage>('lead');
-  const [nextStep, setNextStep] = useState('Boka 1-till-1 möte');
-  const [dueDate, setDueDate] = useState('2026-09-30');
+  const [nextStep, setNextStep] = useState('');
+  const [dueDate, setDueDate] = useState('');
   const [notes, setNotes] = useState('');
+
+  // Clear new deal form completely so no previous data persists
+  const resetAddForm = () => {
+    setTitle('');
+    setClientCompany('');
+    setContactPerson('');
+    setReferralSource('');
+    setValueSek('');
+    setStage('lead');
+    setNextStep('');
+    setDueDate('');
+    setNotes('');
+  };
+
+  // Edit deal modal state
+  const [editingDeal, setEditingDeal] = useState<DealPipelineItem | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editClientCompany, setEditClientCompany] = useState('');
+  const [editContactPerson, setEditContactPerson] = useState('');
+  const [editReferralSource, setEditReferralSource] = useState('');
+  const [editValueSek, setEditValueSek] = useState('');
+  const [editStage, setEditStage] = useState<PipelineStage>('lead');
+  const [editProbability, setEditProbability] = useState<number>(25);
+  const [editNextStep, setEditNextStep] = useState('');
+  const [editDueDate, setEditDueDate] = useState('');
+  const [editNotes, setEditNotes] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const handleOpenEditModal = (deal: DealPipelineItem) => {
+    setEditingDeal(deal);
+    setEditTitle(deal.title || '');
+    setEditClientCompany(deal.client_company || '');
+    setEditContactPerson(deal.contact_person || '');
+    setEditReferralSource(deal.referral_source || '');
+    setEditValueSek(deal.value_sek ? String(deal.value_sek) : '');
+    setEditStage(deal.stage === 'contact' ? 'meeting_done' : deal.stage);
+    setEditProbability(deal.probability ?? 25);
+    setEditNextStep(deal.next_step || '');
+    setEditDueDate(deal.due_date || '');
+    setEditNotes(deal.notes || '');
+    setShowDeleteConfirm(false);
+  };
+
+  const handleCloseEditModal = () => {
+    setEditingDeal(null);
+    setShowDeleteConfirm(false);
+  };
 
   // 5 Master V4 Kanban Stages
   const stages: { 
@@ -164,31 +217,79 @@ export const CrmPipelineModule: React.FC<CrmPipelineModuleProps> = ({
       closed_won: 100
     };
 
+    const parsedVal = valueSek ? parseInt(valueSek.replace(/\s+/g, ''), 10) : 0;
+    const finalVal = isNaN(parsedVal) ? 0 : parsedVal;
+    const finalDueDate = dueDate || new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0];
+
     onAddDeal({
-      title,
-      client_company: clientCompany,
-      contact_person: contactPerson,
-      referral_source: referralSource,
-      value_sek: parseInt(valueSek) || 0,
+      title: title.trim(),
+      client_company: clientCompany.trim() || 'Klientföretag',
+      contact_person: contactPerson.trim(),
+      referral_source: referralSource.trim() || 'Booster Friends Nätverk',
+      value_sek: finalVal,
       stage,
       probability: probMap[stage] || 50,
-      next_step: nextStep,
-      due_date: dueDate,
-      notes,
+      next_step: nextStep.trim() || 'Följ upp affärsmöjlighet',
+      due_date: finalDueDate,
+      notes: notes.trim(),
       created_at: new Date().toISOString()
     });
 
     if (stage === 'closed_won' && onAwardBoosterPoints) {
       onAwardBoosterPoints(100, `Stängd affär: ${title}`, 'DEAL_WON');
-      setWonDealCelebration({ title, value: parseInt(valueSek) || 0 });
+      setWonDealCelebration({ title, value: finalVal });
       setTimeout(() => setWonDealCelebration(null), 5000);
     }
 
+    // Töm hela formuläret så inga gamla värden ligger kvar
+    resetAddForm();
     setShowAddModal(false);
-    setTitle('');
-    setClientCompany('');
-    setContactPerson('');
-    setNotes('');
+  };
+
+  const handleSaveEditedDeal = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingDeal || !editTitle.trim()) return;
+
+    const parsedVal = editValueSek ? parseInt(editValueSek.replace(/\s+/g, ''), 10) : 0;
+    const finalVal = isNaN(parsedVal) ? 0 : parsedVal;
+    const wasWon = editingDeal.stage === 'closed_won';
+    const isNowWon = editStage === 'closed_won';
+
+    const updatedDeal: DealPipelineItem = {
+      ...editingDeal,
+      title: editTitle.trim(),
+      client_company: editClientCompany.trim() || 'Klientföretag',
+      contact_person: editContactPerson.trim(),
+      referral_source: editReferralSource.trim(),
+      value_sek: finalVal,
+      stage: editStage,
+      probability: Number(editProbability) || 0,
+      next_step: editNextStep.trim(),
+      due_date: editDueDate || editingDeal.due_date,
+      notes: editNotes.trim(),
+    };
+
+    if (isNowWon && !wasWon && onAwardBoosterPoints) {
+      onAwardBoosterPoints(100, `Stängd affär: ${updatedDeal.title}`, 'DEAL_WON');
+      setWonDealCelebration({ title: updatedDeal.title, value: finalVal });
+      setTimeout(() => setWonDealCelebration(null), 5000);
+    }
+
+    if (onEditDeal) {
+      onEditDeal(updatedDeal);
+    } else {
+      onUpdateStage(updatedDeal.id, updatedDeal.stage);
+    }
+
+    handleCloseEditModal();
+  };
+
+  const handleDeleteCurrentDeal = () => {
+    if (!editingDeal) return;
+    if (onDeleteDeal) {
+      onDeleteDeal(editingDeal.id);
+    }
+    handleCloseEditModal();
   };
 
   const stageOrder: PipelineStage[] = ['lead', 'intro_sent', 'meeting_done', 'proposal', 'closed_won'];
@@ -530,12 +631,25 @@ export const CrmPipelineModule: React.FC<CrmPipelineModuleProps> = ({
                       return (
                         <div
                           key={deal.id}
-                          className="bg-white p-3 rounded-xl border border-gray-200 shadow-xs space-y-2 hover:border-[#800020]/40 transition group"
+                          onClick={() => handleOpenEditModal(deal)}
+                          className="bg-white p-3 rounded-xl border border-gray-200 shadow-xs space-y-2 hover:border-[#800020]/50 hover:shadow-md transition group cursor-pointer relative"
                         >
                           <div className="flex items-start justify-between gap-1">
-                            <h4 className="text-xs font-bold text-gray-900 leading-snug">
+                            <h4 className="text-xs font-bold text-gray-900 leading-snug group-hover:text-[#800020] transition">
                               {deal.title}
                             </h4>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenEditModal(deal);
+                              }}
+                              className="p-1 rounded-lg text-gray-400 hover:text-[#800020] hover:bg-[#800020]/10 transition shrink-0 opacity-80 group-hover:opacity-100"
+                              title="Redigera affärsmöjlighet"
+                              aria-label="Redigera"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
                           </div>
 
                           <div className="space-y-1">
@@ -577,10 +691,14 @@ export const CrmPipelineModule: React.FC<CrmPipelineModuleProps> = ({
                           <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[10px] text-gray-400">
                             <span className="truncate">Förfall: {deal.due_date}</span>
                             
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                               {normalizedStage !== 'lead' && (
                                 <button
-                                  onClick={() => moveStage(deal.id, normalizedStage, 'back')}
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    moveStage(deal.id, normalizedStage, 'back');
+                                  }}
                                   className="p-1 rounded bg-gray-100 hover:bg-gray-200 text-gray-700"
                                   title="Flytta bakåt i fasen"
                                 >
@@ -590,7 +708,11 @@ export const CrmPipelineModule: React.FC<CrmPipelineModuleProps> = ({
                               
                               {normalizedStage !== 'closed_won' ? (
                                 <button
-                                  onClick={() => moveStage(deal.id, normalizedStage, 'forward')}
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    moveStage(deal.id, normalizedStage, 'forward');
+                                  }}
                                   className="px-1.5 py-1 rounded bg-[#800020] hover:bg-[#580016] text-white flex items-center gap-1 font-bold text-[10px]"
                                   title="Flytta framåt till nästa fas"
                                 >
@@ -674,7 +796,8 @@ export const CrmPipelineModule: React.FC<CrmPipelineModuleProps> = ({
                 return (
                   <div
                     key={deal.id}
-                    className="bg-white rounded-2xl border border-gray-200 p-4 shadow-xs hover:border-[#800020]/30 transition space-y-3"
+                    onClick={() => handleOpenEditModal(deal)}
+                    className="bg-white rounded-2xl border border-gray-200 p-4 shadow-xs hover:border-[#800020]/40 transition space-y-3 cursor-pointer"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div>
@@ -686,7 +809,7 @@ export const CrmPipelineModule: React.FC<CrmPipelineModuleProps> = ({
                             Förfaller {deal.due_date}
                           </span>
                         </div>
-                        <h4 className="font-bold text-gray-900 text-base mt-1">
+                        <h4 className="font-bold text-gray-900 text-base mt-1 hover:text-[#800020] transition">
                           {deal.title}
                         </h4>
                         <div className="text-xs text-gray-600 font-medium">
@@ -694,12 +817,26 @@ export const CrmPipelineModule: React.FC<CrmPipelineModuleProps> = ({
                         </div>
                       </div>
 
-                      <div className="text-right shrink-0">
-                        <div className="text-lg font-black text-[#800020] font-display">
-                          {formatSek(deal.value_sek)}
-                        </div>
-                        <div className="text-[10px] text-gray-400">
-                          {deal.probability}% sannolikhet
+                      <div className="flex flex-col items-end gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenEditModal(deal);
+                          }}
+                          className="px-2.5 py-1 rounded-lg border border-gray-200 hover:border-[#800020] text-gray-600 hover:text-[#800020] hover:bg-[#800020]/5 text-xs font-semibold flex items-center gap-1 transition"
+                          title="Redigera affär"
+                        >
+                          <Edit3 className="w-3 h-3" />
+                          <span>Redigera</span>
+                        </button>
+                        <div className="text-right">
+                          <div className="text-lg font-black text-[#800020] font-display">
+                            {formatSek(deal.value_sek)}
+                          </div>
+                          <div className="text-[10px] text-gray-400">
+                            {deal.probability}% sannolikhet
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -860,25 +997,36 @@ export const CrmPipelineModule: React.FC<CrmPipelineModuleProps> = ({
                           </div>
                         </td>
                         <td className="py-3.5 px-4 text-right">
-                          {normalizedStage !== 'closed_won' ? (
+                          <div className="inline-flex items-center gap-1.5 justify-end">
                             <button
-                              onClick={() => {
-                                onUpdateStage(deal.id, 'closed_won');
-                                if (onAwardBoosterPoints) {
-                                  onAwardBoosterPoints(100, `Stängd affär: ${deal.title}`, 'DEAL_WON');
-                                  setWonDealCelebration({ title: deal.title, value: deal.value_sek });
-                                }
-                              }}
-                              className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] transition inline-flex items-center gap-1 shadow-xs"
+                              type="button"
+                              onClick={() => handleOpenEditModal(deal)}
+                              className="px-2.5 py-1 rounded-lg border border-gray-200 hover:border-[#800020] text-gray-700 hover:text-[#800020] hover:bg-[#800020]/5 font-bold text-[10px] transition inline-flex items-center gap-1 shadow-xs"
+                              title="Redigera affärsmöjlighet"
                             >
-                              <CheckCircle2 className="w-3 h-3" />
-                              <span>Markera Vunnen</span>
+                              <Edit3 className="w-3 h-3" />
+                              <span>Redigera</span>
                             </button>
-                          ) : (
-                            <span className="text-[10px] font-black text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">
-                              WON +100 BP
-                            </span>
-                          )}
+                            {normalizedStage !== 'closed_won' ? (
+                              <button
+                                onClick={() => {
+                                  onUpdateStage(deal.id, 'closed_won');
+                                  if (onAwardBoosterPoints) {
+                                    onAwardBoosterPoints(100, `Stängd affär: ${deal.title}`, 'DEAL_WON');
+                                    setWonDealCelebration({ title: deal.title, value: deal.value_sek });
+                                  }
+                                }}
+                                className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] transition inline-flex items-center gap-1 shadow-xs"
+                              >
+                                <CheckCircle2 className="w-3 h-3" />
+                                <span>Markera Vunnen</span>
+                              </button>
+                            ) : (
+                              <span className="text-[10px] font-black text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">
+                                WON +100 BP
+                              </span>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -907,7 +1055,11 @@ export const CrmPipelineModule: React.FC<CrmPipelineModuleProps> = ({
                 </div>
               </div>
               <button 
-                onClick={() => setShowAddModal(false)} 
+                type="button"
+                onClick={() => {
+                  resetAddForm();
+                  setShowAddModal(false);
+                }} 
                 className="w-7 h-7 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600"
               >
                 <X className="w-5 h-5" />
@@ -967,6 +1119,7 @@ export const CrmPipelineModule: React.FC<CrmPipelineModuleProps> = ({
                     type="number"
                     required
                     step="5000"
+                    placeholder="t.ex. 180000"
                     value={valueSek}
                     onChange={e => setValueSek(e.target.value)}
                     className="w-full bg-[#F4F5F7] border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 focus:outline-none focus:border-[#800020]"
@@ -997,7 +1150,7 @@ export const CrmPipelineModule: React.FC<CrmPipelineModuleProps> = ({
                 </label>
                 <input
                   type="text"
-                  placeholder="t.ex. Sofia Eklund (Warm Intro i appen)"
+                  placeholder="t.ex. Bengt Kalin eller Booster Friends"
                   value={referralSource}
                   onChange={e => setReferralSource(e.target.value)}
                   className="w-full bg-[#F4F5F7] border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 focus:outline-none focus:border-[#800020]"
@@ -1011,7 +1164,7 @@ export const CrmPipelineModule: React.FC<CrmPipelineModuleProps> = ({
                   </label>
                   <input
                     type="text"
-                    placeholder="t.ex. Skicka presentationsutkast"
+                    placeholder="t.ex. Demo av system eller boka möte"
                     value={nextStep}
                     onChange={e => setNextStep(e.target.value)}
                     className="w-full bg-[#F4F5F7] border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 focus:outline-none focus:border-[#800020]"
@@ -1047,7 +1200,10 @@ export const CrmPipelineModule: React.FC<CrmPipelineModuleProps> = ({
               <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">
                 <button
                   type="button"
-                  onClick={() => setShowAddModal(false)}
+                  onClick={() => {
+                    resetAddForm();
+                    setShowAddModal(false);
+                  }}
                   className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-semibold text-gray-700 hover:bg-gray-50"
                 >
                   Avbryt
@@ -1059,6 +1215,235 @@ export const CrmPipelineModule: React.FC<CrmPipelineModuleProps> = ({
                   <Plus className="w-3.5 h-3.5" />
                   <span>Spara i Min Pipeline</span>
                 </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: REDIGERA AFFÄRSMÖJLIGHET */}
+      {editingDeal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-gray-200 animate-in zoom-in-95 max-h-[92vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-[#800020]/10 flex items-center justify-center text-[#800020]">
+                  <Edit3 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900 text-base">
+                    Redigera Affärsmöjlighet
+                  </h3>
+                  <p className="text-[11px] text-gray-500">Uppdatera information, fas eller belopp</p>
+                </div>
+              </div>
+              <button 
+                type="button"
+                onClick={handleCloseEditModal} 
+                className="w-7 h-7 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditedDeal} className="space-y-3.5 my-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Affärens titel / leverans *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="t.ex. Årligt SaaS Licensavtal"
+                  value={editTitle}
+                  onChange={e => setEditTitle(e.target.value)}
+                  className="w-full bg-[#F4F5F7] border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 focus:outline-none focus:border-[#800020]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Kundföretag *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="t.ex. Nordic Tech Group AB"
+                    value={editClientCompany}
+                    onChange={e => setEditClientCompany(e.target.value)}
+                    className="w-full bg-[#F4F5F7] border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 focus:outline-none focus:border-[#800020]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Kontaktperson hos kund
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="t.ex. Sara Lind, IT-chef"
+                    value={editContactPerson}
+                    onChange={e => setEditContactPerson(e.target.value)}
+                    className="w-full bg-[#F4F5F7] border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 focus:outline-none focus:border-[#800020]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Uppskattat värde (SEK) *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    step="5000"
+                    placeholder="t.ex. 180000"
+                    value={editValueSek}
+                    onChange={e => setEditValueSek(e.target.value)}
+                    className="w-full bg-[#F4F5F7] border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 focus:outline-none focus:border-[#800020]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Fas i pipelinen
+                  </label>
+                  <select
+                    value={editStage}
+                    onChange={e => setEditStage(e.target.value as PipelineStage)}
+                    className="w-full bg-[#F4F5F7] border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 font-semibold focus:outline-none"
+                  >
+                    <option value="lead">1. Identifierad Möjlighet (Lead)</option>
+                    <option value="intro_sent">2. Introduktion Skickad</option>
+                    <option value="meeting_done">3. 1-till-1 Möte Genomfört</option>
+                    <option value="proposal">4. Offert / Förslag</option>
+                    <option value="closed_won">5. Stängd Affär (+100 BP)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Sannolikhet: {editProbability}%
+                  </label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="5"
+                    value={editProbability}
+                    onChange={e => setEditProbability(Number(e.target.value))}
+                    className="w-full accent-[#800020] mt-2"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Referenskälla / Introducerad av
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="t.ex. Bengt Kalin"
+                    value={editReferralSource}
+                    onChange={e => setEditReferralSource(e.target.value)}
+                    className="w-full bg-[#F4F5F7] border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 focus:outline-none focus:border-[#800020]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Nästa planerade åtgärd
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="t.ex. Demo av system"
+                    value={editNextStep}
+                    onChange={e => setEditNextStep(e.target.value)}
+                    className="w-full bg-[#F4F5F7] border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 focus:outline-none focus:border-[#800020]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Förfallodatum
+                  </label>
+                  <input
+                    type="date"
+                    value={editDueDate}
+                    onChange={e => setEditDueDate(e.target.value)}
+                    className="w-full bg-[#F4F5F7] border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 focus:outline-none focus:border-[#800020]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Privata anteckningar
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Kontext, kundbehov, kontaktpunkter..."
+                  value={editNotes}
+                  onChange={e => setEditNotes(e.target.value)}
+                  className="w-full bg-[#F4F5F7] border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 focus:outline-none focus:border-[#800020]"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
+                <div>
+                  {onDeleteDeal && (
+                    !showDeleteConfirm ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowDeleteConfirm(true)}
+                        className="px-3 py-2 rounded-xl text-rose-600 hover:bg-rose-50 border border-rose-200 text-xs font-semibold flex items-center gap-1.5 transition"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Ta bort</span>
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-1.5 bg-rose-50 border border-rose-200 p-1 rounded-xl">
+                        <span className="text-[11px] font-bold text-rose-700 px-1">Radera?</span>
+                        <button
+                          type="button"
+                          onClick={handleDeleteCurrentDeal}
+                          className="px-2 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-bold"
+                        >
+                          Ja
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowDeleteConfirm(false)}
+                          className="px-2 py-1 rounded-lg text-gray-600 hover:bg-gray-200 text-[10px]"
+                        >
+                          Nej
+                        </button>
+                      </div>
+                    )
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleCloseEditModal}
+                    className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                  >
+                    Avbryt
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-xl bg-[#800020] hover:bg-[#580016] text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5"
+                  >
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Spara ändringar</span>
+                  </button>
+                </div>
               </div>
             </form>
           </div>

@@ -1045,6 +1045,14 @@ export default function App() {
     setPipelineItems(prev => [item, ...prev]);
   };
 
+  const handleEditDeal = (updatedDeal: DealPipelineItem) => {
+    setPipelineItems(prev => prev.map(item => item.id === updatedDeal.id ? updatedDeal : item));
+  };
+
+  const handleDeleteDeal = (dealId: string) => {
+    setPipelineItems(prev => prev.filter(item => item.id !== dealId));
+  };
+
   const handleUpdateMemberLevel = (memberId: string, level: 'BRONZE' | 'SILVER' | 'GOLD') => {
     setMembers(prev => prev.map(m => m.id === memberId ? { ...m, membership_level: level } : m));
     if (currentUser?.id === memberId) {
@@ -1564,6 +1572,7 @@ export default function App() {
     });
     setFabDealTitle('');
     setFabDealCompany('');
+    setFabDealValue('');
     setShowFabModal(false);
     setActiveFabAction(null);
   };
@@ -2806,6 +2815,8 @@ export default function App() {
             pipelineItems={pipelineItems}
             onUpdateStage={handleUpdateDealStage}
             onAddDeal={handleAddDeal}
+            onEditDeal={handleEditDeal}
+            onDeleteDeal={handleDeleteDeal}
             onAwardBoosterPoints={handleAwardPoints}
           />
         );
@@ -3062,6 +3073,8 @@ export default function App() {
             pipelineItems={pipelineItems}
             onUpdateStage={handleUpdateDealStage}
             onAddDeal={handleAddDeal}
+            onEditDeal={handleEditDeal}
+            onDeleteDeal={handleDeleteDeal}
             onAwardBoosterPoints={handleAwardPoints}
           />
         );
